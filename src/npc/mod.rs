@@ -1,9 +1,8 @@
 use bevy::prelude::*;
 use bevy_inspector_egui::Inspectable;
-use log::info;
 
 use crate::{
-    combat::{stats::*, Leader, Recruted, Team},
+    combat::{stats::*, InCombat, Leader, Recruted, Team},
     constants::{
         character::npc::{
             movement::{ADMIRAL_POSITION, FABICURION_POSITION, HUGO_POSITION, OLF_POSITION},
@@ -30,7 +29,12 @@ impl Plugin for NPCPlugin {
 // Check in location/temple/mod.rs
 // the npc_z_position
 
-fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
+fn spawn_characters(
+    mut commands: Commands,
+    fabien: Res<FabienSheet>,
+
+    asset_server: Res<AssetServer>,
+) {
     // ADMIRAL
     commands
         .spawn(SpriteSheetBundle {
@@ -47,7 +51,9 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
         .insert(NPC)
         .insert(Team(TEAM_MC))
         .insert(Recruted)
-        .insert(StatBundle::default());
+        .insert(StatBundle::default())
+        .insert(InCombat)
+        .insert(Interaction::None);
 
     // HUGO
     commands
@@ -65,10 +71,16 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
         .insert(NPC)
         .insert(Team(TEAM_MC))
         .insert(Recruted)
-        .insert(StatBundle::default());
+        .insert(StatBundle::default())
+        .insert(InCombat);
 }
 
-fn spawn_aggresives_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
+fn spawn_aggresives_characters(
+    mut commands: Commands,
+    fabien: Res<FabienSheet>,
+
+    asset_server: Res<AssetServer>,
+) {
     // let olf_dialog_tree = init_tree_flat(String::from(OLF_DIALOG));
 
     // OLF
@@ -91,7 +103,8 @@ fn spawn_aggresives_characters(mut commands: Commands, fabien: Res<FabienSheet>)
         .insert(NPC)
         .insert(Leader)
         .insert(Team(TEAM_OLF))
-        .insert(StatBundle::default());
+        .insert(StatBundle::default())
+        .insert(InCombat);
 
     // Two FABICURION
     for i in 0..2 {
@@ -120,6 +133,7 @@ fn spawn_aggresives_characters(mut commands: Commands, fabien: Res<FabienSheet>)
             .insert(NPC)
             .insert(Leader)
             .insert(Team(TEAM_OLF))
-            .insert(StatBundle::default());
+            .insert(StatBundle::default())
+            .insert(InCombat);
     }
 }

@@ -19,9 +19,6 @@ pub fn button_system(
         let mut text = text_query.get_mut(children[0]).unwrap();
         match *interaction {
             Interaction::Clicked => {
-
-
-
                 text.sections[0].value = "BOM".to_string();
                 *color = PRESSED_BUTTON.into();
             }
@@ -39,11 +36,11 @@ pub fn button_system(
 
 
 #[derive(Component, Default)]
-struct ScrollingList {
+pub struct ScrollingList {
     position: f32,
 }
 
-fn mouse_scroll(
+pub fn mouse_scroll(
     mut mouse_wheel_events: EventReader<MouseWheel>,
     mut query_list: Query<(&mut ScrollingList, &mut Style, &Children, &Node)>,
     query_item: Query<&Node>,
@@ -73,11 +70,19 @@ pub fn inspect_combat_unit(
         &Interaction,
         (Changed<Interaction>, With<NPC>),
     >,
-    mut text_query: Query<&mut Text>,
 ) {
 
     for interaction in interaction_query.iter_mut() {
-
+        match *interaction {
+            Interaction::Clicked => {
+                info!("Touched! upsi");
+            }
+            Interaction::Hovered => {
+                
+            }
+            Interaction::None => {
+                
+            }
+        }
     }
-
 }

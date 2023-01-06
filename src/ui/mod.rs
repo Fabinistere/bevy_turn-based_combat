@@ -2,6 +2,7 @@ use bevy::{prelude::*, winit::WinitSettings};
 
 pub mod dialog_player;
 pub mod dialog_box;
+pub mod dialog_combat;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[derive(SystemLabel)]
@@ -22,6 +23,7 @@ impl Plugin for UiPlugin {
             .add_startup_system(dialog_box::setup.label(UiLabel::Textures))
 
             .add_system(dialog_player::button_system.label(UiLabel::Player))
+            .add_system(dialog_player::mouse_scroll)
             ;
     }
 }
