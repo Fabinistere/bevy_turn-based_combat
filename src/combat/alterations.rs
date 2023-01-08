@@ -53,7 +53,7 @@ pub struct Alteration {
     pub shield_dealt: i32,
 
     // Stats' Modification
-
+    // TODO: feature allow Stats' Modification as a dot
     /// reduce/gain hp max
     pub hp_max: i32,
     /// reduce/gain mp max

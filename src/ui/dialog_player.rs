@@ -7,11 +7,13 @@ use bevy::{
 
 use crate::{constants::ui::dialogs::*, npc::NPC};
 
+use super::dialog_combat::ButtonSelection;
+
 /// Action for each Interaction of the button
 pub fn button_system(
     mut interaction_query: Query<
         (&Interaction, &mut BackgroundColor, &Children),
-        (Changed<Interaction>, With<Button>),
+        (Changed<Interaction>, With<Button>, Without<ButtonSelection>),
     >,
     mut text_query: Query<&mut Text>,
 ) {

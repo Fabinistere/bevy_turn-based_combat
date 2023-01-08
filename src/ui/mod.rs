@@ -24,6 +24,8 @@ impl Plugin for UiPlugin {
 
             .add_system(dialog_player::button_system.label(UiLabel::Player))
             .add_system(dialog_player::mouse_scroll)
+            .add_system(dialog_combat::select_unit_system)
+            .add_system(dialog_combat::update_stats_displayer)
             ;
     }
 }

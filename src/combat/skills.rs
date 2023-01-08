@@ -3,6 +3,7 @@
 use crate::combat::alterations::*;
 use bevy::prelude::*;
 
+#[derive(Default)]
 pub enum SkillType {
     Heal,
     Attack,
@@ -11,6 +12,7 @@ pub enum SkillType {
     DefenseSpe,
     Buff,
     Debuff,
+    #[default]
     Pass,
     Flee,
 }
@@ -68,7 +70,7 @@ pub struct Skill {
 impl Default for Skill {
     fn default() -> Self {
         Skill {
-            skill_type: SkillType::Pass,
+            skill_type: Default::default(),
             target_option: (TargetSide::Ally, 0),
             turn_delay: 0,
             initiative: 0,
