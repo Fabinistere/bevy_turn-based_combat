@@ -38,7 +38,7 @@ use std::time::Duration;
 
 pub mod skills;
 pub mod stats;
-pub mod buffs;
+pub mod alterations;
 
 use crate::{
     // combat::stats::*,

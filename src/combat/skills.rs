@@ -1,6 +1,6 @@
 //! Implement SKILLS
 
-use crate::combat::buffs::*;
+use crate::combat::alterations::*;
 use bevy::prelude::*;
 
 pub enum SkillType {
@@ -34,7 +34,7 @@ pub struct Skill {
     ///
     /// - target all ally party: (Ally, 6)
     /// - self-target: (Ally, 0)
-    pub target: (TargetSide, i32),
+    pub target_option: (TargetSide, i32),
     /// Wait for the turn delay to execute
     pub turn_delay: i32,
     /// initiave: slower; faster
@@ -55,7 +55,7 @@ pub struct Skill {
     pub mana_cost: i32,
     // TODO: feature: shield cost ?
     /// Debuff or Buff
-    pub evolve: Vec<Evolve>,
+    pub alteration: Vec<Alteration>,
     /// The 'list' of skills called after this one
     ///
     /// # Note
@@ -69,7 +69,7 @@ impl Default for Skill {
     fn default() -> Self {
         Skill {
             skill_type: SkillType::Pass,
-            target: (TargetSide::Ally, 0),
+            target_option: (TargetSide::Ally, 0),
             turn_delay: 0,
             initiative: 0,
             hp_dealt: 0,
@@ -77,7 +77,7 @@ impl Default for Skill {
             mana_dealt: 0,
             mana_cost: 0,
             shield_dealt: 0,
-            evolve: vec![],
+            alteration: vec![],
             skills_queue: vec![],
             description: String::from("..."),
         }
