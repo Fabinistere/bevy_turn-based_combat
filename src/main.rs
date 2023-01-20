@@ -27,7 +27,7 @@ fn main() {
                     window: WindowDescriptor {
                         width: height * RESOLUTION,
                         height: height,
-                        title: "Dialog".to_string(),
+                        title: "Turn-Based Combat".to_string(),
                         resizable: false,
                         ..default()
                     },
