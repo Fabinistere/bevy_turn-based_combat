@@ -1,8 +1,15 @@
 //! Implement SKILLS
 
-use crate::combat::alterations::*;
+use crate::{
+    combat::{
+        alterations::*,
+        stats::{Attack, Hp},
+    },
+    ui::dialog_player::ExecuteSkillEvent,
+};
 use bevy::prelude::*;
 
+#[derive(Default)]
 pub enum SkillType {
     Heal,
     Attack,
@@ -11,6 +18,7 @@ pub enum SkillType {
     DefenseSpe,
     Buff,
     Debuff,
+    #[default]
     Pass,
     Flee,
 }
@@ -68,7 +76,7 @@ pub struct Skill {
 impl Default for Skill {
     fn default() -> Self {
         Skill {
-            skill_type: SkillType::Pass,
+            skill_type: Default::default(),
             target_option: (TargetSide::Ally, 0),
             turn_delay: 0,
             initiative: 0,
@@ -84,6 +92,47 @@ impl Default for Skill {
     }
 }
 
-fn skill_caller(query: Query<(Entity, &Skill)>, // ??
+fn _skill_caller(_query: Query<(Entity, &Skill)>, // ??
 ) {
+}
+
+/// DOC
+pub fn execute_skill(
+    mut execute_skill_event: EventReader<ExecuteSkillEvent>,
+    // unit_query: Query<
+    //     (Entity, &UnitTargeted, &UnitSelected)
+    // >,
+    mut combat_unit: Query<(Entity, &mut Hp, &Attack)>,
+) {
+    for event in execute_skill_event.iter() {
+        let self_cast = event.caster == event.target;
+
+        if self_cast {
+            match combat_unit.get_mut(event.caster) {
+                Err(_) => warn!("Caster (=Target) is invalid"),
+                Ok((_caster, mut caster_hp, caster_attack)) => {
+                    let hp_dealt = event.skill.hp_dealt + event.skill.hp_dealt * caster_attack.0;
+                    caster_hp.current_hp = caster_hp.current_hp - hp_dealt;
+                    info!(
+                        "hp dealt: {}; caster's hp: {}",
+                        hp_dealt, caster_hp.current_hp
+                    );
+                }
+            }
+        } else {
+            match combat_unit.get_many_mut([event.caster, event.target]) {
+                Err(e) => warn!("Caster or Target Invalid: {:?}", e),
+                Ok(
+                    [(_caster, _caster_hp, caster_attack), (_target, mut target_hp, _target_attack)],
+                ) => {
+                    let hp_dealt = event.skill.hp_dealt + event.skill.hp_dealt * caster_attack.0;
+                    target_hp.current_hp = target_hp.current_hp - hp_dealt;
+                    info!(
+                        "hp dealt: {}; target's hp: {}",
+                        hp_dealt, target_hp.current_hp
+                    );
+                }
+            }
+        }
+    }
 }

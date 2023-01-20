@@ -1,5 +1,7 @@
 //! List all the technic possible
 
+use super::skills::{Skill, SkillType};
+
 impl Skill {
     pub fn bam() -> Self {
         Skill {

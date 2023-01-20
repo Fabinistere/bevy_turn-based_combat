@@ -5,20 +5,62 @@ use bevy::{
     prelude::*,
 };
 
-use crate::{constants::ui::dialogs::*, npc::NPC};
+use crate::{
+    constants::ui::dialogs::*,
+    combat::skills::Skill,
+};
+
+use super::dialog_combat::{ButtonSelection, UnitTargeted, UnitSelected};
+
+/// Happens in
+///   - ui::dialog_player::button_system
+///     - BAM clicked
+/// Read in
+///   - ???
+///     - Execute the skill with the UnitSelected's Stats
+///     to the UnitTargetted
+pub struct ExecuteSkillEvent {
+    pub skill: Skill,
+    pub caster: Entity,
+    pub target: Entity,
+}
 
 /// Action for each Interaction of the button
 pub fn button_system(
     mut interaction_query: Query<
         (&Interaction, &mut BackgroundColor, &Children),
-        (Changed<Interaction>, With<Button>),
+        (Changed<Interaction>, With<Button>, Without<ButtonSelection>),
     >,
+
     mut text_query: Query<&mut Text>,
+
+    unit_selected_query: Query<
+        (Entity, &UnitSelected)
+    >,
+    unit_targeted_query: Query<
+        (Entity, &UnitTargeted)
+    >,
+
+    mut execute_skill_event: EventWriter<ExecuteSkillEvent>,
 ) {
     for (interaction, mut color, children) in &mut interaction_query {
         let mut text = text_query.get_mut(children[0]).unwrap();
         match *interaction {
             Interaction::Clicked => {
+                let (_, caster) = unit_selected_query.single();
+                let (_, target) = unit_targeted_query.single();
+
+                let bam_skill = Skill::bam();
+
+                // TODO: send event to inflict the skill to the entity contained in UnitTargeted
+                execute_skill_event.send(
+                    ExecuteSkillEvent {
+                        skill: bam_skill,
+                        caster: caster.0.unwrap(),
+                        target: target.0.unwrap()
+                    }
+                );
+
                 text.sections[0].value = "BOM".to_string();
                 *color = PRESSED_BUTTON.into();
             }
@@ -60,29 +102,6 @@ pub fn mouse_scroll(
             scrolling_list.position += dy;
             scrolling_list.position = scrolling_list.position.clamp(-max_scroll, 0.);
             style.position.top = Val::Px(scrolling_list.position);
-        }
-    }
-}
-
-
-pub fn inspect_combat_unit(
-    mut interaction_query: Query<
-        &Interaction,
-        (Changed<Interaction>, With<NPC>),
-    >,
-) {
-
-    for interaction in interaction_query.iter_mut() {
-        match *interaction {
-            Interaction::Clicked => {
-                info!("Touched! upsi");
-            }
-            Interaction::Hovered => {
-                
-            }
-            Interaction::None => {
-                
-            }
         }
     }
 }
