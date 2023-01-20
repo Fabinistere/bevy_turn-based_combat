@@ -32,8 +32,6 @@ impl Plugin for NPCPlugin {
 fn spawn_characters(
     mut commands: Commands,
     fabien: Res<FabienSheet>,
-
-    asset_server: Res<AssetServer>,
 ) {
     // ADMIRAL
     commands
@@ -78,8 +76,6 @@ fn spawn_characters(
 fn spawn_aggresives_characters(
     mut commands: Commands,
     fabien: Res<FabienSheet>,
-
-    asset_server: Res<AssetServer>,
 ) {
     // let olf_dialog_tree = init_tree_flat(String::from(OLF_DIALOG));
 

@@ -34,23 +34,19 @@ use bevy::{
     // ecs::schedule::ShouldRun,
     time::FixedTimestep,
 };
-use std::time::Duration;
+
+use crate::constants::FIXED_TIME_STEP;
 
 pub mod skills;
+pub mod skill_list;
 pub mod stats;
 pub mod alterations;
 
-use crate::{
-    // combat::stats::*,
-    // combat::stats::{show_hp, show_mana}
-    constants::{character::npc::movement::EVASION_TIMER, FIXED_TIME_STEP},
-
-    npc::NPC,
-};
+// TODO: Use a stack (pile FIFO) to create CombatState
 
 /// Just help to create a ordered system in the app builder
 #[derive(PartialEq, Clone, Hash, Debug, Eq, SystemLabel)]
-enum CombatState {
+pub enum CombatState {
     Initiation,
     Observation,
     // ManageStuff,
@@ -74,6 +70,7 @@ impl Plugin for CombatPlugin {
                     .with_run_criteria(FixedTimestep::step(FIXED_TIME_STEP as f64))
                     .label(CombatState::Observation)
             )
+            .add_system(skills::execute_skill)
             // .add_system_to_stage(
             //     CoreStage::Update,
             //     stats::roll_initiative
@@ -94,6 +91,9 @@ impl Plugin for CombatPlugin {
 fn observation() {
     // println!("Now it's your turn...")
 }
+
+#[derive(Component)]
+pub struct CombatPhase( pub CombatState );
 
 #[derive(Component)]
 pub struct Karma(pub i32);
