@@ -25,6 +25,12 @@ pub struct HpMeter;
 #[derive(Component)]
 pub struct MpMeter;
 
+/// DOC
+pub struct UpdateUnitSelectedEvent(pub Entity);
+
+/// DOC
+pub struct UpdateUnitTargetedEvent(pub Entity);
+
 pub fn select_unit_system(
     mut button_system: Query<
         (Entity, &Interaction, &mut BackgroundColor),
@@ -36,28 +42,21 @@ pub fn select_unit_system(
         With<InCombat>
     >,
 
-    mut selected_query: Query<
-        (Entity, &mut UnitSelected, &mut Text),
-        Without<UnitTargeted>
-    >,
-    mut targeted_query: Query<
-        (Entity, &mut UnitTargeted, &mut Text),
-        Without<UnitSelected>
-    >,
+    mut update_unit_selected_event: EventWriter<UpdateUnitSelectedEvent>,
+    mut update_unit_targeted_event: EventWriter<UpdateUnitTargetedEvent>,
 ) {
     for (_button, interaction, mut color) in &mut button_system {
         match *interaction {
             Interaction::Clicked => {
-                for (npc, name) in combat_unit_query.iter() {
+                for (npc, _name) in combat_unit_query.iter() {
+
+                    // select and target the first one on the list
+
                     // DEBUG: TEMPORARY SELECTION
-                    let (_, mut unit_selected, mut unit_selected_text) = selected_query.single_mut();
-                    unit_selected.0 = Some(npc);
-                    unit_selected_text.sections[0].value = format!("Unit Selected: {}", name);
+                    update_unit_selected_event.send(UpdateUnitSelectedEvent(npc));
 
                     // DEBUG: TEMPORARY TARGET
-                    let (_, mut unit_targeted, mut unit_targeted_text) = targeted_query.single_mut();
-                    unit_targeted.0 = Some(npc);
-                    unit_targeted_text.sections[0].value = format!("Unit Targeted: {}", name);
+                    update_unit_targeted_event.send(UpdateUnitTargetedEvent(npc));
 
                     break;
                 }
@@ -65,11 +64,64 @@ pub fn select_unit_system(
                 *color = PRESSED_BUTTON.into();
             }
             // TODO: feature - preview
+            // Store the previous selected in the temp and restore it when none
             Interaction::Hovered => {
                 *color = HOVERED_BUTTON.into();
             }
             Interaction::None => {
                 *color = NORMAL_BUTTON.into();
+            }
+        }
+    }
+}
+
+/// Event Handler of UpdateUnitSelectedEvent
+pub fn update_selected_unit(
+    mut event_query: EventReader<UpdateUnitSelectedEvent>,
+
+    combat_unit_query: Query<
+        (Entity, &Name),
+        With<InCombat>
+    >,
+
+    mut selected_query: Query<
+        (Entity, &mut UnitSelected, &mut Text)
+    >,
+) {
+    for event in event_query.iter() {
+        match combat_unit_query.get(event.0) {
+            Err(e) => warn!("The entity selected is invalid: {:?}", e),
+            Ok((character, name)) => {
+                let (_, mut unit_selected, mut unit_selected_text) = selected_query.single_mut();
+                unit_selected.0 = Some(character);
+                unit_selected_text.sections[0].value = format!("Unit Selected: {}", name);
+                // TODO: Update stats panel
+            }
+        }
+    }
+}
+
+/// Event Handler of UpdateUnitSelectedEvent
+pub fn update_targeted_unit(
+    mut event_query: EventReader<UpdateUnitTargetedEvent>,
+
+    combat_unit_query: Query<
+        (Entity, &Name),
+        With<InCombat>
+    >,
+
+    mut targeted_query: Query<
+        (Entity, &mut UnitTargeted, &mut Text)
+    >,
+) {
+    for event in event_query.iter() {
+        match combat_unit_query.get(event.0) {
+            Err(e) => warn!("The entity targeted is invalid: {:?}", e),
+            Ok((character, name)) => {
+                let (_, mut unit_targeted, mut unit_targeted_text) = targeted_query.single_mut();
+                unit_targeted.0 = Some(character);
+                unit_targeted_text.sections[0].value = format!("Unit Targeted: {}", name);
+                // TODO: Update stats panel
             }
         }
     }
