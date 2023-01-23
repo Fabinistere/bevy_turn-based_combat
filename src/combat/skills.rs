@@ -260,6 +260,7 @@ pub fn execute_skill(
                     _ => {}
                 }
             }
+            Err(e) => warn!("Caster or Target Invalid or selfcast {:?}", e),
             _ => warn!("Caster or Target Invalid or selfcast")
         }
     }
