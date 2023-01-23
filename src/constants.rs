@@ -138,6 +138,7 @@ pub mod combat {
     }
 
     pub mod skill {
+        pub const MAX_PARTY: i32 = 6;
         pub const BAM: i32 = 150;
     }
 

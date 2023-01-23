@@ -10,10 +10,13 @@ use crate::npc::NPC;
 pub struct StatBundle {
     pub hp: Hp,
     pub mana: Mana,
+    pub shield: Shield,
     pub initiative: Initiative,
     pub attack: Attack,
     pub attack_spe: AttackSpe,
+    /// Physical Resistance
     pub defense: Defense,
+    /// Magical Resistance
     pub defense_spe: DefenseSpe,
 }
 
@@ -22,6 +25,7 @@ impl Default for StatBundle {
         StatBundle {
             hp: Hp::default(),
             mana: Mana::default(),
+            shield: Shield::default(),
             initiative: Initiative::default(),
             attack: Attack::default(),
             attack_spe: AttackSpe::default(),
@@ -96,6 +100,20 @@ pub fn show_mana(npc_query: Query<(&Mana, &Name), With<NPC>>) {
             "DEBUG: {}'s Mana: {}/{},",
             npc_name, npc_mana.current_mana, npc_mana.max_mana
         );
+    }
+}
+
+/// ----------Shield----------
+///
+/// Start of the Game: 0-100shield -> End of the Game: 10 000shield.
+///
+/// Can be modified by level, item, buff, debuff, technics.
+#[derive(Component)]
+pub struct Shield (pub i32);
+
+impl Default for Shield {
+    fn default() -> Self {
+        Shield(0)
     }
 }
 
