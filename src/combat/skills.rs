@@ -197,12 +197,12 @@ pub fn execute_skill(
                         let hp_dealt = skill_executed.hp_dealt
                             + skill_executed.hp_dealt * multiplier / 100
                             - skill_executed.hp_dealt * target_defense.0 / 100;
-                        info!("hp dealt: {}", hp_dealt);
+                        if hp_dealt > 0 { info!("hp dealt: {}", hp_dealt); }
 
                         // ---- MP ----
                         // x + x*(caster_attack_spe)%
                         let mp_dealt = skill_executed.mana_dealt;
-                        info!("mp dealt: {}", mp_dealt);
+                        if mp_dealt > 0 { info!("mp dealt: {}", mp_dealt); }
 
                         // ---- EXECUTION ----
                         if target_shield.0 < hp_dealt {
@@ -227,13 +227,13 @@ pub fn execute_skill(
                         let hp_dealt = skill_executed.hp_dealt
                             + skill_executed.hp_dealt * multiplier / 100
                             - skill_executed.hp_dealt * target_defense_spe.0 / 100;
-                        info!("hp dealt: {}", hp_dealt);
+                        if hp_dealt > 0 { info!("hp dealt: {}", hp_dealt); }
 
                         // ---- MP ----
                         // x + x*(caster_attack_spe)%
                         let mp_dealt = skill_executed.mana_dealt
                             + skill_executed.mana_dealt * multiplier / 100;
-                        info!("mp dealt: {}", mp_dealt);
+                        if mp_dealt > 0 { info!("mp dealt: {}", mp_dealt); }
 
                         // ---- EXECUTION ----
                         target_hp.current_hp -= hp_dealt;
@@ -252,7 +252,7 @@ pub fn execute_skill(
                         }
                     }
                     SkillType::DefenseSpe => {
-                        // NONE
+                        // TODO: Magic Shield
                     }
                     SkillType::Pass => {
                         // force action: Pass to the target next turn
