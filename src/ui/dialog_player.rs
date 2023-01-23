@@ -25,6 +25,20 @@ pub struct ExecuteSkillEvent {
     pub target: Entity,
 }
 
+pub fn cursor_position(
+    windows: Res<Windows>,
+) {
+    // Games typically only have one window (the primary window).
+    // For multi-window applications, you need to use a specific window ID here.
+    let window = windows.get_primary().unwrap();
+
+    if let Some(_position) = window.cursor_position() {
+        // cursor is inside the window, position given
+    } else {
+        // cursor is not inside the window
+    }
+}
+
 /// Action for each Interaction of the button
 pub fn button_system(
     mut interaction_query: Query<
