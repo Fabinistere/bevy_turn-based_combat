@@ -6,11 +6,12 @@ use bevy::{
 };
 
 use crate::{
-    constants::ui::dialogs::*,
     combat::skills::Skill,
+    constants::ui::dialogs::*,
+    ui::dialog_combat::{ButtonSelection, Selected, Targeted},
 };
 
-use super::dialog_combat::{ButtonSelection, UnitTargeted, UnitSelected};
+use super::dialog_combat::ButtonTargeting;
 
 /// Happens in
 ///   - ui::dialog_player::button_system
@@ -43,17 +44,18 @@ pub fn cursor_position(
 pub fn button_system(
     mut interaction_query: Query<
         (&Interaction, &mut BackgroundColor, &Children),
-        (Changed<Interaction>, With<Button>, Without<ButtonSelection>),
+        (
+            Changed<Interaction>,
+            With<Button>,
+            Without<ButtonSelection>,
+            Without<ButtonTargeting>,
+        ),
     >,
 
     mut text_query: Query<&mut Text>,
 
-    unit_selected_query: Query<
-        (Entity, &UnitSelected)
-    >,
-    unit_targeted_query: Query<
-        (Entity, &UnitTargeted)
-    >,
+    unit_selected_query: Query<(Entity, &Selected)>,
+    unit_targeted_query: Query<(Entity, &Targeted)>,
 
     mut execute_skill_event: EventWriter<ExecuteSkillEvent>,
 ) {
@@ -61,19 +63,19 @@ pub fn button_system(
         let mut text = text_query.get_mut(children[0]).unwrap();
         match *interaction {
             Interaction::Clicked => {
-                let (_, caster) = unit_selected_query.single();
-                let (_, target) = unit_targeted_query.single();
-
-                let bam_skill = Skill::bam();
-
-                // TODO: send event to inflict the skill to the entity contained in UnitTargeted
-                execute_skill_event.send(
-                    ExecuteSkillEvent {
-                        skill: bam_skill,
-                        caster: caster.0.unwrap(),
-                        target: target.0.unwrap()
+                if let Ok((caster, _)) = unit_selected_query.get_single() {
+                    if let Ok((target, _)) = unit_targeted_query.get_single() {
+                        let bam_skill = Skill::bam();
+    
+                        // TODO: send event to inflict the skill to the Targeted entity
+                        execute_skill_event.send(ExecuteSkillEvent {
+                            skill: bam_skill,
+                            caster,
+                            target,
+                        });
                     }
-                );
+                }
+                
 
                 text.sections[0].value = "BOM".to_string();
                 *color = PRESSED_BUTTON.into();
@@ -89,7 +91,6 @@ pub fn button_system(
         }
     }
 }
-
 
 #[derive(Component, Default)]
 pub struct ScrollingList {

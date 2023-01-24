@@ -1,23 +1,25 @@
 use bevy::prelude::*;
 
 use crate::{
-    constants::ui::dialogs::*,
     combat::{
         stats::{Hp, Mana},
-        InCombat
+        InCombat,
     },
+    constants::ui::dialogs::*,
+    ui::dialog_panel::{CasterMeter, TargetMeter},
 };
-
-use super::dialog_panel::{CasterMeter, TargetMeter};
 
 #[derive(Component)]
 pub struct ButtonSelection;
 
 #[derive(Component)]
-pub struct UnitSelected(pub Option<Entity>);
+pub struct ButtonTargeting;
 
 #[derive(Component)]
-pub struct UnitTargeted(pub Option<Entity>);
+pub struct Selected;
+
+#[derive(Component)]
+pub struct Targeted;
 
 #[derive(Component)]
 pub struct HpMeter;
@@ -32,29 +34,79 @@ pub struct UpdateUnitSelectedEvent(pub Entity);
 pub struct UpdateUnitTargetedEvent(pub Entity);
 
 pub fn select_unit_system(
+    mut commands: Commands,
+
     mut button_system: Query<
         (Entity, &Interaction, &mut BackgroundColor),
-        (Changed<Interaction>, With<Button>, With<ButtonSelection>),
+        (
+            Changed<Interaction>,
+            With<Button>,
+            With<ButtonSelection>,
+            Without<ButtonTargeting>,
+        ),
     >,
 
-    combat_unit_query: Query<
-        (Entity, &Name),
-        With<InCombat>
-    >,
+    combat_unit_query: Query<(Entity, &Name), (With<InCombat>, Without<Selected>)>,
+    selected_unit: Query<Entity, With<Selected>>,
 
     mut update_unit_selected_event: EventWriter<UpdateUnitSelectedEvent>,
+) {
+    for (_button, interaction, mut color) in &mut button_system {
+        match *interaction {
+            Interaction::Clicked => {
+                for (npc, _name) in combat_unit_query.iter() {
+                    // select the first one on the list
+
+                    if let Ok(selected) = selected_unit.get_single() {
+                        commands.entity(selected).remove::<Selected>();
+                    }
+
+                    // DEBUG: TEMPORARY SELECTION
+                    update_unit_selected_event.send(UpdateUnitSelectedEvent(npc));
+
+                    break;
+                }
+
+                *color = PRESSED_BUTTON.into();
+            }
+            // TODO: feature - preview
+            // Store the previous selected in the temp and restore it when none
+            Interaction::Hovered => {
+                *color = HOVERED_BUTTON.into();
+            }
+            Interaction::None => {
+                *color = NORMAL_BUTTON.into();
+            }
+        }
+    }
+}
+
+pub fn target_unit_system(
+    mut commands: Commands,
+
+    mut button_system: Query<
+        (Entity, &Interaction, &mut BackgroundColor),
+        (
+            Changed<Interaction>,
+            With<Button>,
+            With<ButtonTargeting>,
+            Without<ButtonSelection>,
+        ),
+    >,
+
+    combat_unit_query: Query<(Entity, &Name), (With<InCombat>, Without<Targeted>)>,
+    targeted_unit: Query<Entity, With<Targeted>>,
+
     mut update_unit_targeted_event: EventWriter<UpdateUnitTargetedEvent>,
 ) {
     for (_button, interaction, mut color) in &mut button_system {
         match *interaction {
             Interaction::Clicked => {
                 for (npc, _name) in combat_unit_query.iter() {
-
-                    // select and target the first one on the list
-
-                    // DEBUG: TEMPORARY SELECTION
-                    update_unit_selected_event.send(UpdateUnitSelectedEvent(npc));
-
+                    // target the first one on the list
+                    if let Ok(targeted) = targeted_unit.get_single() {
+                        commands.entity(targeted).remove::<Targeted>();
+                    }
                     // DEBUG: TEMPORARY TARGET
                     update_unit_targeted_event.send(UpdateUnitTargetedEvent(npc));
 
@@ -77,25 +129,17 @@ pub fn select_unit_system(
 
 /// Event Handler of UpdateUnitSelectedEvent
 pub fn update_selected_unit(
+    mut commands: Commands,
+
     mut event_query: EventReader<UpdateUnitSelectedEvent>,
 
-    combat_unit_query: Query<
-        (Entity, &Name),
-        With<InCombat>
-    >,
-
-    mut selected_query: Query<
-        (Entity, &mut UnitSelected, &mut Text)
-    >,
+    combat_unit_query: Query<(Entity, &Name), With<InCombat>>,
 ) {
     for event in event_query.iter() {
         match combat_unit_query.get(event.0) {
             Err(e) => warn!("The entity selected is invalid: {:?}", e),
-            Ok((character, name)) => {
-                let (_, mut unit_selected, mut unit_selected_text) = selected_query.single_mut();
-                unit_selected.0 = Some(character);
-                unit_selected_text.sections[0].value = format!("Unit Selected: {}", name);
-                // TODO: Update stats panel
+            Ok((character, _name)) => {
+                commands.entity(character).insert(Selected);
             }
         }
     }
@@ -103,140 +147,107 @@ pub fn update_selected_unit(
 
 /// Event Handler of UpdateUnitSelectedEvent
 pub fn update_targeted_unit(
+    mut commands: Commands,
+
     mut event_query: EventReader<UpdateUnitTargetedEvent>,
 
-    combat_unit_query: Query<
-        (Entity, &Name),
-        With<InCombat>
-    >,
-
-    mut targeted_query: Query<
-        (Entity, &mut UnitTargeted, &mut Text)
-    >,
+    combat_unit_query: Query<(Entity, &Name), With<InCombat>>,
 ) {
     for event in event_query.iter() {
+        // REFACTOR: ? does this match is mandatory ? can just add Selected to the unit. XXX
+        // same in update_seleted_unit
         match combat_unit_query.get(event.0) {
             Err(e) => warn!("The entity targeted is invalid: {:?}", e),
-            Ok((character, name)) => {
-                let (_, mut unit_targeted, mut unit_targeted_text) = targeted_query.single_mut();
-                unit_targeted.0 = Some(character);
-                unit_targeted_text.sections[0].value = format!("Unit Targeted: {}", name);
-                // TODO: Update stats panel
+            Ok((character, _name)) => {
+                commands.entity(character).insert(Targeted);
             }
         }
     }
 }
 
-/// FIXME: don't update when the caster/target stats changes
-pub fn update_caster_stats_panel (
+pub fn update_caster_stats_panel(
     selected_query: Query<
-        (Entity, &UnitSelected),
-        Or<(Added<UnitSelected>, Changed<UnitSelected>)>
+        (Entity, &Selected, &Name, &Hp, &Mana),
+        (
+            Or<(
+                Added<Selected>,
+                Changed<Selected>,
+                Changed<Hp>,
+                Changed<Mana>,
+            )>,
+            With<InCombat>,
+        ),
     >,
 
-    mut hp_query: Query<
-        (Entity, &HpMeter, &mut Text),
-        (Without<MpMeter>, With<CasterMeter>)
-    >,
-    mut mp_query: Query<
-        (Entity, &MpMeter, &mut Text),
-        (Without<HpMeter>, With<CasterMeter>)
-    >,
+    select_removals: RemovedComponents<Selected>,
 
-    combat_unit_query: Query<(Entity, &Name, &Hp, &Mana), With<InCombat>>,
+    mut hp_query: Query<(Entity, &HpMeter, &mut Text), (Without<MpMeter>, With<CasterMeter>)>,
+    mut mp_query: Query<(Entity, &MpMeter, &mut Text), (Without<HpMeter>, With<CasterMeter>)>,
 ) {
-    for (_, unit_selected) in selected_query.iter() {
-        match unit_selected.0 {
-            // instead of `warn!("No Caster attached"),`
-            None => {
-                let (_, _, mut hp_text) = hp_query.single_mut();
-                let (_, _, mut mp_text) = mp_query.single_mut();
+    for (_, _, name, hp, mana) in selected_query.iter() {
+        let (_, _, mut hp_text) = hp_query.single_mut();
+        let (_, _, mut mp_text) = mp_query.single_mut();
 
-                let hp_display =
-                    String::from("Caster hp: ??");
-                hp_text.sections[0].value = hp_display;
+        let hp_display = format!("Caster {} hp: {}", name, &hp.current_hp.to_string());
+        hp_text.sections[0].value = hp_display;
 
-                let mp_display =
-                    String::from("Caster mp: ??");
-                mp_text.sections[0].value = mp_display;
-            },
-            Some(unit) => {
-                match combat_unit_query.get(unit) {
-                    Err(_) => warn!("The selected unit is not a combat one"),
-                    Ok((_, _, hp, mana)) => {
+        let mp_display = format!("Caster {} mp: {}", name, &mana.current_mana.to_string());
+        mp_text.sections[0].value = mp_display;
+    }
 
-                        let (_, _, mut hp_text) = hp_query.single_mut();
-                        let (_, _, mut mp_text) = mp_query.single_mut();
+    // TODO: when Selected is removed
+    for _entity in select_removals.iter() {
+        let (_, _, mut hp_text) = hp_query.single_mut();
+        let (_, _, mut mp_text) = mp_query.single_mut();
 
-                        let hp_display =
-                            String::from("Caster hp: HEALTH")
-                                .replace("HEALTH", &hp.current_hp.to_string());
-                        hp_text.sections[0].value = hp_display;
+        let hp_display = String::from("Caster hp: ??");
+        hp_text.sections[0].value = hp_display;
 
-                        let mp_display =
-                            String::from("Caster mp: MANA")
-                                .replace("MANA", &mana.current_mana.to_string());
-                        mp_text.sections[0].value = mp_display;
-                    }
-                }
-            }
-        }
+        let mp_display = String::from("Caster mp: ??");
+        mp_text.sections[0].value = mp_display;
     }
 }
 
 /// XXX: A proper clone of update_caster_stats_panel but just for target instead of caster
-pub fn update_target_stats_panel (
-    selected_query: Query<
-        (Entity, &UnitTargeted),
-        Or<(Added<UnitTargeted>, Changed<UnitTargeted>)>
+pub fn update_target_stats_panel(
+    targeted_query: Query<
+        (Entity, &Targeted, &Name, &Hp, &Mana),
+        (
+            Or<(
+                Added<Targeted>,
+                Changed<Targeted>,
+                Changed<Hp>,
+                Changed<Mana>,
+            )>,
+            With<InCombat>,
+        ),
     >,
 
-    mut hp_query: Query<
-        (Entity, &HpMeter, &mut Text),
-        (Without<MpMeter>, With<TargetMeter>)
-    >,
-    mut mp_query: Query<
-        (Entity, &MpMeter, &mut Text),
-        (Without<HpMeter>, With<TargetMeter>)
-    >,
+    target_removals: RemovedComponents<Targeted>,
 
-    combat_unit_query: Query<(Entity, &Name, &Hp, &Mana), With<InCombat>>,
+    mut hp_query: Query<(Entity, &HpMeter, &mut Text), (Without<MpMeter>, With<TargetMeter>)>,
+    mut mp_query: Query<(Entity, &MpMeter, &mut Text), (Without<HpMeter>, With<TargetMeter>)>,
 ) {
-    for (_, unit_selected) in selected_query.iter() {
-        match unit_selected.0 {
-            // instead of `warn!("No Target attached"),`
-            None => {
-                let (_, _, mut hp_text) = hp_query.single_mut();
-                let (_, _, mut mp_text) = mp_query.single_mut();
+    for (_, _, name, hp, mana) in targeted_query.iter() {
+        let (_, _, mut hp_text) = hp_query.single_mut();
+        let (_, _, mut mp_text) = mp_query.single_mut();
 
-                let hp_display =
-                    String::from("Target hp: ??");
-                hp_text.sections[0].value = hp_display;
+        let hp_display = format!("Target {} hp: {}", name, &hp.current_hp.to_string());
+        hp_text.sections[0].value = hp_display;
 
-                let mp_display =
-                    String::from("Target mp: ??");
-                mp_text.sections[0].value = mp_display;
-            },
-            Some(unit) => {
-                match combat_unit_query.get(unit) {
-                    Err(_) => warn!("The selected unit is not a combat one"),
-                    Ok((_, _, hp, mana)) => {
+        let mp_display = format!("Target {} mp: {}", name, &mana.current_mana.to_string());
+        mp_text.sections[0].value = mp_display;
+    }
 
-                        let (_, _, mut hp_text) = hp_query.single_mut();
-                        let (_, _, mut mp_text) = mp_query.single_mut();
+    // TODO: when Targeted is removed
+    for _entity in target_removals.iter() {
+        let (_, _, mut hp_text) = hp_query.single_mut();
+        let (_, _, mut mp_text) = mp_query.single_mut();
 
-                        let hp_display =
-                            String::from("Target hp: HEALTH")
-                                .replace("HEALTH", &hp.current_hp.to_string());
-                        hp_text.sections[0].value = hp_display;
+        let hp_display = String::from("Target hp: ??");
+        hp_text.sections[0].value = hp_display;
 
-                        let mp_display =
-                            String::from("Target mp: MANA")
-                                .replace("MANA", &mana.current_mana.to_string());
-                        mp_text.sections[0].value = mp_display;
-                    }
-                }
-            }
-        }
+        let mp_display = String::from("Target mp: ??");
+        mp_text.sections[0].value = mp_display;
     }
 }

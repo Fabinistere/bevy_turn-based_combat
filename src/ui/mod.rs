@@ -31,6 +31,7 @@ impl Plugin for UiPlugin {
             .add_system(dialog_player::cursor_position)
 
             .add_system(dialog_combat::select_unit_system)
+            .add_system(dialog_combat::target_unit_system)
             .add_system(dialog_combat::update_selected_unit)
             .add_system(dialog_combat::update_targeted_unit)
             .add_system(dialog_combat::update_caster_stats_panel)
