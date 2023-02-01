@@ -100,6 +100,7 @@ pub fn select_unit_by_mouse(
             let ratio_y = transform_height / window_height;
 
             for (unit, transform, sprite_size, name) in selectable_unit_query.iter() {
+                // TODO: Too big
                 let half_width = (sprite_size.width * transform.scale.x) / 2.0;
                 let half_height = (sprite_size.height * transform.scale.y) / 2.0;
 
