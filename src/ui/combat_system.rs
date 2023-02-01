@@ -174,6 +174,8 @@ pub fn update_selected_unit(
             Err(e) => warn!("The entity selected is invalid or already selected: {:?}", e),
             Ok((character, _name)) => {
                 commands.entity(character).insert(Selected);
+                // TODO: remove from previous entity the selected component
+                // BUG: it breaks the execution skill if not unique
             }
         }
     }
@@ -194,6 +196,8 @@ pub fn update_targeted_unit(
             Err(e) => warn!("The entity targeted is invalid: {:?}", e),
             Ok((character, _name)) => {
                 commands.entity(character).insert(Targeted);
+                // TODO: remove from previous entity the targeted component
+                // BUG: it breaks the execution skill if not unique
             }
         }
     }
