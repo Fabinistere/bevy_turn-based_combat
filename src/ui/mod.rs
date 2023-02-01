@@ -1,8 +1,10 @@
 use bevy::{prelude::*, winit::WinitSettings};
 
-pub mod dialog_player;
-pub mod dialog_panel;
-pub mod dialog_combat;
+use crate::combat::{run_if_in_target_phase, run_if_in_caster_phase};
+
+pub mod player_interaction;
+pub mod combat_panel;
+pub mod combat_system;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[derive(SystemLabel)]
@@ -20,23 +22,34 @@ impl Plugin for UiPlugin {
             // OPTIMIZE: Only run the app when there is user input. This will significantly reduce CPU/GPU use.
             .insert_resource(WinitSettings::game())
 
-            .add_event::<dialog_player::ExecuteSkillEvent>()
-            .add_event::<dialog_combat::UpdateUnitSelectedEvent>()
-            .add_event::<dialog_combat::UpdateUnitTargetedEvent>()
+            .add_event::<player_interaction::ExecuteSkillEvent>()
+            .add_event::<combat_system::UpdateUnitSelectedEvent>()
+            .add_event::<combat_system::UpdateUnitTargetedEvent>()
 
-            .add_startup_system(dialog_panel::setup.label(UiLabel::Textures))
+            .add_startup_system(combat_panel::setup.label(UiLabel::Textures))
 
-            .add_system(dialog_player::button_system.label(UiLabel::Player))
-            .add_system(dialog_player::mouse_scroll)
-            .add_system(dialog_player::cursor_position)
+            .add_system(player_interaction::button_system.label(UiLabel::Player))
+            .add_system(player_interaction::mouse_scroll)
+            .add_system(player_interaction::select_unit_by_mouse)
+            
 
-            .add_system(dialog_combat::select_unit_system)
-            .add_system(dialog_combat::target_unit_system)
-            .add_system(dialog_combat::update_selected_unit)
-            .add_system(dialog_combat::update_targeted_unit)
-            .add_system(dialog_combat::update_caster_stats_panel)
-            .add_system(dialog_combat::update_caster_stats_panel)
-            .add_system(dialog_combat::update_target_stats_panel)
+            .add_system_set(
+                SystemSet::new()
+                    .with_run_criteria(run_if_in_caster_phase)
+                    .with_system(combat_system::caster_selection)
+            )
+            .add_system_set(
+                SystemSet::new()
+                    .with_run_criteria(run_if_in_target_phase)
+                    .with_system(combat_system::target_selection)
+            )
+            .add_system(combat_system::select_unit_system)
+            .add_system(combat_system::target_unit_system)
+            .add_system(combat_system::update_selected_unit)
+            .add_system(combat_system::update_targeted_unit)
+            .add_system(combat_system::update_caster_stats_panel)
+            .add_system(combat_system::update_caster_stats_panel)
+            .add_system(combat_system::update_target_stats_panel)
             ;
     }
 }

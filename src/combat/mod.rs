@@ -32,7 +32,7 @@
 use bevy::{
     prelude::*,
     // ecs::schedule::ShouldRun,
-    time::FixedTimestep,
+    time::FixedTimestep, ecs::schedule::ShouldRun,
 };
 
 use crate::constants::FIXED_TIME_STEP;
@@ -50,8 +50,9 @@ pub enum CombatState {
     Initiation,
     Observation,
     // ManageStuff,
-    // SelectionSkills,
-    // SelectionTarget,
+    SelectionCaster,
+    SelectionSkills,
+    SelectionTarget,
     // RollInitiative,
     // ExecuteSkills,
 
@@ -90,6 +91,28 @@ impl Plugin for CombatPlugin {
 
 fn observation() {
     // println!("Now it's your turn...")
+}
+
+pub fn run_if_in_target_phase(
+    combat_phase: Query<&CombatPhase>,
+) -> ShouldRun {
+    let phase = combat_phase.single();
+    if phase.0 == CombatState::SelectionTarget {
+        ShouldRun::Yes
+    } else {
+        ShouldRun::No
+    }
+}
+
+pub fn run_if_in_caster_phase(
+    combat_phase: Query<&CombatPhase>,
+) -> ShouldRun {
+    let phase = combat_phase.single();
+    if phase.0 == CombatState::SelectionCaster {
+        ShouldRun::Yes
+    } else {
+        ShouldRun::No
+    }
 }
 
 #[derive(Component)]

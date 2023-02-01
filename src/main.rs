@@ -1,7 +1,7 @@
 use bevy::{prelude::*, render::camera::ScalingMode};
 use bevy_tweening::TweeningPlugin;
 use combat::CombatPlugin;
-use constants::*;
+use constants::{RESOLUTION, CLEAR, TILE_SIZE};
 
 pub mod combat;
 pub mod constants;
