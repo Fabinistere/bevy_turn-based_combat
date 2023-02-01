@@ -168,14 +168,20 @@ pub fn update_selected_unit(
     mut event_query: EventReader<UpdateUnitSelectedEvent>,
 
     combat_unit_query: Query<(Entity, &Name), (Without<Selected>, With<InCombat>)>,
+    selected_unit_query: Query<(Entity, &Name), With<Selected>>,
 ) {
     for event in event_query.iter() {
         match combat_unit_query.get(event.0) {
-            Err(e) => warn!("The entity selected is invalid or already selected: {:?}", e),
+            Err(e) => warn!(
+                "The entity selected is invalid or already selected: {:?}",
+                e
+            ),
             Ok((character, _name)) => {
                 commands.entity(character).insert(Selected);
-                // TODO: remove from previous entity the selected component
-                // BUG: it breaks the execution skill if not unique
+                // remove from previous entity the selected component
+                for (selected, _) in selected_unit_query.iter() {
+                    commands.entity(selected).remove::<Selected>();
+                }
             }
         }
     }
@@ -188,6 +194,7 @@ pub fn update_targeted_unit(
     mut event_query: EventReader<UpdateUnitTargetedEvent>,
 
     combat_unit_query: Query<(Entity, &Name), With<InCombat>>,
+    targeted_unit_query: Query<(Entity, &Name), With<Targeted>>,
 ) {
     for event in event_query.iter() {
         // REFACTOR: ? does this match is mandatory ? can just add Selected to the unit. XXX
@@ -196,8 +203,14 @@ pub fn update_targeted_unit(
             Err(e) => warn!("The entity targeted is invalid: {:?}", e),
             Ok((character, _name)) => {
                 commands.entity(character).insert(Targeted);
-                // TODO: remove from previous entity the targeted component
-                // BUG: it breaks the execution skill if not unique
+                
+                // TODO: feature - possibility to target multiple depending to the skill selected
+                // ^^--play with run criteria
+
+                // remove from previous entity the targeted component
+                for (targeted, _) in targeted_unit_query.iter() {
+                    commands.entity(targeted).remove::<Targeted>();
+                }
             }
         }
     }
