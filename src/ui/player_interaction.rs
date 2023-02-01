@@ -26,7 +26,7 @@ pub struct ExecuteSkillEvent {
     pub target: Entity,
 }
 
-pub const SPRITE_SIZE: (f32, f32) = (50.0, 80.0);
+pub const SPRITE_SIZE: (f32, f32) = (25.0, 40.0);
 
 #[derive(Component)]
 pub struct Hoverable;
