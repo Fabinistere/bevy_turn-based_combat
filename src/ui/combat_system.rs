@@ -6,8 +6,10 @@ use crate::{
         InCombat,
     },
     constants::ui::dialogs::*,
-    ui::dialog_panel::{CasterMeter, TargetMeter},
+    ui::combat_panel::{CasterMeter, TargetMeter},
 };
+
+use super::player_interaction::Clicked;
 
 #[derive(Component)]
 pub struct ButtonSelection;
@@ -32,6 +34,38 @@ pub struct UpdateUnitSelectedEvent(pub Entity);
 
 /// DOC
 pub struct UpdateUnitTargetedEvent(pub Entity);
+
+/// # Note
+/// TODO: Unit Clicked (Selected)
+pub fn caster_selection(
+    mut commands: Commands,
+
+    selectable_unit_query: Query<(Entity, &Name), (With<Clicked>, With<InCombat>)>,
+
+    mut update_unit_selected_event: EventWriter<UpdateUnitSelectedEvent>,
+) {
+    for (entity, _name) in selectable_unit_query.iter() {
+        update_unit_selected_event.send(UpdateUnitSelectedEvent(entity));
+
+        commands.entity(entity).remove::<Clicked>();
+    }
+}
+
+/// # Note
+/// TODO: Unit Clicked (Targeted)
+pub fn target_selection(
+    mut commands: Commands,
+
+    targetable_unit_query: Query<(Entity, &Name), (With<Clicked>, With<InCombat>)>,
+
+    mut update_unit_targeted_event: EventWriter<UpdateUnitTargetedEvent>,
+) {
+    for (entity, _name) in targetable_unit_query.iter() {
+        update_unit_targeted_event.send(UpdateUnitTargetedEvent(entity));
+
+        commands.entity(entity).remove::<Clicked>();
+    }
+}
 
 pub fn select_unit_system(
     mut commands: Commands,
@@ -133,13 +167,21 @@ pub fn update_selected_unit(
 
     mut event_query: EventReader<UpdateUnitSelectedEvent>,
 
-    combat_unit_query: Query<(Entity, &Name), With<InCombat>>,
+    combat_unit_query: Query<(Entity, &Name), (Without<Selected>, With<InCombat>)>,
+    selected_unit_query: Query<(Entity, &Name), With<Selected>>,
 ) {
     for event in event_query.iter() {
         match combat_unit_query.get(event.0) {
-            Err(e) => warn!("The entity selected is invalid: {:?}", e),
+            Err(e) => warn!(
+                "The entity selected is invalid or already selected: {:?}",
+                e
+            ),
             Ok((character, _name)) => {
                 commands.entity(character).insert(Selected);
+                // remove from previous entity the selected component
+                for (selected, _) in selected_unit_query.iter() {
+                    commands.entity(selected).remove::<Selected>();
+                }
             }
         }
     }
@@ -152,6 +194,7 @@ pub fn update_targeted_unit(
     mut event_query: EventReader<UpdateUnitTargetedEvent>,
 
     combat_unit_query: Query<(Entity, &Name), With<InCombat>>,
+    targeted_unit_query: Query<(Entity, &Name), With<Targeted>>,
 ) {
     for event in event_query.iter() {
         // REFACTOR: ? does this match is mandatory ? can just add Selected to the unit. XXX
@@ -160,6 +203,14 @@ pub fn update_targeted_unit(
             Err(e) => warn!("The entity targeted is invalid: {:?}", e),
             Ok((character, _name)) => {
                 commands.entity(character).insert(Targeted);
+                
+                // TODO: feature - possibility to target multiple depending to the skill selected
+                // ^^--play with run criteria
+
+                // remove from previous entity the targeted component
+                for (targeted, _) in targeted_unit_query.iter() {
+                    commands.entity(targeted).remove::<Targeted>();
+                }
             }
         }
     }

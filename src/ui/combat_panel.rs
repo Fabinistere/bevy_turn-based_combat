@@ -3,9 +3,11 @@ use bevy::prelude::*;
 use crate::{
     combat::{CombatPhase, CombatState},
     constants::ui::dialogs::*,
-    ui::dialog_combat::{ButtonSelection, ButtonTargeting, HpMeter, MpMeter},
-    ui::dialog_player::ScrollingList,
+    ui::combat_system::{ButtonSelection, ButtonTargeting, HpMeter, MpMeter},
+    ui::player_interaction::ScrollingList,
 };
+
+use super::player_interaction::{Draggable, Clickable};
 
 /// XXX: Useless component used to differentiate Hp/MpMeters of a target or a caster
 #[derive(Component)]
@@ -16,26 +18,32 @@ pub struct TargetMeter;
 pub struct CasterMeter;
 
 pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+    // BAM SKILL
     commands
-        .spawn(ButtonBundle {
-            style: Style {
-                size: Size::new(Val::Px(150.0), Val::Px(65.0)),
-                // center button
-                margin: UiRect::all(Val::Auto),
-                // horizontally center child text
-                justify_content: JustifyContent::Center,
-                // vertically center child text
-                align_items: AlignItems::Center,
-                position: UiRect {
-                    right: Val::Percent(-20.0),
-                    top: Val::Percent(-33.0),
+        .spawn((
+            ButtonBundle {
+                style: Style {
+                    size: Size::new(Val::Px(150.0), Val::Px(65.0)),
+                    // center button
+                    margin: UiRect::all(Val::Auto),
+                    // horizontally center child text
+                    justify_content: JustifyContent::Center,
+                    // vertically center child text
+                    align_items: AlignItems::Center,
+                    position: UiRect {
+                        right: Val::Percent(-20.0),
+                        top: Val::Percent(-33.0),
+                        ..default()
+                    },
                     ..default()
                 },
+                background_color: NORMAL_BUTTON.into(),
                 ..default()
             },
-            background_color: NORMAL_BUTTON.into(),
-            ..default()
-        })
+            Name::new("BAM Skill"),
+            Draggable,
+            Clickable,
+        ))
         .with_children(|parent| {
             parent.spawn(TextBundle::from_section(
                 "Bam",
@@ -47,6 +55,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             ));
         });
 
+    // SELECT BUTTON
     commands
         .spawn((
             ButtonBundle {
@@ -82,6 +91,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             ));
         });
     
+    // TARGET BUTTON
     commands
         .spawn((
             ButtonBundle {
@@ -112,6 +122,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             ));
         });
 
+    // STATS
     // List with hidden overflow
     commands
         .spawn((
@@ -143,7 +154,8 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     },
                     ScrollingList::default(),
                     // TODO: Move it somewhere else
-                    CombatPhase(CombatState::Initiation),
+                    // CombatPhase(CombatState::Initiation),
+                    CombatPhase(CombatState::SelectionCaster),
                     Name::new("Moving Panel"),
                 ))
                 .with_children(|parent| {

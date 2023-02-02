@@ -8,7 +8,7 @@ use crate::{
         stats::{Attack, AttackSpe, Defense, DefenseSpe, Hp, Mana, Shield},
     },
     ui::{
-        dialog_player::ExecuteSkillEvent,
+        player_interaction::ExecuteSkillEvent,
     },
 };
 
