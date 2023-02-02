@@ -43,7 +43,6 @@ impl Plugin for UiPlugin {
                     .with_run_criteria(run_if_in_target_phase)
                     .with_system(combat_system::target_selection)
             )
-            .add_system(combat_system::select_unit_system)
             .add_system(combat_system::target_unit_system)
             .add_system(combat_system::update_selected_unit)
             .add_system(combat_system::update_targeted_unit)

@@ -54,42 +54,6 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 },
             ));
         });
-
-    // SELECT BUTTON
-    commands
-        .spawn((
-            ButtonBundle {
-                style: Style {
-                    size: Size::new(Val::Px(150.0), Val::Px(65.0)),
-                    // center button
-                    margin: UiRect::all(Val::Auto),
-                    // horizontally center child text
-                    justify_content: JustifyContent::Center,
-                    // vertically center child text
-                    align_items: AlignItems::Center,
-                    position: UiRect {
-                        right: Val::Percent(-22.0),
-                        top: Val::Percent(-41.0),
-                        ..default()
-                    },
-                    ..default()
-                },
-                background_color: NORMAL_BUTTON.into(),
-                ..default()
-            },
-            ButtonSelection,
-            Name::new("SelectButton")
-        ))
-        .with_children(|parent| {
-            parent.spawn(TextBundle::from_section(
-                "SelectUnit",
-                TextStyle {
-                    font: asset_server.load("fonts/dpcomic.ttf"),
-                    font_size: 40.0,
-                    color: Color::rgb(0.9, 0.9, 0.9),
-                },
-            ));
-        });
     
     // TARGET BUTTON
     commands

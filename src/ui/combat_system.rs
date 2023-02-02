@@ -67,54 +67,6 @@ pub fn target_selection(
     }
 }
 
-pub fn select_unit_system(
-    mut commands: Commands,
-
-    mut button_system: Query<
-        (Entity, &Interaction, &mut BackgroundColor),
-        (
-            Changed<Interaction>,
-            With<Button>,
-            With<ButtonSelection>,
-            Without<ButtonTargeting>,
-        ),
-    >,
-
-    combat_unit_query: Query<(Entity, &Name), (With<InCombat>, Without<Selected>)>,
-    selected_unit: Query<Entity, With<Selected>>,
-
-    mut update_unit_selected_event: EventWriter<UpdateUnitSelectedEvent>,
-) {
-    for (_button, interaction, mut color) in &mut button_system {
-        match *interaction {
-            Interaction::Clicked => {
-                for (npc, _name) in combat_unit_query.iter() {
-                    // select the first one on the list
-
-                    if let Ok(selected) = selected_unit.get_single() {
-                        commands.entity(selected).remove::<Selected>();
-                    }
-
-                    // DEBUG: TEMPORARY SELECTION
-                    update_unit_selected_event.send(UpdateUnitSelectedEvent(npc));
-
-                    break;
-                }
-
-                *color = PRESSED_BUTTON.into();
-            }
-            // TODO: feature - preview
-            // Store the previous selected in the temp and restore it when none
-            Interaction::Hovered => {
-                *color = HOVERED_BUTTON.into();
-            }
-            Interaction::None => {
-                *color = NORMAL_BUTTON.into();
-            }
-        }
-    }
-}
-
 pub fn target_unit_system(
     mut commands: Commands,
 
@@ -203,7 +155,7 @@ pub fn update_targeted_unit(
             Err(e) => warn!("The entity targeted is invalid: {:?}", e),
             Ok((character, _name)) => {
                 commands.entity(character).insert(Targeted);
-                
+
                 // TODO: feature - possibility to target multiple depending to the skill selected
                 // ^^--play with run criteria
 
