@@ -69,17 +69,21 @@ pub fn select_skill(
                     // info!("new action");
                 }
 
-                text.sections[0].value = "BOM".to_string();
+                let mut display = skill.description.to_uppercase();
+                display = display.replace("A", "O");
+                text.sections[0].value = display;
                 *color = PRESSED_BUTTON.into();
             }
             Interaction::Hovered => {
                 // TODO: feature - Hover Skill - Preview possible Target
 
-                text.sections[0].value = "BAM".to_string();
+                let display = skill.description.to_uppercase();
+                text.sections[0].value = display;
                 *color = HOVERED_BUTTON.into();
             }
             Interaction::None => {
-                text.sections[0].value = "BAM".to_string();
+                let display = skill.description.to_uppercase();
+                text.sections[0].value = display;
                 *color = NORMAL_BUTTON.into();
             }
         }
