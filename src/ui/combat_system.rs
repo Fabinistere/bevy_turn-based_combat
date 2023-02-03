@@ -24,7 +24,6 @@ pub struct UpdateUnitSelectedEvent(pub Entity);
 pub struct UpdateUnitTargetedEvent(pub Entity);
 
 /// # Note
-/// TODO: Unit Clicked (Selected)
 pub fn caster_selection(
     mut commands: Commands,
 
@@ -41,7 +40,6 @@ pub fn caster_selection(
 }
 
 /// # Note
-/// TODO: Unit Clicked (Targeted)
 pub fn target_selection(
     mut commands: Commands,
 
@@ -136,6 +134,11 @@ pub fn update_selected_unit(
 }
 
 /// Event Handler of UpdateUnitSelectedEvent
+/// 
+/// # Note
+/// 
+/// TODO: maybe merge Targeted with Selected
+/// Differentiation only when selecting a skill
 pub fn update_targeted_unit(
     mut commands: Commands,
 

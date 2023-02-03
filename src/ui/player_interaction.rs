@@ -5,9 +5,7 @@ use bevy::{
     prelude::*,
 };
 
-use crate::{combat::{skills::Skill, CombatPanel, CombatState}, constants::RESOLUTION};
-
-use super::combat_system::UpdateUnitSelectedEvent;
+use crate::{combat::skills::Skill, constants::RESOLUTION};
 
 /// Happens in
 ///   - ui::dialog_player::button_system
@@ -60,10 +58,6 @@ pub struct SpriteSize {
 }
 
 /// Adds the Component 'Clicked' to a valid Entity
-///
-/// # Note
-///
-/// TODO: Unit Clicked (Selected)
 pub fn select_unit_by_mouse(
     mut commands: Commands,
 
@@ -73,7 +67,7 @@ pub fn select_unit_by_mouse(
     selectable_unit_query: Query<
         (Entity, &Transform, &SpriteSize, &Name),
         (With<Clickable>, Without<Clicked>),
-    >,    
+    >,
     // mut update_unit_selected_event: EventWriter<UpdateUnitSelectedEvent>,
 ) {
     let window = windows.get_primary().unwrap();
@@ -81,11 +75,10 @@ pub fn select_unit_by_mouse(
     if let Some(position) = window.cursor_position() {
         if buttons.just_pressed(MouseButton::Left) {
             // info!("({}, {})", position.x, position.y);
-
-            // TODO: Magical Number...
             let window_height = 720.0;
             let window_width = window_height * RESOLUTION;
-
+            
+            // TODO: Magical Number...
             let transform_height = 100.0;
             let transform_width = 180.0;
 

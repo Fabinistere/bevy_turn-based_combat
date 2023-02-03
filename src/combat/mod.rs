@@ -47,8 +47,6 @@ pub mod skill_list;
 pub mod skills;
 pub mod stats;
 
-// TODO: Use a stack (pile FIFO) to create CombatState
-
 /// Just help to create a ordered system in the app builder
 #[derive(PartialEq, Clone, Hash, Debug, Eq, SystemLabel)]
 pub enum CombatState {

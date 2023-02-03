@@ -11,7 +11,6 @@ use crate::{
     ui::{
         combat_panel::{CasterMeter, TargetMeter},
         combat_system::{ButtonTargeting, HpMeter, MpMeter, Selected, Targeted},
-        player_interaction::ExecuteSkillEvent,
     },
 };
 use bevy::prelude::*;
@@ -19,8 +18,6 @@ use bevy::prelude::*;
 /// Action for each Interaction of the skill button
 ///
 /// # Note
-///
-/// TODO: Click a skill button to save this skill and switch to TargetSelection Phase
 pub fn select_skill(
     mut interaction_query: Query<
         (&Interaction, &mut BackgroundColor, &Skill, &Children),

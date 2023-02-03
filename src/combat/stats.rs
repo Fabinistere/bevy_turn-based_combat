@@ -59,7 +59,7 @@ impl Default for Hp {
     }
 }
 
-// TODO: a hp bar close to the entity
+// TODO: feature - a hp bar close to the entity
 pub fn show_hp(npc_query: Query<(&Hp, &Name), With<NPC>>) {
     for (npc_hp, npc_name) in npc_query.iter() {
         info!(
@@ -93,7 +93,7 @@ impl Default for Mana {
     }
 }
 
-// TODO: a mana bar close to the entity
+// TODO: feature - a mana bar close to the entity
 pub fn show_mana(npc_query: Query<(&Mana, &Name), With<NPC>>) {
     for (npc_mana, npc_name) in npc_query.iter() {
         info!(

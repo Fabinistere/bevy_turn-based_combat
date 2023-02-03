@@ -198,7 +198,6 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                         Name::new("Caster Mp"),
                     ));
 
-                    // TODO: display targeted entity
                     parent.spawn((
                         TextBundle::from_section(
                             format!("Target hp: ???"),
