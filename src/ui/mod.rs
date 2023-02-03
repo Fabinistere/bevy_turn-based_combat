@@ -52,14 +52,16 @@ impl Plugin for UiPlugin {
                     .with_system(combat_system::target_selection)
                     .with_system(character_sheet::select_skill)
             )
-            // TODO: Display Actions
+            // DONE: Display Actions
             // TODO: Confirm Actions
             // TODO: Roll Initiative
             // TODO: Execute in order Actions
 
+            // DEBUG DISPLAYER
             .add_system(combat_system::update_selected_unit.after(UiLabel::Player))
             .add_system(combat_system::update_targeted_unit.after(UiLabel::Player))
             .add_system(combat_system::update_combat_phase_displayer)
+            .add_system(combat_system::last_action_displayer)
 
             .add_system(
                 character_sheet::update_caster_stats_panel

@@ -10,7 +10,7 @@ use crate::{
     constants::ui::dialogs::*,
     ui::{
         combat_panel::{CasterMeter, TargetMeter},
-        combat_system::{ButtonTargeting, HpMeter, MpMeter, Selected, Targeted},
+        combat_system::{HpMeter, MpMeter, Selected, Targeted},
     },
 };
 use bevy::prelude::*;
@@ -24,15 +24,15 @@ pub fn select_skill(
         (
             Changed<Interaction>,
             With<Button>,
-            Without<ButtonTargeting>,
+            // Without<ButtonTargeting>,
         ),
     >,
 
     mut text_query: Query<&mut Text>,
 
     mut combat_panel_query: Query<(Entity, &mut CombatPanel)>,
-
-    unit_selected_query: Query<(Entity, &Selected)>,
+    
+    unit_selected_query: Query<(Entity, &Name, &Selected)>,
 ) {
     for (interaction, mut color, skill, children) in &mut interaction_query {
         let mut text = text_query.get_mut(children[0]).unwrap();
@@ -49,6 +49,9 @@ pub fn select_skill(
                     last_action.skill = skill.clone();
                     combat_panel.history.push(last_action);
 
+                    // let (_, caster_name, _) = unit_selected_query.single();
+                    // info!("DEBUG: action = {} do {} to None", caster_name, skill.description);
+
                     // info!("rewrite last action");
 
                     // and we're still in TargetSelection phase
@@ -56,11 +59,13 @@ pub fn select_skill(
                     // if this system can run
                     // we are in SelectionSkill or SelectionTarget
                     // so there is a selected unit.
-                    let (caster, _) = unit_selected_query.single();
+                    let (caster, _caster_name, _) = unit_selected_query.single();
                     combat_panel.phase = CombatState::SelectionTarget;
                     let action = Action::new(caster, skill.clone(), None);
                     combat_panel.history.push(action);
 
+
+                    // info!("DEBUG: action = {} do {} to None", _caster_name, skill.description);
                     // info!("new action");
                 }
 
@@ -81,6 +86,9 @@ pub fn select_skill(
     }
 }
 
+/// # Note
+/// 
+/// DEBUG
 pub fn update_caster_stats_panel(
     selected_query: Query<
         (Entity, &Selected, &Name, &Hp, &Mana),
@@ -123,6 +131,9 @@ pub fn update_caster_stats_panel(
     }
 }
 
+/// # Note
+/// 
+/// DEBUG
 /// XXX: A proper clone of update_caster_stats_panel but just for target instead of caster
 pub fn update_target_stats_panel(
     targeted_query: Query<

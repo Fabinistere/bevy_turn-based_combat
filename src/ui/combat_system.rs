@@ -35,7 +35,7 @@ pub fn caster_selection(
         update_unit_selected_event.send(UpdateUnitSelectedEvent(entity));
 
         commands.entity(entity).remove::<Clicked>();
-        info!("{} remove clicked to be selected", _name);
+        // info!("DEBUG: {} remove clicked to be selected", _name);
     }
 }
 
@@ -51,7 +51,7 @@ pub fn target_selection(
         update_unit_targeted_event.send(UpdateUnitTargetedEvent(entity));
 
         commands.entity(entity).remove::<Clicked>();
-        info!("{} remove clicked to be targeted", _name);
+        // info!("DEBUG: {} remove clicked to be targeted", _name);
     }
 }
 
@@ -148,15 +148,17 @@ pub fn update_targeted_unit(
     targeted_unit_query: Query<(Entity, &Name), With<Targeted>>,
 
     mut combat_panel_query: Query<(Entity, &mut CombatPanel)>,
+    // DEBUG DISPLAYER
+    // unit_selected_query: Query<(Entity, &Name, &Selected)>,
 ) {
     for event in event_query.iter() {
         // REFACTOR: ? does this match is mandatory ? can just add Selected to the unit. XXX
         // same in update_seleted_unit
         match combat_unit_query.get(event.0) {
             Err(e) => warn!("The entity targeted is invalid: {:?}", e),
-            Ok((character, _name)) => {
+            Ok((character, target_name)) => {
                 commands.entity(character).insert(Targeted);
-                info!("{} targeted", _name);
+                info!("{} targeted", target_name);
 
                 // TODO: feature - possibility to target multiple depending to the skill selected
                 // ^^--play with run criteria
@@ -167,6 +169,14 @@ pub fn update_targeted_unit(
                 }
 
                 let (_, mut combat_panel) = combat_panel_query.single_mut();
+                    // TODO: impl change target/skill in the Vec<Action>
+                    let mut last_action = combat_panel.history.pop().unwrap();
+                    last_action.target = Some(character);
+                    combat_panel.history.push(last_action);
+
+                    // let skill = combat_panel.history[combat_panel.history.len()-1].skill.clone();
+                    // let (_, caster_name, _) = unit_selected_query.single();
+                    // info!("DEBUG: action = {} do {} to {}", caster_name, skill.description, target_name);
                     combat_panel.phase = CombatState::SelectionSkills;
             }
         }
@@ -184,5 +194,37 @@ pub fn update_combat_phase_displayer(
     if let Ok((_, combat_panel, mut text)) = combat_panel_query.get_single_mut() {
         let phase_display = format!("Combat Phase: {}", combat_panel.phase);
         text.sections[0].value = phase_display;
+    }
+}
+
+/// Display the modified action
+/// 
+/// # Note
+/// 
+/// DEBUG
+pub fn last_action_displayer(
+    mut combat_panel_query: Query<(Entity, &CombatPanel), Changed<CombatPanel>>,
+    unit_combat_query: Query<(Entity, &Name), With<InCombat>>,
+) {
+    if let Ok((_, combat_panel,)) = combat_panel_query.get_single_mut() {
+        println!("Actions:");
+        let mut number = 1;
+        for action in combat_panel.history.iter() {
+            if let Ok((_, caster_name)) = unit_combat_query.get(action.caster) {
+                let target_name;
+                match action.target {
+                    None => target_name = "None".to_string(),
+                    Some(target) => {
+                        match unit_combat_query.get(target) {
+                            Err(_) => target_name = "None".to_string(),
+                            Ok((_, name)) => target_name = name.to_string(),
+                        }
+                    }
+                }
+                let action_display = format!("{} do {} to {}", caster_name, action.skill.description, target_name);
+                println!("{}. {}", number, action_display);
+                number += 1;
+            }
+        }
     }
 }

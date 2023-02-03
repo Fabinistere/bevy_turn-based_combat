@@ -142,12 +142,28 @@ pub struct CombatPanel {
     pub history: Vec<Action>,
 }
 
+#[derive(Clone)]
 pub struct Action {
     pub caster: Entity,
     pub skill: Skill,
     /// Optional only to allow selecting skill before the target
     pub target: Option<Entity>,
 }
+
+// impl fmt::Display for Action {
+//     fn fmt(&self, f: &mut fmt::Formatter, unit_query: Query<Entity, &Name>) -> fmt::Result {
+//         match self {
+//             Action {caster, skill, target} => {
+//                 match unit_query.get(caster) {
+//                     (_, catser_name) => {
+
+//                     }
+//                 } 
+//                 write!(f, "Initiation")
+//             }
+//         }
+//     }
+// }
 
 impl Action {
     pub fn new(caster: Entity, skill: Skill, target: Option<Entity>) -> Action {

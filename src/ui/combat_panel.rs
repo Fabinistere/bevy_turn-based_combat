@@ -150,6 +150,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                             Name::new("Combat Phase"),
                         ));
 
+                    // Basic Stats
                     parent.spawn((
                         TextBundle::from_section(
                             format!("Caster hp: ???"),
