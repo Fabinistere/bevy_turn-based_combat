@@ -1,18 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{
-    combat::{
-        stats::{Hp, Mana},
-        InCombat,
-    },
-    constants::ui::dialogs::*,
-    ui::combat_panel::{CasterMeter, TargetMeter},
-};
-
-use super::player_interaction::Clicked;
-
-#[derive(Component)]
-pub struct ButtonSelection;
+use crate::{combat::{InCombat, CombatPanel, CombatState}, constants::ui::dialogs::*, ui::player_interaction::Clicked};
 
 #[derive(Component)]
 pub struct ButtonTargeting;
@@ -48,6 +36,7 @@ pub fn caster_selection(
         update_unit_selected_event.send(UpdateUnitSelectedEvent(entity));
 
         commands.entity(entity).remove::<Clicked>();
+        info!("{} remove clicked to be selected", _name);
     }
 }
 
@@ -64,10 +53,11 @@ pub fn target_selection(
         update_unit_targeted_event.send(UpdateUnitTargetedEvent(entity));
 
         commands.entity(entity).remove::<Clicked>();
+        info!("{} remove clicked to be targeted", _name);
     }
 }
 
-pub fn target_unit_system(
+pub fn target_random_system(
     mut commands: Commands,
 
     mut button_system: Query<
@@ -76,7 +66,6 @@ pub fn target_unit_system(
             Changed<Interaction>,
             With<Button>,
             With<ButtonTargeting>,
-            Without<ButtonSelection>,
         ),
     >,
 
@@ -121,6 +110,8 @@ pub fn update_selected_unit(
 
     combat_unit_query: Query<(Entity, &Name), (Without<Selected>, With<InCombat>)>,
     selected_unit_query: Query<(Entity, &Name), With<Selected>>,
+
+    mut combat_panel_query: Query<(Entity, &mut CombatPanel)>,
 ) {
     for event in event_query.iter() {
         match combat_unit_query.get(event.0) {
@@ -130,10 +121,15 @@ pub fn update_selected_unit(
             ),
             Ok((character, _name)) => {
                 commands.entity(character).insert(Selected);
+                info!("{} selected", _name);
+
                 // remove from previous entity the selected component
                 for (selected, _) in selected_unit_query.iter() {
                     commands.entity(selected).remove::<Selected>();
                 }
+
+                let (_, mut combat_panel) = combat_panel_query.single_mut();
+                    combat_panel.phase = CombatState::SelectionSkills;
             }
         }
     }
@@ -147,6 +143,8 @@ pub fn update_targeted_unit(
 
     combat_unit_query: Query<(Entity, &Name), With<InCombat>>,
     targeted_unit_query: Query<(Entity, &Name), With<Targeted>>,
+
+    mut combat_panel_query: Query<(Entity, &mut CombatPanel)>,
 ) {
     for event in event_query.iter() {
         // REFACTOR: ? does this match is mandatory ? can just add Selected to the unit. XXX
@@ -155,6 +153,7 @@ pub fn update_targeted_unit(
             Err(e) => warn!("The entity targeted is invalid: {:?}", e),
             Ok((character, _name)) => {
                 commands.entity(character).insert(Targeted);
+                info!("{} targeted", _name);
 
                 // TODO: feature - possibility to target multiple depending to the skill selected
                 // ^^--play with run criteria
@@ -163,94 +162,24 @@ pub fn update_targeted_unit(
                 for (targeted, _) in targeted_unit_query.iter() {
                     commands.entity(targeted).remove::<Targeted>();
                 }
+
+                let (_, mut combat_panel) = combat_panel_query.single_mut();
+                    combat_panel.phase = CombatState::SelectionSkills;
             }
         }
     }
 }
 
-pub fn update_caster_stats_panel(
-    selected_query: Query<
-        (Entity, &Selected, &Name, &Hp, &Mana),
-        (
-            Or<(
-                Added<Selected>,
-                Changed<Selected>,
-                Changed<Hp>,
-                Changed<Mana>,
-            )>,
-            With<InCombat>,
-        ),
-    >,
-
-    select_removals: RemovedComponents<Selected>,
-
-    mut hp_query: Query<(Entity, &HpMeter, &mut Text), (Without<MpMeter>, With<CasterMeter>)>,
-    mut mp_query: Query<(Entity, &MpMeter, &mut Text), (Without<HpMeter>, With<CasterMeter>)>,
+/// Display the current phase
+/// 
+/// # Note
+/// 
+/// DEBUG
+pub fn update_combat_phase_displayer(
+    mut combat_panel_query: Query<(Entity, &CombatPanel, &mut Text), Or<(Added<CombatPanel>, Changed<CombatPanel>)>>,
 ) {
-    for (_, _, name, hp, mana) in selected_query.iter() {
-        let (_, _, mut hp_text) = hp_query.single_mut();
-        let (_, _, mut mp_text) = mp_query.single_mut();
-
-        let hp_display = format!("Caster {} hp: {}", name, &hp.current_hp.to_string());
-        hp_text.sections[0].value = hp_display;
-
-        let mp_display = format!("Caster {} mp: {}", name, &mana.current_mana.to_string());
-        mp_text.sections[0].value = mp_display;
-    }
-
-    // TODO: when Selected is removed
-    for _entity in select_removals.iter() {
-        let (_, _, mut hp_text) = hp_query.single_mut();
-        let (_, _, mut mp_text) = mp_query.single_mut();
-
-        let hp_display = String::from("Caster hp: ??");
-        hp_text.sections[0].value = hp_display;
-
-        let mp_display = String::from("Caster mp: ??");
-        mp_text.sections[0].value = mp_display;
-    }
-}
-
-/// XXX: A proper clone of update_caster_stats_panel but just for target instead of caster
-pub fn update_target_stats_panel(
-    targeted_query: Query<
-        (Entity, &Targeted, &Name, &Hp, &Mana),
-        (
-            Or<(
-                Added<Targeted>,
-                Changed<Targeted>,
-                Changed<Hp>,
-                Changed<Mana>,
-            )>,
-            With<InCombat>,
-        ),
-    >,
-
-    target_removals: RemovedComponents<Targeted>,
-
-    mut hp_query: Query<(Entity, &HpMeter, &mut Text), (Without<MpMeter>, With<TargetMeter>)>,
-    mut mp_query: Query<(Entity, &MpMeter, &mut Text), (Without<HpMeter>, With<TargetMeter>)>,
-) {
-    for (_, _, name, hp, mana) in targeted_query.iter() {
-        let (_, _, mut hp_text) = hp_query.single_mut();
-        let (_, _, mut mp_text) = mp_query.single_mut();
-
-        let hp_display = format!("Target {} hp: {}", name, &hp.current_hp.to_string());
-        hp_text.sections[0].value = hp_display;
-
-        let mp_display = format!("Target {} mp: {}", name, &mana.current_mana.to_string());
-        mp_text.sections[0].value = mp_display;
-    }
-
-    // TODO: when Targeted is removed
-    for _entity in target_removals.iter() {
-        let (_, _, mut hp_text) = hp_query.single_mut();
-        let (_, _, mut mp_text) = mp_query.single_mut();
-
-        let hp_display = String::from("Target hp: ??");
-        hp_text.sections[0].value = hp_display;
-
-        let mp_display = String::from("Target mp: ??");
-        mp_text.sections[0].value = mp_display;
+    if let Ok((_, combat_panel, mut text)) = combat_panel_query.get_single_mut() {
+        let phase_display = format!("Combat Phase: {}", combat_panel.phase);
+        text.sections[0].value = phase_display;
     }
 }

@@ -124,7 +124,7 @@ impl Default for Shield {
 /// Can be modified by level, item, buff, debuff, technics.
 ///
 /// This statistic is fix, it increment the martial technic's power.
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct Attack(pub i32);
 
 impl Default for Attack {
@@ -140,7 +140,7 @@ impl Default for Attack {
 /// Can be modified by level, item, buff, debuff, technics.
 /// 
 /// This statistic is fix, it increment the magic technic's power.
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct AttackSpe(pub i32);
 
 impl Default for AttackSpe {
@@ -161,7 +161,7 @@ impl Default for AttackSpe {
 /// taken from basic attacks and abilities that deal physical damage.
 /// 
 /// Calculated by armor ÷ (armor + 100).
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct Defense(pub i32);
 
 impl Default for Defense {
@@ -182,7 +182,7 @@ impl Default for Defense {
 /// taken from basic attacks and abilities that deal magical damage.
 /// 
 /// Calculated by MR ÷ (MR + 100).
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct DefenseSpe(pub i32);
 
 impl Default for DefenseSpe {
@@ -197,7 +197,7 @@ impl Default for DefenseSpe {
 /// 
 /// Indicate the speed of initiative, the entity has.
 /// The more they has, the more likly they will start their turn first.
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct Initiative(pub i32);
 
 impl Default for Initiative {

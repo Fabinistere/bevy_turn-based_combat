@@ -12,7 +12,7 @@ use crate::{
     },
 };
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub enum SkillType {
     Heal,
     Attack,
@@ -27,7 +27,7 @@ pub enum SkillType {
     Flee,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub enum TargetSide {
     Enemy,
     #[default]
@@ -39,7 +39,7 @@ pub enum TargetSide {
 ///
 /// - Negative = MALUS
 /// - Positive = BONUS
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct Skill {
     pub skill_type: SkillType,
     /// Which side the skill is allow to target
@@ -148,6 +148,7 @@ pub fn execute_skill(
     for event in execute_skill_event.iter() {
 
         match combat_unit.get_many_mut([event.caster, event.target]) {
+            Err(e) => warn!("Caster or Target Invalid or selfcast {:?}", e),
             Ok([(
                 _caster,
                 mut caster_hp,
@@ -260,7 +261,6 @@ pub fn execute_skill(
                     _ => {}
                 }
             }
-            Err(e) => warn!("Caster or Target Invalid or selfcast {:?}", e)
         }
     }
 }

@@ -29,18 +29,23 @@
 //!     - Reward-s (gift or loot)
 //!   - Combat Evasion (quit)
 
+use std::fmt;
+
 use bevy::{
+    ecs::schedule::ShouldRun,
     prelude::*,
     // ecs::schedule::ShouldRun,
-    time::FixedTimestep, ecs::schedule::ShouldRun,
+    time::FixedTimestep,
 };
 
 use crate::constants::FIXED_TIME_STEP;
 
-pub mod skills;
-pub mod skill_list;
-pub mod stats;
+use self::skills::Skill;
+
 pub mod alterations;
+pub mod skill_list;
+pub mod skills;
+pub mod stats;
 
 // TODO: Use a stack (pile FIFO) to create CombatState
 
@@ -58,6 +63,19 @@ pub enum CombatState {
 
     // ShowExecution,
     Evasion,
+}
+
+impl fmt::Display for CombatState {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            CombatState::Initiation => write!(f, "Initiation"),
+            CombatState::Observation => write!(f, "Observation"),
+            CombatState::SelectionCaster => write!(f, "SelectionCaster"),
+            CombatState::SelectionSkills => write!(f, "SelectionSkills"),
+            CombatState::SelectionTarget => write!(f, "SelectionTarget"),
+            CombatState::Evasion => write!(f, "Evasion"),
+        }
+    }
 }
 
 pub struct CombatPlugin;
@@ -93,22 +111,27 @@ fn observation() {
     // println!("Now it's your turn...")
 }
 
-pub fn run_if_in_target_phase(
-    combat_phase: Query<&CombatPhase>,
-) -> ShouldRun {
-    let phase = combat_phase.single();
-    if phase.0 == CombatState::SelectionTarget {
+pub fn run_if_in_caster_phase(combat_phase: Query<&CombatPanel>) -> ShouldRun {
+    let combat_panel = combat_phase.single();
+    if combat_panel.phase == CombatState::SelectionCaster {
         ShouldRun::Yes
     } else {
         ShouldRun::No
     }
 }
 
-pub fn run_if_in_caster_phase(
-    combat_phase: Query<&CombatPhase>,
-) -> ShouldRun {
-    let phase = combat_phase.single();
-    if phase.0 == CombatState::SelectionCaster {
+pub fn run_if_in_skill_phase(combat_phase: Query<&CombatPanel>) -> ShouldRun {
+    let combat_panel = combat_phase.single();
+    if combat_panel.phase == CombatState::SelectionSkills {
+        ShouldRun::Yes
+    } else {
+        ShouldRun::No
+    }
+}
+
+pub fn run_if_in_target_phase(combat_phase: Query<&CombatPanel>) -> ShouldRun {
+    let combat_panel = combat_phase.single();
+    if combat_panel.phase == CombatState::SelectionTarget {
         ShouldRun::Yes
     } else {
         ShouldRun::No
@@ -116,7 +139,27 @@ pub fn run_if_in_caster_phase(
 }
 
 #[derive(Component)]
-pub struct CombatPhase( pub CombatState );
+pub struct CombatPanel {
+    pub phase: CombatState,
+    pub history: Vec<Action>,
+}
+
+pub struct Action {
+    pub caster: Entity,
+    pub skill: Skill,
+    /// Optional only to allow selecting skill before the target
+    pub target: Option<Entity>,
+}
+
+impl Action {
+    pub fn new(caster: Entity, skill: Skill, target: Option<Entity>) -> Action {
+        Action {
+            caster,
+            skill,
+            target,
+        }
+    }
+}
 
 #[derive(Component)]
 pub struct Karma(pub i32);

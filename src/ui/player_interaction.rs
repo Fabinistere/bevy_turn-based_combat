@@ -5,13 +5,9 @@ use bevy::{
     prelude::*,
 };
 
-use crate::{
-    combat::skills::Skill,
-    constants::{ui::dialogs::*, RESOLUTION},
-    ui::combat_system::{ButtonSelection, Selected, Targeted},
-};
+use crate::{combat::{skills::Skill, CombatPanel, CombatState}, constants::RESOLUTION};
 
-use super::combat_system::ButtonTargeting;
+use super::combat_system::UpdateUnitSelectedEvent;
 
 /// Happens in
 ///   - ui::dialog_player::button_system
@@ -77,7 +73,8 @@ pub fn select_unit_by_mouse(
     selectable_unit_query: Query<
         (Entity, &Transform, &SpriteSize, &Name),
         (With<Clickable>, Without<Clicked>),
-    >,
+    >,    
+    // mut update_unit_selected_event: EventWriter<UpdateUnitSelectedEvent>,
 ) {
     let window = windows.get_primary().unwrap();
 
@@ -118,6 +115,8 @@ pub fn select_unit_by_mouse(
                 {
                     info!("{} clicked", name);
                     commands.entity(unit).insert(Clicked);
+                    // v-- instead of --^
+                    // update_unit_selected_event.send(UpdateUnitSelectedEvent(unit));
                 }
             }
         }
@@ -131,65 +130,13 @@ pub fn select_unit_by_mouse(
 // TODO: feature - can drag unit just to cancel the click
 // avoid missclick by dragging
 //
-// TODO: Skill dropped
+// TODO: feature - Skill dropped
 // To a possible target: Confirm
 // To something else: Cancel (or just back to skill clicked)
 
 // # Note
 //
-// TODO: Hover Unit - Preview Combat Page
-// TODO: Hover Skill - Preview possible target
-
-/// Action for each Interaction of the button
-pub fn button_system(
-    mut interaction_query: Query<
-        (&Interaction, &mut BackgroundColor, &Children),
-        (
-            Changed<Interaction>,
-            With<Button>,
-            Without<ButtonSelection>,
-            Without<ButtonTargeting>,
-        ),
-    >,
-
-    mut text_query: Query<&mut Text>,
-
-    unit_selected_query: Query<(Entity, &Selected)>,
-    unit_targeted_query: Query<(Entity, &Targeted)>,
-
-    mut execute_skill_event: EventWriter<ExecuteSkillEvent>,
-) {
-    for (interaction, mut color, children) in &mut interaction_query {
-        let mut text = text_query.get_mut(children[0]).unwrap();
-        match *interaction {
-            Interaction::Clicked => {
-                if let Ok((caster, _)) = unit_selected_query.get_single() {
-                    if let Ok((target, _)) = unit_targeted_query.get_single() {
-                        let bam_skill = Skill::bam();
-
-                        // TODO: send event to inflict the skill to the Targeted entity
-                        execute_skill_event.send(ExecuteSkillEvent {
-                            skill: bam_skill,
-                            caster,
-                            target,
-                        });
-                    }
-                }
-
-                text.sections[0].value = "BOM".to_string();
-                *color = PRESSED_BUTTON.into();
-            }
-            Interaction::Hovered => {
-                text.sections[0].value = "BAM".to_string();
-                *color = HOVERED_BUTTON.into();
-            }
-            Interaction::None => {
-                text.sections[0].value = "BAM".to_string();
-                *color = NORMAL_BUTTON.into();
-            }
-        }
-    }
-}
+// TODO: feature - Hover Unit - Preview Combat Page
 
 #[derive(Component, Default)]
 pub struct ScrollingList {

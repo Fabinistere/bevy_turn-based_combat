@@ -5,6 +5,7 @@ use bevy::prelude::*;
 use super::stats::*;
 use super::skills::*;
 
+#[derive(Clone)]
 pub enum AlterationAction {
     StatsReduction,
     Poison,
@@ -22,7 +23,7 @@ pub enum AlterationAction {
 /// - Curse or Benediction
 /// - Debuff or Buff
 /// - Detract or Enhance
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct Alteration {
     /// Alteration's type
     pub action: AlterationAction,

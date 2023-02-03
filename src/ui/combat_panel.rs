@@ -1,13 +1,11 @@
 use bevy::prelude::*;
 
 use crate::{
-    combat::{CombatPhase, CombatState},
+    combat::{CombatPanel, CombatState, skills::Skill},
     constants::ui::dialogs::*,
-    ui::combat_system::{ButtonSelection, ButtonTargeting, HpMeter, MpMeter},
+    ui::combat_system::{ButtonTargeting, HpMeter, MpMeter},
     ui::player_interaction::ScrollingList,
 };
-
-use super::player_interaction::{Draggable, Clickable};
 
 /// XXX: Useless component used to differentiate Hp/MpMeters of a target or a caster
 #[derive(Component)]
@@ -41,8 +39,9 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ..default()
             },
             Name::new("BAM Skill"),
-            Draggable,
-            Clickable,
+            Skill::bam(),
+            // Draggable,
+            // Clickable,
         ))
         .with_children(|parent| {
             parent.spawn(TextBundle::from_section(
@@ -117,16 +116,43 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                         ..default()
                     },
                     ScrollingList::default(),
-                    // TODO: Move it somewhere else
-                    // CombatPhase(CombatState::Initiation),
-                    CombatPhase(CombatState::SelectionCaster),
                     Name::new("Moving Panel"),
                 ))
                 .with_children(|parent| {
                     // List items
+
+                    parent
+                        .spawn((
+                            TextBundle::from_section(
+                                format!("Combat Phase: ???"),
+                                TextStyle {
+                                    font: asset_server.load("fonts/dpcomic.ttf"),
+                                    font_size: 20.,
+                                    color: Color::WHITE,
+                                },
+                            )
+                            .with_style(Style {
+                                flex_shrink: 0.,
+                                size: Size::new(Val::Undefined, Val::Px(20.)),
+                                margin: UiRect {
+                                    left: Val::Auto,
+                                    right: Val::Auto,
+                                    ..default()
+                                },
+                                ..default()
+                            }),
+                            // TODO: Move it somewhere else
+                            // CombatState::Initiation
+                            CombatPanel{
+                                phase: CombatState::SelectionCaster,
+                                history: vec![],
+                            },
+                            Name::new("Combat Phase"),
+                        ));
+
                     parent.spawn((
                         TextBundle::from_section(
-                            format!("Caster hp: HP"),
+                            format!("Caster hp: ???"),
                             TextStyle {
                                 font: asset_server.load("fonts/dpcomic.ttf"),
                                 font_size: 20.,
@@ -150,7 +176,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
                     parent.spawn((
                         TextBundle::from_section(
-                            format!("Caster mp: MP"),
+                            format!("Caster mp: ???"),
                             TextStyle {
                                 font: asset_server.load("fonts/dpcomic.ttf"),
                                 font_size: 20.,
@@ -175,7 +201,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     // TODO: display targeted entity
                     parent.spawn((
                         TextBundle::from_section(
-                            format!("Target hp: HP"),
+                            format!("Target hp: ???"),
                             TextStyle {
                                 font: asset_server.load("fonts/dpcomic.ttf"),
                                 font_size: 20.,
@@ -199,7 +225,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
                     parent.spawn((
                         TextBundle::from_section(
-                            format!("Target mp: MP"),
+                            format!("Target mp: ???"),
                             TextStyle {
                                 font: asset_server.load("fonts/dpcomic.ttf"),
                                 font_size: 20.,
