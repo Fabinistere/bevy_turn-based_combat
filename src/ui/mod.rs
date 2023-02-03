@@ -52,6 +52,10 @@ impl Plugin for UiPlugin {
                     .with_system(combat_system::target_selection)
                     .with_system(character_sheet::select_skill)
             )
+            // TODO: Display Actions
+            // TODO: Confirm Actions
+            // TODO: Roll Initiative
+            // TODO: Execute in order Actions
 
             .add_system(combat_system::update_selected_unit.after(UiLabel::Player))
             .add_system(combat_system::update_targeted_unit.after(UiLabel::Player))

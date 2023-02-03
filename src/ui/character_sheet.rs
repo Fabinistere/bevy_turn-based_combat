@@ -111,7 +111,6 @@ pub fn update_caster_stats_panel(
         mp_text.sections[0].value = mp_display;
     }
 
-    // TODO: when Selected is removed
     for _entity in select_removals.iter() {
         let (_, _, mut hp_text) = hp_query.single_mut();
         let (_, _, mut mp_text) = mp_query.single_mut();
@@ -155,7 +154,6 @@ pub fn update_target_stats_panel(
         mp_text.sections[0].value = mp_display;
     }
 
-    // TODO: when Targeted is removed
     for _entity in target_removals.iter() {
         let (_, _, mut hp_text) = hp_query.single_mut();
         let (_, _, mut mp_text) = mp_query.single_mut();
