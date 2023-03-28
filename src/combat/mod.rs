@@ -29,7 +29,7 @@
 //!     - Reward-s (gift or loot)
 //!   - Combat Evasion (quit)
 
-use std::fmt;
+use std::{cmp::Ordering, fmt};
 
 use bevy::{
     ecs::schedule::ShouldRun,
@@ -43,6 +43,7 @@ use crate::constants::FIXED_TIME_STEP;
 use self::skills::Skill;
 
 pub mod alterations;
+pub mod phases;
 pub mod skill_list;
 pub mod skills;
 pub mod stats;
@@ -56,8 +57,8 @@ pub enum CombatState {
     SelectionCaster,
     SelectionSkills,
     SelectionTarget,
-    // RollInitiative,
-    // ExecuteSkills,
+    RollInitiative,
+    ExecuteSkills,
 
     // ShowExecution,
     Evasion,
@@ -71,6 +72,8 @@ impl fmt::Display for CombatState {
             CombatState::SelectionCaster => write!(f, "SelectionCaster"),
             CombatState::SelectionSkills => write!(f, "SelectionSkills"),
             CombatState::SelectionTarget => write!(f, "SelectionTarget"),
+            CombatState::RollInitiative => write!(f, "RollInitiative"),
+            CombatState::ExecuteSkills => write!(f, "ExecuteSkills"),
             CombatState::Evasion => write!(f, "Evasion"),
         }
     }
@@ -81,6 +84,12 @@ pub struct CombatPlugin;
 impl Plugin for CombatPlugin {
     fn build(&self, app: &mut App) {
         app
+            // .insert_resource(
+            //     CombatPanel {
+            //         phase: CombatState::SelectionCaster,
+            //         history: vec![],
+            //     }
+            // )
             .add_system_to_stage(
                 CoreStage::Update,
                 observation
@@ -88,12 +97,13 @@ impl Plugin for CombatPlugin {
                     .label(CombatState::Observation)
             )
             .add_system(skills::execute_skill)
-            // .add_system_to_stage(
-            //     CoreStage::Update,
-            //     stats::roll_initiative
-            //         .with_run_criteria(FixedTimestep::step(FIXED_TIME_STEP as f64))
-            //         .label(CombatState::RollInitiative)
-            // )
+            .add_system_to_stage(
+                CoreStage::Update,
+                phases::roll_initiative
+                    // FixedTimestep::step(FIXED_TIME_STEP as f64)
+                    .with_run_criteria(run_if_in_initiative_phase)
+                    .label(CombatState::RollInitiative)
+            )
             // .add_system_set_to_stage(
             //     CoreStage::PostUpdate,
             //     SystemSet::new()
@@ -109,8 +119,17 @@ fn observation() {
     // println!("Now it's your turn...")
 }
 
-pub fn run_if_in_caster_phase(combat_phase: Query<&CombatPanel>) -> ShouldRun {
-    let combat_panel = combat_phase.single();
+pub fn run_if_in_initiation_phase(combat_panel_query: Query<&CombatPanel>) -> ShouldRun {
+    let combat_panel = combat_panel_query.single();
+    if combat_panel.phase == CombatState::Initiation {
+        ShouldRun::Yes
+    } else {
+        ShouldRun::No
+    }
+}
+
+pub fn run_if_in_caster_phase(combat_panel_query: Query<&CombatPanel>) -> ShouldRun {
+    let combat_panel = combat_panel_query.single();
     if combat_panel.phase == CombatState::SelectionCaster {
         ShouldRun::Yes
     } else {
@@ -118,8 +137,8 @@ pub fn run_if_in_caster_phase(combat_phase: Query<&CombatPanel>) -> ShouldRun {
     }
 }
 
-pub fn run_if_in_skill_phase(combat_phase: Query<&CombatPanel>) -> ShouldRun {
-    let combat_panel = combat_phase.single();
+pub fn run_if_in_skill_phase(combat_panel_query: Query<&CombatPanel>) -> ShouldRun {
+    let combat_panel = combat_panel_query.single();
     if combat_panel.phase == CombatState::SelectionSkills {
         ShouldRun::Yes
     } else {
@@ -127,8 +146,8 @@ pub fn run_if_in_skill_phase(combat_phase: Query<&CombatPanel>) -> ShouldRun {
     }
 }
 
-pub fn run_if_in_target_phase(combat_phase: Query<&CombatPanel>) -> ShouldRun {
-    let combat_panel = combat_phase.single();
+pub fn run_if_in_target_phase(combat_panel_query: Query<&CombatPanel>) -> ShouldRun {
+    let combat_panel = combat_panel_query.single();
     if combat_panel.phase == CombatState::SelectionTarget {
         ShouldRun::Yes
     } else {
@@ -136,18 +155,50 @@ pub fn run_if_in_target_phase(combat_phase: Query<&CombatPanel>) -> ShouldRun {
     }
 }
 
+pub fn run_if_in_initiative_phase(combat_panel_query: Query<&CombatPanel>) -> ShouldRun {
+    let combat_panel = combat_panel_query.single();
+    if combat_panel.phase == CombatState::RollInitiative {
+        ShouldRun::Yes
+    } else {
+        ShouldRun::No
+    }
+}
+
+pub fn run_if_in_executive_phase(combat_panel_query: Query<&CombatPanel>) -> ShouldRun {
+    let combat_panel = combat_panel_query.single();
+    if combat_panel.phase == CombatState::ExecuteSkills {
+        ShouldRun::Yes
+    } else {
+        ShouldRun::No
+    }
+}
+
+pub fn run_if_in_evasive_phase(combat_panel_query: Query<&CombatPanel>) -> ShouldRun {
+    let combat_panel = combat_panel_query.single();
+    if combat_panel.phase == CombatState::Evasion {
+        ShouldRun::Yes
+    } else {
+        ShouldRun::No
+    }
+}
+
+/// REFACTOR: Resource ?
 #[derive(Component)]
 pub struct CombatPanel {
     pub phase: CombatState,
     pub history: Vec<Action>,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Action {
     pub caster: Entity,
     pub skill: Skill,
     /// Optional only to allow selecting skill before the target
     pub target: Option<Entity>,
+    /// From caster + skill calculus
+    ///
+    /// Default: -1
+    pub initiative: i32,
 }
 
 // impl fmt::Display for Action {
@@ -158,7 +209,7 @@ pub struct Action {
 //                     (_, catser_name) => {
 
 //                     }
-//                 } 
+//                 }
 //                 write!(f, "Initiation")
 //             }
 //         }
@@ -171,9 +222,31 @@ impl Action {
             caster,
             skill,
             target,
+            initiative: -1,
         }
     }
 }
+
+impl Ord for Action {
+    fn cmp(&self, other: &Self) -> Ordering {
+        (self.initiative).cmp(&(other.initiative))
+    }
+}
+
+impl PartialOrd for Action {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for Action {
+    /// compare with just the initiative
+    fn eq(&self, other: &Self) -> bool {
+        (self.initiative) == (other.initiative)
+    }
+}
+
+impl Eq for Action {}
 
 #[derive(Component)]
 pub struct Karma(pub i32);

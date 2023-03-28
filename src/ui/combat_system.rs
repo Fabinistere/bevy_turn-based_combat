@@ -1,6 +1,10 @@
 use bevy::prelude::*;
 
-use crate::{combat::{InCombat, CombatPanel, CombatState}, constants::ui::dialogs::*, ui::player_interaction::Clicked};
+use crate::{
+    combat::{CombatPanel, CombatState, InCombat},
+    constants::ui::dialogs::*,
+    ui::player_interaction::Clicked,
+};
 
 #[derive(Component)]
 pub struct ButtonTargeting;
@@ -60,11 +64,7 @@ pub fn target_random_system(
 
     mut button_system: Query<
         (Entity, &Interaction, &mut BackgroundColor),
-        (
-            Changed<Interaction>,
-            With<Button>,
-            With<ButtonTargeting>,
-        ),
+        (Changed<Interaction>, With<Button>, With<ButtonTargeting>),
     >,
 
     combat_unit_query: Query<(Entity, &Name), (With<InCombat>, Without<Targeted>)>,
@@ -127,16 +127,16 @@ pub fn update_selected_unit(
                 }
 
                 let (_, mut combat_panel) = combat_panel_query.single_mut();
-                    combat_panel.phase = CombatState::SelectionSkills;
+                combat_panel.phase = CombatState::SelectionSkills;
             }
         }
     }
 }
 
 /// Event Handler of UpdateUnitSelectedEvent
-/// 
+///
 /// # Note
-/// 
+///
 /// TODO: maybe merge Targeted with Selected
 /// Differentiation only when selecting a skill
 pub fn update_targeted_unit(
@@ -169,27 +169,30 @@ pub fn update_targeted_unit(
                 }
 
                 let (_, mut combat_panel) = combat_panel_query.single_mut();
-                    // TODO: impl change target/skill in the Vec<Action>
-                    let mut last_action = combat_panel.history.pop().unwrap();
-                    last_action.target = Some(character);
-                    combat_panel.history.push(last_action);
+                // TODO: impl change target/skill in the Vec<Action>
+                let mut last_action = combat_panel.history.pop().unwrap();
+                last_action.target = Some(character);
+                combat_panel.history.push(last_action);
 
-                    // let skill = combat_panel.history[combat_panel.history.len()-1].skill.clone();
-                    // let (_, caster_name, _) = unit_selected_query.single();
-                    // info!("DEBUG: action = {} do {} to {}", caster_name, skill.description, target_name);
-                    combat_panel.phase = CombatState::SelectionSkills;
+                // let skill = combat_panel.history[combat_panel.history.len()-1].skill.clone();
+                // let (_, caster_name, _) = unit_selected_query.single();
+                // info!("DEBUG: action = {} do {} to {}", caster_name, skill.description, target_name);
+                combat_panel.phase = CombatState::SelectionCaster;
             }
         }
     }
 }
 
 /// Display the current phase
-/// 
+///
 /// # Note
-/// 
+///
 /// DEBUG
 pub fn update_combat_phase_displayer(
-    mut combat_panel_query: Query<(Entity, &CombatPanel, &mut Text), Or<(Added<CombatPanel>, Changed<CombatPanel>)>>,
+    mut combat_panel_query: Query<
+        (Entity, &CombatPanel, &mut Text),
+        Or<(Added<CombatPanel>, Changed<CombatPanel>)>,
+    >,
 ) {
     if let Ok((_, combat_panel, mut text)) = combat_panel_query.get_single_mut() {
         let phase_display = format!("Combat Phase: {}", combat_panel.phase);
@@ -198,15 +201,15 @@ pub fn update_combat_phase_displayer(
 }
 
 /// Display the modified action
-/// 
+///
 /// # Note
-/// 
+///
 /// DEBUG
 pub fn last_action_displayer(
     mut combat_panel_query: Query<(Entity, &CombatPanel), Changed<CombatPanel>>,
     unit_combat_query: Query<(Entity, &Name), With<InCombat>>,
 ) {
-    if let Ok((_, combat_panel,)) = combat_panel_query.get_single_mut() {
+    if let Ok((_, combat_panel)) = combat_panel_query.get_single_mut() {
         println!("Actions:");
         let mut number = 1;
         for action in combat_panel.history.iter() {
@@ -214,14 +217,26 @@ pub fn last_action_displayer(
                 let target_name;
                 match action.target {
                     None => target_name = "None".to_string(),
-                    Some(target) => {
-                        match unit_combat_query.get(target) {
-                            Err(_) => target_name = "None".to_string(),
-                            Ok((_, name)) => target_name = name.to_string(),
-                        }
-                    }
+                    Some(target) => match unit_combat_query.get(target) {
+                        Err(_) => target_name = "None".to_string(),
+                        Ok((_, name)) => target_name = name.to_string(),
+                    },
                 }
-                let action_display = format!("{} do {} to {}", caster_name, action.skill.description, target_name);
+                let action_display = if action.initiative == -1 {
+                    format!(
+                        "{} do {} to {}",
+                        caster_name, action.skill.description, target_name
+                    )
+                } else {
+                    format!(
+                        "{}: {} do {} to {}",
+                        action.initiative, caster_name, action.skill.description, target_name
+                    )
+                };
+                // let action_display = format!(
+                //     "{}: {} do {} to {}",
+                //     action.initiative, caster_name, action.skill.description, target_name
+                // );
                 println!("{}. {}", number, action_display);
                 number += 1;
             }

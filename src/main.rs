@@ -1,7 +1,7 @@
 use bevy::{prelude::*, render::camera::ScalingMode};
 use bevy_tweening::TweeningPlugin;
 use combat::CombatPlugin;
-use constants::{RESOLUTION, CLEAR, TILE_SIZE};
+use constants::{CLEAR, RESOLUTION, TILE_SIZE};
 
 pub mod combat;
 pub mod constants;
@@ -15,6 +15,7 @@ use npc::NPCPlugin;
 use spritesheet::FabienPlugin;
 use ui::UiPlugin;
 
+#[rustfmt::skip]
 fn main() {
     let height = 720.0;
 
@@ -28,7 +29,7 @@ fn main() {
                         width: height * RESOLUTION,
                         height: height,
                         title: "Turn-Based Combat".to_string(),
-                        resizable: false,
+                        resizable: true,
                         ..default()
                     },
                     ..default()

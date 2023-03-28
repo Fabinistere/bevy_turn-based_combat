@@ -5,7 +5,7 @@ use bevy::{
     prelude::*,
 };
 
-use crate::{combat::skills::Skill, constants::RESOLUTION};
+use crate::{combat::{skills::Skill, CombatPanel, CombatState}, constants::{RESOLUTION, ui::dialogs::*,}};
 
 /// Happens in
 ///   - ui::dialog_player::button_system
@@ -156,6 +156,83 @@ pub fn mouse_scroll(
             scrolling_list.position += dy;
             scrolling_list.position = scrolling_list.position.clamp(-max_scroll, 0.);
             style.position.top = Val::Px(scrolling_list.position);
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct EndOfTurnButton;
+
+pub fn end_of_turn_button(
+    mut interaction_query: Query<
+        (&Interaction, &Children),
+        (
+            Changed<Interaction>,
+            With<Button>,
+            With<EndOfTurnButton>,
+        ),
+    >,
+
+    mut text_query: Query<&mut Text>,
+
+    mut combat_panel_query: Query<(Entity, &mut CombatPanel)>,
+) {
+    for (interaction, children) in &mut interaction_query {
+        let mut text = text_query.get_mut(children[0]).unwrap();
+        match *interaction {
+            Interaction::Clicked => {
+                let (_, mut combat_panel) = combat_panel_query.single_mut();
+                
+                // allow pass with no action in the history
+                if let Some(last_action) = combat_panel.history.pop() {
+                    if last_action.target != None {
+                        // reput the last_action in the pool
+                        combat_panel.history.push(last_action);
+                    }
+                }
+
+                combat_panel.phase = CombatState::RollInitiative;
+
+                text.sections[0].value = "CAN'T UNDO".to_string();
+            }
+            Interaction::Hovered => {
+                // TODO: feature - Hover Skill - Preview possible Target
+
+                text.sections[0].value = "End of Turn".to_string();
+            }
+            Interaction::None => {
+                text.sections[0].value = "End of Turn".to_string();
+            }
+        }
+    }
+}
+
+/// Change color depending of Interaction
+/// 
+/// # Note
+/// 
+/// REFACTOR: seperate color management button from specific command button system
+pub fn button_system(
+    mut interaction_query: Query<
+        (&Interaction, &mut BackgroundColor, &Children),
+        (
+            Changed<Interaction>,
+            With<Button>,
+        ),
+    >,
+) {
+    for (interaction, mut color, _children) in &mut interaction_query {
+        // let mut text = text_query.get_mut(children[0]).unwrap();
+        match *interaction {
+            Interaction::Clicked => {
+                *color = PRESSED_BUTTON.into();
+            }
+            Interaction::Hovered => {
+                *color = HOVERED_BUTTON.into();
+            }
+            Interaction::None => {
+                *color = NORMAL_BUTTON.into();
+            }
         }
     }
 }

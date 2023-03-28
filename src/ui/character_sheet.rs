@@ -7,7 +7,6 @@ use crate::{
         stats::{Hp, Mana},
         InCombat, CombatPanel, CombatState, Action,
     },
-    constants::ui::dialogs::*,
     ui::{
         combat_panel::{CasterMeter, TargetMeter},
         combat_system::{HpMeter, MpMeter, Selected, Targeted},
@@ -20,7 +19,7 @@ use bevy::prelude::*;
 /// # Note
 pub fn select_skill(
     mut interaction_query: Query<
-        (&Interaction, &mut BackgroundColor, &Skill, &Children),
+        (&Interaction, &Skill, &Children),
         (
             Changed<Interaction>,
             With<Button>,
@@ -34,7 +33,7 @@ pub fn select_skill(
     
     unit_selected_query: Query<(Entity, &Name, &Selected)>,
 ) {
-    for (interaction, mut color, skill, children) in &mut interaction_query {
+    for (interaction, skill, children) in &mut interaction_query {
         let mut text = text_query.get_mut(children[0]).unwrap();
         match *interaction {
             Interaction::Clicked => {
@@ -72,19 +71,16 @@ pub fn select_skill(
                 let mut display = skill.description.to_uppercase();
                 display = display.replace("A", "O");
                 text.sections[0].value = display;
-                *color = PRESSED_BUTTON.into();
             }
             Interaction::Hovered => {
                 // TODO: feature - Hover Skill - Preview possible Target
 
                 let display = skill.description.to_uppercase();
                 text.sections[0].value = display;
-                *color = HOVERED_BUTTON.into();
             }
             Interaction::None => {
                 let display = skill.description.to_uppercase();
                 text.sections[0].value = display;
-                *color = NORMAL_BUTTON.into();
             }
         }
     }

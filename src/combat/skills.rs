@@ -7,12 +7,10 @@ use crate::{
         alterations::*,
         stats::{Attack, AttackSpe, Defense, DefenseSpe, Hp, Mana, Shield},
     },
-    ui::{
-        player_interaction::ExecuteSkillEvent,
-    },
+    ui::player_interaction::ExecuteSkillEvent,
 };
 
-#[derive(Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub enum SkillType {
     Heal,
     Attack,
@@ -27,7 +25,7 @@ pub enum SkillType {
     Flee,
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Debug, Clone, PartialEq)]
 pub enum TargetSide {
     Enemy,
     #[default]
@@ -39,7 +37,7 @@ pub enum TargetSide {
 ///
 /// - Negative = MALUS
 /// - Positive = BONUS
-#[derive(Component, Clone)]
+#[derive(Debug, Component, Clone)]
 pub struct Skill {
     pub skill_type: SkillType,
     /// Which side the skill is allow to target
@@ -61,6 +59,7 @@ pub struct Skill {
     /// Wait for the turn delay to execute
     pub turn_delay: i32,
     /// initiave: slower; faster
+    /// REFACTOR: can be negative (-100 <= init <= 100)
     pub initiative: i32,
     /// hp: dmg/heal to the target
     pub hp_dealt: i32,
@@ -130,7 +129,6 @@ pub fn execute_skill(
     // unit_query: Query<
     //     (Entity, &UnitTargeted, &UnitSelected)
     // >,
-
     mut combat_unit: Query<
         (
             Entity,
@@ -145,30 +143,37 @@ pub fn execute_skill(
         // Or<(With<Selected>, With<Targeted>)>
     >,
 ) {
-    for event in execute_skill_event.iter() {
-
-        match combat_unit.get_many_mut([event.caster, event.target]) {
-            Err(e) => warn!("Caster or Target Invalid or selfcast {:?}", e),
-            Ok([(
-                _caster,
-                mut caster_hp,
-                mut caster_mp,
-                _caster_shield,
-                caster_attack,
-                caster_attack_spe,
-                _caster_defense,
-                _caster_defense_spe,
-            ),
-            (   _target,
-                mut target_hp,
-                mut target_mp,
-                mut target_shield,
-                _target_attack,
-                _target_attack_spe,
-                target_defense_spe,
-                target_defense,
-            )]) => {
-                let skill_executed = &event.skill;
+    for ExecuteSkillEvent {
+        skill,
+        caster,
+        target,
+    } in execute_skill_event.iter()
+    {
+        match combat_unit.get_many_mut([*caster, *target]) {
+            // REFACTOR: Handle SelfCast
+            Err(e) => warn!("SelfCast or: Caster and/or Target Invalid {:?}", e),
+            Ok(
+                [(
+                    _caster,
+                    mut caster_hp,
+                    mut caster_mp,
+                    _caster_shield,
+                    caster_attack,
+                    caster_attack_spe,
+                    _caster_defense,
+                    _caster_defense_spe,
+                ), (
+                    _target,
+                    mut target_hp,
+                    mut target_mp,
+                    mut target_shield,
+                    _target_attack,
+                    _target_attack_spe,
+                    target_defense_spe,
+                    target_defense,
+                )],
+            ) => {
+                let skill_executed = &skill;
 
                 // TODO: turn delay
                 // TODO: alteration.s
@@ -198,12 +203,16 @@ pub fn execute_skill(
                         let hp_dealt = skill_executed.hp_dealt
                             + skill_executed.hp_dealt * multiplier / 100
                             - skill_executed.hp_dealt * target_defense.0 / 100;
-                        if hp_dealt > 0 { info!("hp dealt: {}", hp_dealt); }
+                        if hp_dealt > 0 {
+                            info!("hp dealt: {}", hp_dealt);
+                        }
 
                         // ---- MP ----
                         // x + x*(caster_attack_spe)%
                         let mp_dealt = skill_executed.mana_dealt;
-                        if mp_dealt > 0 { info!("mp dealt: {}", mp_dealt); }
+                        if mp_dealt > 0 {
+                            info!("mp dealt: {}", mp_dealt);
+                        }
 
                         // ---- EXECUTION ----
                         if target_shield.0 < hp_dealt {
@@ -228,13 +237,17 @@ pub fn execute_skill(
                         let hp_dealt = skill_executed.hp_dealt
                             + skill_executed.hp_dealt * multiplier / 100
                             - skill_executed.hp_dealt * target_defense_spe.0 / 100;
-                        if hp_dealt > 0 { info!("hp dealt: {}", hp_dealt); }
+                        if hp_dealt > 0 {
+                            info!("hp dealt: {}", hp_dealt);
+                        }
 
                         // ---- MP ----
                         // x + x*(caster_attack_spe)%
                         let mp_dealt = skill_executed.mana_dealt
                             + skill_executed.mana_dealt * multiplier / 100;
-                        if mp_dealt > 0 { info!("mp dealt: {}", mp_dealt); }
+                        if mp_dealt > 0 {
+                            info!("mp dealt: {}", mp_dealt);
+                        }
 
                         // ---- EXECUTION ----
                         target_hp.current_hp -= hp_dealt;
