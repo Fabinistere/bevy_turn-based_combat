@@ -175,7 +175,7 @@ pub fn execute_skill(
             ) => {
                 let skill_executed = &skill;
 
-                // TODO: turn delay
+                // TODO: turn delay?
                 // TODO: alteration.s
 
                 // ---- COST ----
@@ -184,15 +184,23 @@ pub fn execute_skill(
                 caster_hp.current_hp -= skill_executed.hp_cost;
                 caster_mp.current_mana -= skill_executed.mana_cost;
 
-                // TODO: feature - don't execute the rest if the current_hp of the caster is < 0
+                // don't execute the rest if the current_hp of the caster is < 0
+                if caster_hp.current_hp <= 0 {
+                    continue;
+                }
+
                 let multiplier;
                 match skill_executed.skill_type {
                     SkillType::Heal => {
                         // IDEA: no multiplier ? based on attackspe?
 
-                        target_hp.current_hp += skill_executed.hp_dealt;
-                        if target_hp.current_hp > target_hp.max_hp {
-                            target_hp.current_hp = target_hp.max_hp;
+                        // Can't revive with a Heal
+
+                        if target_hp.current_hp < 0 {
+                            target_hp.current_hp += skill_executed.hp_dealt;
+                            if target_hp.current_hp > target_hp.max_hp {
+                                target_hp.current_hp = target_hp.max_hp;
+                            }
                         }
                     }
                     SkillType::Attack => {

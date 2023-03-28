@@ -4,6 +4,7 @@ use rand::Rng;
 use crate::{
     combat::{stats::Initiative, Action, CombatPanel, CombatState},
     npc::NPC,
+    ui::player_interaction::ExecuteSkillEvent,
 };
 
 /// Roll for each entity a d100 ranged into +-20 initiative
@@ -53,4 +54,37 @@ pub fn roll_initiative(
     combat_panel.history = initiatives;
 
     combat_panel.phase = CombatState::ExecuteSkills;
+}
+
+pub fn execution_phase(
+    mut combat_panel_query: Query<&mut CombatPanel>,
+
+    mut execute_skill_event: EventWriter<ExecuteSkillEvent>,
+) {
+    let mut combat_panel = combat_panel_query.single_mut();
+
+    for Action {
+        caster,
+        skill,
+        target,
+        initiative: _,
+    } in combat_panel.history.iter()
+    {
+        // we will do a verification anyway (skill's hp_cost)
+        // in the event handler
+        // to control tabht the caster is alive at the time of the execution
+        execute_skill_event.send(ExecuteSkillEvent {
+            skill: skill.clone(),
+            caster: *caster,
+            target: target.unwrap(),
+        })
+    }
+
+    // IDEA: add this history into a log to permit the player to see it.
+
+    // Reset the action history
+    combat_panel.history = Vec::new();
+
+    // TODO: Go to Observation
+    combat_panel.phase = CombatState::SelectionCaster;
 }

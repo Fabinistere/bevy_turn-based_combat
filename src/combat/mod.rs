@@ -104,6 +104,12 @@ impl Plugin for CombatPlugin {
                     .with_run_criteria(run_if_in_initiative_phase)
                     .label(CombatState::RollInitiative)
             )
+            .add_system_to_stage(
+                CoreStage::Update,
+                phases::execution_phase
+                    .with_run_criteria(run_if_in_executive_phase)
+                    .label(CombatState::ExecuteSkills)
+            )
             // .add_system_set_to_stage(
             //     CoreStage::PostUpdate,
             //     SystemSet::new()

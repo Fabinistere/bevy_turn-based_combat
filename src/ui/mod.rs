@@ -78,9 +78,9 @@ impl Plugin for UiPlugin {
                     .with_run_criteria(run_if_in_evasive_phase)
             )
             // DONE: Display Actions
-            // TODO: Confirm Actions
+            // DONE: Confirm Actions
             // DONE: Roll Initiative
-            // TODO: Execute in order Actions
+            // DONE: Execute in order Actions
 
             // --- COLOR ---
             .add_system(player_interaction::button_system)
