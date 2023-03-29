@@ -23,23 +23,35 @@ pub fn roll_initiative(
     for mut action in combat_panel.history.iter_mut() {
         let caster = action.caster;
         // REFACTOR: how the initiative is calculated
-        let skill_init = &action.skill.initiative;
+        let skill_init = action.skill.initiative.clone();
 
         match npc_query.get(caster) {
             Err(e) => warn!("Invalid Caster are in the History: {}", e),
             Ok(npc_init) => {
                 let npc_number = if npc_init.0 - 20 <= 0 {
-                    rand::thread_rng().gen_range(0..npc_init.0 + 20 + skill_init)
+                    rand::thread_rng().gen_range(0..npc_init.0 + 20)
                 } else if npc_init.0 == 100 {
                     100
                 } else if npc_init.0 + 20 >= 100 {
-                    rand::thread_rng().gen_range(npc_init.0 - 20..100 + skill_init)
+                    rand::thread_rng().gen_range(npc_init.0 - 20..100)
                 } else {
-                    rand::thread_rng().gen_range(npc_init.0 - 20..npc_init.0 + 20 + skill_init)
+                    rand::thread_rng().gen_range(npc_init.0 - 20..npc_init.0 + 20)
                 };
 
+                let skill_number = if skill_init - 20 <= 0 {
+                    rand::thread_rng().gen_range(0..skill_init + 20)
+                } else if skill_init == 100 {
+                    100
+                } else if skill_init + 20 >= 100 {
+                    rand::thread_rng().gen_range(skill_init - 20..100)
+                } else {
+                    rand::thread_rng().gen_range(skill_init - 20..skill_init + 20)
+                };
+
+                // 0 <= action.initiative <= 200
+
                 // insert these number in a vector
-                action.initiative = npc_number;
+                action.initiative = npc_number + skill_number;
                 initiatives.push(action.clone());
             }
         }

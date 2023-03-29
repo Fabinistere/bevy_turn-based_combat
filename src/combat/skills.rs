@@ -59,7 +59,8 @@ pub struct Skill {
     /// Wait for the turn delay to execute
     pub turn_delay: i32,
     /// initiave: slower; faster
-    /// REFACTOR: can be negative (-100 <= init <= 100)
+    ///
+    /// 0 <= init <= 100
     pub initiative: i32,
     /// hp: dmg/heal to the target
     pub hp_dealt: i32,
