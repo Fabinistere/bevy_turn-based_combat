@@ -1,13 +1,13 @@
 use bevy::prelude::*;
 
 use crate::{
-    combat::{CombatPhase, CombatState},
+    combat::{skills::Skill, CombatPanel, CombatState},
     constants::ui::dialogs::*,
-    ui::combat_system::{ButtonSelection, ButtonTargeting, HpMeter, MpMeter},
+    ui::combat_system::{HpMeter, MpMeter},
     ui::player_interaction::ScrollingList,
 };
 
-use super::player_interaction::{Draggable, Clickable};
+use super::player_interaction::EndOfTurnButton;
 
 /// XXX: Useless component used to differentiate Hp/MpMeters of a target or a caster
 #[derive(Component)]
@@ -31,7 +31,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     // vertically center child text
                     align_items: AlignItems::Center,
                     position: UiRect {
-                        right: Val::Percent(-20.0),
+                        right: Val::Percent(-80.0),
                         top: Val::Percent(-33.0),
                         ..default()
                     },
@@ -41,8 +41,9 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ..default()
             },
             Name::new("BAM Skill"),
-            Draggable,
-            Clickable,
+            Skill::bam(),
+            // Draggable,
+            // Clickable,
         ))
         .with_children(|parent| {
             parent.spawn(TextBundle::from_section(
@@ -55,12 +56,12 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             ));
         });
 
-    // SELECT BUTTON
+    // END OF YOUR TURN
     commands
         .spawn((
             ButtonBundle {
                 style: Style {
-                    size: Size::new(Val::Px(150.0), Val::Px(65.0)),
+                    size: Size::new(Val::Px(200.0), Val::Px(65.0)),
                     // center button
                     margin: UiRect::all(Val::Auto),
                     // horizontally center child text
@@ -68,8 +69,8 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     // vertically center child text
                     align_items: AlignItems::Center,
                     position: UiRect {
-                        right: Val::Percent(-22.0),
-                        top: Val::Percent(-41.0),
+                        right: Val::Percent(-33.),
+                        top: Val::Percent(-41.),
                         ..default()
                     },
                     ..default()
@@ -77,12 +78,12 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 background_color: NORMAL_BUTTON.into(),
                 ..default()
             },
-            ButtonSelection,
-            Name::new("SelectButton")
+            Name::new("EndTurn Button"),
+            EndOfTurnButton,
         ))
         .with_children(|parent| {
             parent.spawn(TextBundle::from_section(
-                "SelectUnit",
+                "End of Turn",
                 TextStyle {
                     font: asset_server.load("fonts/dpcomic.ttf"),
                     font_size: 40.0,
@@ -90,37 +91,40 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 },
             ));
         });
-    
+
+    // TODO: feature - UNDO button
+    // TODO: feature - cancel button (esc when selection target)
+
     // TARGET BUTTON
-    commands
-        .spawn((
-            ButtonBundle {
-                style: Style {
-                    size: Size::new(Val::Px(150.0), Val::Px(65.0)),
-                    // center button
-                    margin: UiRect::all(Val::Auto),
-                    // horizontally center child text
-                    justify_content: JustifyContent::Center,
-                    // vertically center child text
-                    align_items: AlignItems::Center,
-                    ..default()
-                },
-                background_color: NORMAL_BUTTON.into(),
-                ..default()
-            },
-            ButtonTargeting,
-            Name::new("TargetButton")
-        ))
-        .with_children(|parent| {
-            parent.spawn(TextBundle::from_section(
-                "TargetUnit",
-                TextStyle {
-                    font: asset_server.load("fonts/dpcomic.ttf"),
-                    font_size: 40.0,
-                    color: Color::rgb(0.9, 0.9, 0.9),
-                },
-            ));
-        });
+    // commands
+    //     .spawn((
+    //         ButtonBundle {
+    //             style: Style {
+    //                 size: Size::new(Val::Px(180.0), Val::Px(65.0)),
+    //                 // center button
+    //                 margin: UiRect::all(Val::Auto),
+    //                 // horizontally center child text
+    //                 justify_content: JustifyContent::Center,
+    //                 // vertically center child text
+    //                 align_items: AlignItems::Center,
+    //                 ..default()
+    //             },
+    //             background_color: NORMAL_BUTTON.into(),
+    //             ..default()
+    //         },
+    //         ButtonTargeting,
+    //         Name::new("TargetButton")
+    //     ))
+    //     .with_children(|parent| {
+    //         parent.spawn(TextBundle::from_section(
+    //             "TargetUnit",
+    //             TextStyle {
+    //                 font: asset_server.load("fonts/dpcomic.ttf"),
+    //                 font_size: 40.0,
+    //                 color: Color::rgb(0.9, 0.9, 0.9),
+    //             },
+    //         ));
+    //     });
 
     // STATS
     // List with hidden overflow
@@ -153,16 +157,43 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                         ..default()
                     },
                     ScrollingList::default(),
-                    // TODO: Move it somewhere else
-                    // CombatPhase(CombatState::Initiation),
-                    CombatPhase(CombatState::SelectionCaster),
                     Name::new("Moving Panel"),
                 ))
                 .with_children(|parent| {
                     // List items
+
                     parent.spawn((
                         TextBundle::from_section(
-                            format!("Caster hp: HP"),
+                            format!("Combat Phase: ???"),
+                            TextStyle {
+                                font: asset_server.load("fonts/dpcomic.ttf"),
+                                font_size: 20.,
+                                color: Color::WHITE,
+                            },
+                        )
+                        .with_style(Style {
+                            flex_shrink: 0.,
+                            size: Size::new(Val::Undefined, Val::Px(20.)),
+                            margin: UiRect {
+                                left: Val::Auto,
+                                right: Val::Auto,
+                                ..default()
+                            },
+                            ..default()
+                        }),
+                        // TODO: Move it somewhere else
+                        // CombatState::Initiation
+                        CombatPanel {
+                            phase: CombatState::SelectionCaster,
+                            history: vec![],
+                        },
+                        Name::new("Combat Phase"),
+                    ));
+
+                    // Basic Stats
+                    parent.spawn((
+                        TextBundle::from_section(
+                            format!("Caster hp: ???"),
                             TextStyle {
                                 font: asset_server.load("fonts/dpcomic.ttf"),
                                 font_size: 20.,
@@ -186,7 +217,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
                     parent.spawn((
                         TextBundle::from_section(
-                            format!("Caster mp: MP"),
+                            format!("Caster mp: ???"),
                             TextStyle {
                                 font: asset_server.load("fonts/dpcomic.ttf"),
                                 font_size: 20.,
@@ -208,10 +239,9 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                         Name::new("Caster Mp"),
                     ));
 
-                    // TODO: display targeted entity
                     parent.spawn((
                         TextBundle::from_section(
-                            format!("Target hp: HP"),
+                            format!("Target hp: ???"),
                             TextStyle {
                                 font: asset_server.load("fonts/dpcomic.ttf"),
                                 font_size: 20.,
@@ -235,7 +265,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
                     parent.spawn((
                         TextBundle::from_section(
-                            format!("Target mp: MP"),
+                            format!("Target mp: ???"),
                             TextStyle {
                                 font: asset_server.load("fonts/dpcomic.ttf"),
                                 font_size: 20.,

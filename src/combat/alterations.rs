@@ -1,28 +1,27 @@
-//! Implement all Combat Buffs and Debuffs 
+//! Implement all Combat Buffs and Debuffs
 
 use bevy::prelude::*;
 
-use super::stats::*;
 use super::skills::*;
+use super::stats::*;
 
+#[derive(Debug, Clone)]
 pub enum AlterationAction {
     StatsReduction,
     Poison,
     RestrainToAttack,
-    ForcePass
+    ForcePass,
 }
 
 /// Alteration will last for exactly `duration` turn,
 /// can be cured/removed by some clean skills.
-/// 
-/// 
-/// 
+///
 /// # Note
-/// 
+///
 /// - Curse or Benediction
 /// - Debuff or Buff
 /// - Detract or Enhance
-#[derive(Component)]
+#[derive(Debug, Component, Clone)]
 pub struct Alteration {
     /// Alteration's type
     pub action: AlterationAction,
@@ -38,17 +37,16 @@ pub struct Alteration {
     pub target_option: (TargetSide, i32),
 
     // Dots
-
     /// hp dealt or healed each time the target plays
-    /// 
+    ///
     /// hp: dmg/heal to the target
     pub hp_dealt: i32,
     /// mp consume or gained each time the target plays
-    /// 
+    ///
     /// mana: consume/gain to the target
     pub mana_dealt: i32,
     /// shiled point reduced or added each time the target plays
-    /// 
+    ///
     /// shield: reduce/addition to the target
     pub shield_dealt: i32,
 

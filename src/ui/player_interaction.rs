@@ -5,13 +5,7 @@ use bevy::{
     prelude::*,
 };
 
-use crate::{
-    combat::skills::Skill,
-    constants::{ui::dialogs::*, RESOLUTION},
-    ui::combat_system::{ButtonSelection, Selected, Targeted},
-};
-
-use super::combat_system::ButtonTargeting;
+use crate::{combat::{skills::Skill, CombatPanel, CombatState}, constants::{RESOLUTION, ui::dialogs::*,}};
 
 /// Happens in
 ///   - ui::dialog_player::button_system
@@ -64,10 +58,6 @@ pub struct SpriteSize {
 }
 
 /// Adds the Component 'Clicked' to a valid Entity
-///
-/// # Note
-///
-/// TODO: Unit Clicked (Selected)
 pub fn select_unit_by_mouse(
     mut commands: Commands,
 
@@ -78,17 +68,17 @@ pub fn select_unit_by_mouse(
         (Entity, &Transform, &SpriteSize, &Name),
         (With<Clickable>, Without<Clicked>),
     >,
+    // mut update_unit_selected_event: EventWriter<UpdateUnitSelectedEvent>,
 ) {
     let window = windows.get_primary().unwrap();
 
     if let Some(position) = window.cursor_position() {
         if buttons.just_pressed(MouseButton::Left) {
             // info!("({}, {})", position.x, position.y);
-
-            // TODO: Magical Number...
             let window_height = 720.0;
             let window_width = window_height * RESOLUTION;
-
+            
+            // TODO: Magical Number...
             let transform_height = 100.0;
             let transform_width = 180.0;
 
@@ -118,6 +108,8 @@ pub fn select_unit_by_mouse(
                 {
                     info!("{} clicked", name);
                     commands.entity(unit).insert(Clicked);
+                    // v-- instead of --^
+                    // update_unit_selected_event.send(UpdateUnitSelectedEvent(unit));
                 }
             }
         }
@@ -131,65 +123,13 @@ pub fn select_unit_by_mouse(
 // TODO: feature - can drag unit just to cancel the click
 // avoid missclick by dragging
 //
-// TODO: Skill dropped
+// TODO: feature - Skill dropped
 // To a possible target: Confirm
 // To something else: Cancel (or just back to skill clicked)
 
 // # Note
 //
-// TODO: Hover Unit - Preview Combat Page
-// TODO: Hover Skill - Preview possible target
-
-/// Action for each Interaction of the button
-pub fn button_system(
-    mut interaction_query: Query<
-        (&Interaction, &mut BackgroundColor, &Children),
-        (
-            Changed<Interaction>,
-            With<Button>,
-            Without<ButtonSelection>,
-            Without<ButtonTargeting>,
-        ),
-    >,
-
-    mut text_query: Query<&mut Text>,
-
-    unit_selected_query: Query<(Entity, &Selected)>,
-    unit_targeted_query: Query<(Entity, &Targeted)>,
-
-    mut execute_skill_event: EventWriter<ExecuteSkillEvent>,
-) {
-    for (interaction, mut color, children) in &mut interaction_query {
-        let mut text = text_query.get_mut(children[0]).unwrap();
-        match *interaction {
-            Interaction::Clicked => {
-                if let Ok((caster, _)) = unit_selected_query.get_single() {
-                    if let Ok((target, _)) = unit_targeted_query.get_single() {
-                        let bam_skill = Skill::bam();
-
-                        // TODO: send event to inflict the skill to the Targeted entity
-                        execute_skill_event.send(ExecuteSkillEvent {
-                            skill: bam_skill,
-                            caster,
-                            target,
-                        });
-                    }
-                }
-
-                text.sections[0].value = "BOM".to_string();
-                *color = PRESSED_BUTTON.into();
-            }
-            Interaction::Hovered => {
-                text.sections[0].value = "BAM".to_string();
-                *color = HOVERED_BUTTON.into();
-            }
-            Interaction::None => {
-                text.sections[0].value = "BAM".to_string();
-                *color = NORMAL_BUTTON.into();
-            }
-        }
-    }
-}
+// TODO: feature - Hover Unit - Preview Combat Page
 
 #[derive(Component, Default)]
 pub struct ScrollingList {
@@ -216,6 +156,83 @@ pub fn mouse_scroll(
             scrolling_list.position += dy;
             scrolling_list.position = scrolling_list.position.clamp(-max_scroll, 0.);
             style.position.top = Val::Px(scrolling_list.position);
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct EndOfTurnButton;
+
+pub fn end_of_turn_button(
+    mut interaction_query: Query<
+        (&Interaction, &Children),
+        (
+            Changed<Interaction>,
+            With<Button>,
+            With<EndOfTurnButton>,
+        ),
+    >,
+
+    mut text_query: Query<&mut Text>,
+
+    mut combat_panel_query: Query<(Entity, &mut CombatPanel)>,
+) {
+    for (interaction, children) in &mut interaction_query {
+        let mut text = text_query.get_mut(children[0]).unwrap();
+        match *interaction {
+            Interaction::Clicked => {
+                let (_, mut combat_panel) = combat_panel_query.single_mut();
+                
+                // allow pass with no action in the history
+                if let Some(last_action) = combat_panel.history.pop() {
+                    if last_action.target != None {
+                        // reput the last_action in the pool
+                        combat_panel.history.push(last_action);
+                    }
+                }
+
+                combat_panel.phase = CombatState::RollInitiative;
+
+                text.sections[0].value = "CAN'T UNDO".to_string();
+            }
+            Interaction::Hovered => {
+                // TODO: feature - Hover Skill - Preview possible Target
+
+                text.sections[0].value = "End of Turn".to_string();
+            }
+            Interaction::None => {
+                text.sections[0].value = "End of Turn".to_string();
+            }
+        }
+    }
+}
+
+/// Change color depending of Interaction
+/// 
+/// # Note
+/// 
+/// REFACTOR: seperate color management button from specific command button system
+pub fn button_system(
+    mut interaction_query: Query<
+        (&Interaction, &mut BackgroundColor, &Children),
+        (
+            Changed<Interaction>,
+            With<Button>,
+        ),
+    >,
+) {
+    for (interaction, mut color, _children) in &mut interaction_query {
+        // let mut text = text_query.get_mut(children[0]).unwrap();
+        match *interaction {
+            Interaction::Clicked => {
+                *color = PRESSED_BUTTON.into();
+            }
+            Interaction::Hovered => {
+                *color = HOVERED_BUTTON.into();
+            }
+            Interaction::None => {
+                *color = NORMAL_BUTTON.into();
+            }
         }
     }
 }

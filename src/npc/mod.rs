@@ -120,7 +120,7 @@ fn spawn_aggresives_characters(
                 width: SPRITE_SIZE.0,
                 height:SPRITE_SIZE.1,
             },
-            Name::new("NPC olf"),
+            Name::new("NPC Olf"),
             NPC,
             // -- Combat Components --
             Team(TEAM_OLF),
