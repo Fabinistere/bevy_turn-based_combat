@@ -77,7 +77,7 @@ pub fn select_unit_by_mouse(
             // info!("({}, {})", position.x, position.y);
             let window_height = 720.0;
             let window_width = window_height * RESOLUTION;
-            
+
             // TODO: Magical Number...
             let transform_height = 100.0;
             let transform_width = 180.0;
@@ -182,7 +182,7 @@ pub fn end_of_turn_button(
         match *interaction {
             Interaction::Clicked => {
                 let (_, mut combat_panel) = combat_panel_query.single_mut();
-                
+
                 // allow pass with no action in the history
                 if let Some(last_action) = combat_panel.history.pop() {
                     if last_action.target != None {
@@ -236,3 +236,5 @@ pub fn button_system(
         }
     }
 }
+
+// TODO: equip stuffs

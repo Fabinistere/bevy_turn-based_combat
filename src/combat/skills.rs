@@ -27,9 +27,14 @@ pub enum SkillType {
 
 #[derive(Default, Debug, Clone, PartialEq)]
 pub enum TargetSide {
+    /// Identity
+    OneSelf,
     Enemy,
+    /// Include the identity (self)
     #[default]
     Ally,
+    /// Exclude the identity (self)
+    AllyButSelf,
     All,
 }
 
@@ -42,8 +47,6 @@ pub struct Skill {
     pub skill_type: SkillType,
     /// Which side the skill is allow to target
     pub target_side: TargetSide,
-    /// Should the caster be allowed to target themself
-    pub self_cast: bool,
     /// # Example
     ///
     /// - target all ally/enemy party: MAX_PARTY (6)
@@ -93,13 +96,13 @@ pub struct Skill {
     /// Used for complex skill
     pub skills_queue: Vec<Skill>,
     pub description: String,
+    pub name: String,
 }
 
 impl Default for Skill {
     fn default() -> Self {
         Skill {
             skill_type: Default::default(),
-            self_cast: true,
             target_side: TargetSide::default(),
             target_number: 1,
             aoe: false,
@@ -113,6 +116,7 @@ impl Default for Skill {
             alteration: vec![],
             skills_queue: vec![],
             description: String::from("..."),
+            name: String::from("Skill"),
         }
     }
 }
@@ -140,6 +144,7 @@ pub fn execute_skill(
             &AttackSpe,
             &Defense,
             &DefenseSpe,
+            &Name,
         ),
         // Or<(With<Selected>, With<Targeted>)>
     >,
@@ -163,6 +168,7 @@ pub fn execute_skill(
                     caster_attack_spe,
                     _caster_defense,
                     _caster_defense_spe,
+                    caster_name,
                 ), (
                     _target,
                     mut target_hp,
@@ -172,8 +178,14 @@ pub fn execute_skill(
                     _target_attack_spe,
                     target_defense_spe,
                     target_defense,
+                    target_name,
                 )],
             ) => {
+                info!(
+                    "DEBUG: Execute skill: {}, from {} to {}",
+                    skill.name, caster_name, target_name
+                );
+
                 let skill_executed = &skill;
 
                 // TODO: turn delay?

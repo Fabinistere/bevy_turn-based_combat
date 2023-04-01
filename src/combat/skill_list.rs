@@ -8,11 +8,10 @@ impl Skill {
             skill_type: SkillType::Attack,
             target_side: TargetSide::Enemy,
             target_number: 1,
-            // invalidate by the target side but just in case.
-            self_cast: false,
-            hp_dealt: 150,
+            hp_dealt: 50,
             initiative: 50,
-            description: String::from("Bam"),
+            description: String::from("Deal 50 dmg"),
+            name: String::from("Bam"),
             ..Default::default()
         }
     }
@@ -20,13 +19,13 @@ impl Skill {
     pub fn block() -> Self {
         Skill {
             skill_type: SkillType::Defense,
-            target_side: TargetSide::Ally,
+            target_side: TargetSide::OneSelf,
             target_number: 1,
-            // invalidate by the target side but just in case.
-            self_cast: true,
             shield_dealt: 200,
             initiative: 50,
-            description: String::from("Block"),
+            description: String::from("Give 200shield"),
+            name: String::from("Block"),
+
             ..Default::default()
         }
     }

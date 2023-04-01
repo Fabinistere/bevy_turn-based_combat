@@ -176,7 +176,7 @@ pub fn update_targeted_unit(
 
                 // let skill = combat_panel.history[combat_panel.history.len()-1].skill.clone();
                 // let (_, caster_name, _) = unit_selected_query.single();
-                // info!("DEBUG: action = {} do {} to {}", caster_name, skill.description, target_name);
+                // info!("DEBUG: action = {} do {} to {}", caster_name, skill.name, target_name);
                 combat_panel.phase = CombatState::SelectionCaster;
             }
         }
@@ -225,17 +225,17 @@ pub fn last_action_displayer(
                 let action_display = if action.initiative == -1 {
                     format!(
                         "{} do {} to {}",
-                        caster_name, action.skill.description, target_name
+                        caster_name, action.skill.name, target_name
                     )
                 } else {
                     format!(
                         "{}: {} do {} to {}",
-                        action.initiative, caster_name, action.skill.description, target_name
+                        action.initiative, caster_name, action.skill.name, target_name
                     )
                 };
                 // let action_display = format!(
                 //     "{}: {} do {} to {}",
-                //     action.initiative, caster_name, action.skill.description, target_name
+                //     action.initiative, caster_name, action.skill.name, target_name
                 // );
                 println!("{}. {}", number, action_display);
                 number += 1;
