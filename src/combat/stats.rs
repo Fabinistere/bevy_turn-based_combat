@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use crate::npc::NPC;
 
 /// Each entity which can be involved in a combat has this Bundle
-#[derive(Bundle)]
+#[derive(Bundle, Default)]
 pub struct StatBundle {
     pub hp: Hp,
     pub mana: Mana,
@@ -19,20 +19,20 @@ pub struct StatBundle {
     pub defense_spe: DefenseSpe,
 }
 
-impl Default for StatBundle {
-    fn default() -> Self {
-        StatBundle {
-            hp: Hp::default(),
-            mana: Mana::default(),
-            shield: Shield::default(),
-            initiative: Initiative::default(),
-            attack: Attack::default(),
-            attack_spe: AttackSpe::default(),
-            defense: Defense::default(),
-            defense_spe: DefenseSpe::default(),
-        }
-    }
-}
+// impl Default for StatBundle {
+//     fn default() -> Self {
+//         StatBundle {
+//             hp: Hp::default(),
+//             mana: Mana::default(),
+//             shield: Shield::default(),
+//             initiative: Initiative::default(),
+//             attack: Attack::default(),
+//             attack_spe: AttackSpe::default(),
+//             defense: Defense::default(),
+//             defense_spe: DefenseSpe::default(),
+//         }
+//     }
+// }
 
 /// ----------Hp----------
 ///
@@ -42,18 +42,18 @@ impl Default for StatBundle {
 ///
 /// # Note
 ///
-/// At the moment, current_hp <= max_hp
+/// At the moment, current <= max
 #[derive(Component)]
 pub struct Hp {
-    pub current_hp: i32,
-    pub max_hp: i32,
+    pub current: i32,
+    pub max: i32,
 }
 
 impl Default for Hp {
     fn default() -> Self {
         Hp {
-            current_hp: 50,
-            max_hp: 50,
+            current: 50,
+            max: 50,
         }
     }
 }
@@ -63,7 +63,7 @@ pub fn show_hp(npc_query: Query<(&Hp, &Name), With<NPC>>) {
     for (npc_hp, npc_name) in npc_query.iter() {
         info!(
             "DEBUG: {}'s Hp: {}/{},",
-            npc_name, npc_hp.current_hp, npc_hp.max_hp
+            npc_name, npc_hp.current, npc_hp.max
         );
     }
 }
@@ -76,18 +76,18 @@ pub fn show_hp(npc_query: Query<(&Hp, &Name), With<NPC>>) {
 ///
 /// # Note
 ///
-/// At the moment, current_mana <= max_mana
+/// At the moment, current <= max
 #[derive(Component)]
 pub struct Mana {
-    pub current_mana: i32,
-    pub max_mana: i32,
+    pub current: i32,
+    pub max: i32,
 }
 
 impl Default for Mana {
     fn default() -> Self {
         Mana {
-            current_mana: 50,
-            max_mana: 50,
+            current: 50,
+            max: 50,
         }
     }
 }
@@ -97,7 +97,7 @@ pub fn show_mana(npc_query: Query<(&Mana, &Name), With<NPC>>) {
     for (npc_mana, npc_name) in npc_query.iter() {
         info!(
             "DEBUG: {}'s Mana: {}/{},",
-            npc_name, npc_mana.current_mana, npc_mana.max_mana
+            npc_name, npc_mana.current, npc_mana.max
         );
     }
 }
@@ -107,7 +107,7 @@ pub fn show_mana(npc_query: Query<(&Mana, &Name), With<NPC>>) {
 /// Start of the Game: 0-100shield -> End of the Game: 10 000shield.
 ///
 /// Can be modified by level, item, buff, debuff, technics.
-#[derive(Component)]
+#[derive(Component, Deref, DerefMut)]
 pub struct Shield(pub i32);
 
 impl Default for Shield {
@@ -123,12 +123,24 @@ impl Default for Shield {
 /// Can be modified by level, item, buff, debuff, technics.
 ///
 /// This statistic is fix, it increment the martial technic's power.
+///
+/// # Modifiers
+///
+/// (base + modifier_flat) * modifer_percent%
 #[derive(Component, Debug, Clone)]
-pub struct Attack(pub i32);
+pub struct Attack {
+    pub base: i32,
+    pub modifier_flat: i32,
+    pub modifier_percent: i32,
+}
 
 impl Default for Attack {
     fn default() -> Self {
-        Attack(10)
+        Attack {
+            base: 10,
+            modifier_flat: 0,
+            modifier_percent: 100,
+        }
     }
 }
 
@@ -139,12 +151,24 @@ impl Default for Attack {
 /// Can be modified by level, item, buff, debuff, technics.
 ///
 /// This statistic is fix, it increment the magic technic's power.
+///
+/// # Modifiers
+///
+/// (base + modifier_flat) * modifer_percent%
 #[derive(Component, Debug, Clone)]
-pub struct AttackSpe(pub i32);
+pub struct AttackSpe {
+    pub base: i32,
+    pub modifier_flat: i32,
+    pub modifier_percent: i32,
+}
 
 impl Default for AttackSpe {
     fn default() -> Self {
-        AttackSpe(0)
+        AttackSpe {
+            base: 0,
+            modifier_flat: 0,
+            modifier_percent: 100,
+        }
     }
 }
 
@@ -160,12 +184,24 @@ impl Default for AttackSpe {
 /// taken from basic attacks and abilities that deal physical damage.
 ///
 /// Calculated by armor ÷ (armor + 100).
+///
+/// # Modifiers
+///
+/// (base + modifier_flat) * modifer_percent%
 #[derive(Component, Debug, Clone)]
-pub struct Defense(pub i32);
+pub struct Defense {
+    pub base: i32,
+    pub modifier_flat: i32,
+    pub modifier_percent: i32,
+}
 
 impl Default for Defense {
     fn default() -> Self {
-        Defense(10)
+        Defense {
+            base: 10,
+            modifier_flat: 0,
+            modifier_percent: 100,
+        }
     }
 }
 
@@ -181,12 +217,24 @@ impl Default for Defense {
 /// taken from basic attacks and abilities that deal magical damage.
 ///
 /// Calculated by MR ÷ (MR + 100).
+///
+/// # Modifiers
+///
+/// (base + modifier_flat) * modifer_percent%
 #[derive(Component, Debug, Clone)]
-pub struct DefenseSpe(pub i32);
+pub struct DefenseSpe {
+    pub base: i32,
+    pub modifier_flat: i32,
+    pub modifier_percent: i32,
+}
 
 impl Default for DefenseSpe {
     fn default() -> Self {
-        DefenseSpe(0)
+        DefenseSpe {
+            base: 0,
+            modifier_flat: 0,
+            modifier_percent: 100,
+        }
     }
 }
 
@@ -196,7 +244,7 @@ impl Default for DefenseSpe {
 ///
 /// Indicate the speed of initiative, the entity has.
 /// The more they has, the more likly they will start their turn first.
-#[derive(Component, Clone)]
+#[derive(Component, Clone, Deref, DerefMut)]
 pub struct Initiative(pub i32);
 
 impl Default for Initiative {
@@ -208,7 +256,7 @@ impl Default for Initiative {
 /// ----------ACCURACY----------
 ///
 /// Used to calculate if the technic will hit (in percentage).
-#[derive(Component)]
+#[derive(Component, Deref, DerefMut)]
 pub struct Accuracy(pub i32);
 
 impl Default for Accuracy {
@@ -224,7 +272,7 @@ impl Default for Accuracy {
 /// A Critical technic has its dmg inflicted multiplied by 300%
 ///
 /// ONLY allow critics on hit
-#[derive(Component)]
+#[derive(Component, Deref, DerefMut)]
 pub struct Critical(pub i32);
 
 impl Default for Critical {

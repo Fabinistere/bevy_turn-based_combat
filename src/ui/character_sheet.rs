@@ -111,10 +111,10 @@ pub fn update_caster_stats_panel(
         let (_, _, mut hp_text) = hp_query.single_mut();
         let (_, _, mut mp_text) = mp_query.single_mut();
 
-        let hp_display = format!("Caster {} hp: {}", name, &hp.current_hp.to_string());
+        let hp_display = format!("Caster {} hp: {}", name, &hp.current.to_string());
         hp_text.sections[0].value = hp_display;
 
-        let mp_display = format!("Caster {} mp: {}", name, &mana.current_mana.to_string());
+        let mp_display = format!("Caster {} mp: {}", name, &mana.current.to_string());
         mp_text.sections[0].value = mp_display;
     }
 
@@ -157,10 +157,10 @@ pub fn update_target_stats_panel(
         let (_, _, mut hp_text) = hp_query.single_mut();
         let (_, _, mut mp_text) = mp_query.single_mut();
 
-        let hp_display = format!("Target {} hp: {}", name, &hp.current_hp.to_string());
+        let hp_display = format!("Target {} hp: {}", name, &hp.current.to_string());
         hp_text.sections[0].value = hp_display;
 
-        let mp_display = format!("Target {} mp: {}", name, &mana.current_mana.to_string());
+        let mp_display = format!("Target {} mp: {}", name, &mana.current.to_string());
         mp_text.sections[0].value = mp_display;
     }
 

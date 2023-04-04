@@ -29,7 +29,6 @@ impl Plugin for UiPlugin {
             // OPTIMIZE: Only run the app when there is user input. This will significantly reduce CPU/GPU use.
             .insert_resource(WinitSettings::game())
 
-            .add_event::<player_interaction::ExecuteSkillEvent>()
             .add_event::<combat_system::UpdateUnitSelectedEvent>()
             .add_event::<combat_system::UpdateUnitTargetedEvent>()
 

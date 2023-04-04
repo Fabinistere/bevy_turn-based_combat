@@ -89,7 +89,17 @@ pub fn execution_phase(
             skill: skill.clone(),
             caster: *caster,
             target: target.unwrap(),
-        })
+        });
+
+        // should be in order
+        for combo_skill in skill.skills_queue.iter() {
+            execute_skill_event.send(ExecuteSkillEvent {
+                skill: combo_skill.clone(),
+                caster: *caster,
+                // All skills in the queue will be directed to the same target
+                target: target.unwrap(),
+            });
+        }
     }
 
     // IDEA: add this history into a log to permit the player to see it.
