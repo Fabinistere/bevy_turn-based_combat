@@ -110,6 +110,11 @@ impl Plugin for CombatPlugin {
                     .label(CombatState::Observation)
             )
             .add_system(
+                phases::execute_alteration
+                    .with_run_criteria(run_if_in_alteration_phase)
+                    .label(CombatState::AlterationsExecution)
+            )
+            .add_system(
                 phases::roll_initiative
                 // FixedTimestep::step(FIXED_TIME_STEP as f64)
                 .with_run_criteria(run_if_in_initiative_phase)

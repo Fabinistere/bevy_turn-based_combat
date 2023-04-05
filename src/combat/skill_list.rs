@@ -1,6 +1,11 @@
 //! List all the technic possible
+//!
+//! We call `spell`, technic that indivuals have regardless of their stuff
+//! We call `skill`, technic given by using a certain weapon
 
 use crate::combat::skills::{Skill, SkillType, TargetSide};
+
+use super::alterations::Alteration;
 
 impl Skill {
     pub fn bam() -> Self {
@@ -16,6 +21,7 @@ impl Skill {
         }
     }
 
+    /// Is a spell
     pub fn block() -> Self {
         Skill {
             skill_type: SkillType::Defense,
@@ -25,7 +31,21 @@ impl Skill {
             initiative: 50,
             description: String::from("Give 200shield"),
             name: String::from("Block"),
+            ..Default::default()
+        }
+    }
 
+    pub fn gifle() -> Self {
+        Skill {
+            skill_type: SkillType::Attack,
+            target_side: TargetSide::Enemy,
+            target_number: 1,
+            // Immediate
+            hp_dealt: 1,
+            initiative: 70,
+            alterations: vec![Alteration::honte()],
+            description: String::from("Frappe Vile qui inflige le débuff Honte"),
+            name: String::from("Gifle"),
             ..Default::default()
         }
     }
