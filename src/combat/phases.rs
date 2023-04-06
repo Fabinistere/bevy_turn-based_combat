@@ -37,6 +37,9 @@ use super::{
 //     combat_panel.phase = CombatState::SelectionCaster;
 // }
 
+// TODO: ShouldHave - Display mutable change (dmg, heal)
+// TODO: CouldHave - Display the combat log somewhere
+
 /// # Note
 ///
 /// DOC
