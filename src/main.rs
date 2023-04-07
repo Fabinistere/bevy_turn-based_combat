@@ -45,6 +45,9 @@ fn main() {
         .add_startup_system(spawn_camera);
 
     app.run();
+
+    // TODO: update the assets folder in the cloud
+    // TODO: publish the demo on the web
 }
 
 fn spawn_camera(mut commands: Commands) {

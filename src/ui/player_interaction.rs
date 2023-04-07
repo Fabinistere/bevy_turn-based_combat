@@ -5,20 +5,10 @@ use bevy::{
     prelude::*,
 };
 
-use crate::{combat::{skills::Skill, CombatPanel, CombatState}, constants::{RESOLUTION, ui::dialogs::*,}};
-
-/// Happens in
-///   - ui::dialog_player::button_system
-///     - BAM clicked
-/// Read in
-///   - ???
-///     - Execute the skill with the UnitSelected's Stats
-///     to the UnitTargetted
-pub struct ExecuteSkillEvent {
-    pub skill: Skill,
-    pub caster: Entity,
-    pub target: Entity,
-}
+use crate::{
+    combat::{CombatPanel, CombatState},
+    constants::{ui::dialogs::*, RESOLUTION},
+};
 
 pub const SPRITE_SIZE: (f32, f32) = (25.0, 40.0);
 
@@ -77,7 +67,7 @@ pub fn select_unit_by_mouse(
             // info!("({}, {})", position.x, position.y);
             let window_height = 720.0;
             let window_width = window_height * RESOLUTION;
-            
+
             // TODO: Magical Number...
             let transform_height = 100.0;
             let transform_width = 180.0;
@@ -166,11 +156,7 @@ pub struct EndOfTurnButton;
 pub fn end_of_turn_button(
     mut interaction_query: Query<
         (&Interaction, &Children),
-        (
-            Changed<Interaction>,
-            With<Button>,
-            With<EndOfTurnButton>,
-        ),
+        (Changed<Interaction>, With<Button>, With<EndOfTurnButton>),
     >,
 
     mut text_query: Query<&mut Text>,
@@ -182,7 +168,7 @@ pub fn end_of_turn_button(
         match *interaction {
             Interaction::Clicked => {
                 let (_, mut combat_panel) = combat_panel_query.single_mut();
-                
+
                 // allow pass with no action in the history
                 if let Some(last_action) = combat_panel.history.pop() {
                     if last_action.target != None {
@@ -208,17 +194,14 @@ pub fn end_of_turn_button(
 }
 
 /// Change color depending of Interaction
-/// 
+///
 /// # Note
-/// 
+///
 /// REFACTOR: seperate color management button from specific command button system
 pub fn button_system(
     mut interaction_query: Query<
         (&Interaction, &mut BackgroundColor, &Children),
-        (
-            Changed<Interaction>,
-            With<Button>,
-        ),
+        (Changed<Interaction>, With<Button>),
     >,
 ) {
     for (interaction, mut color, _children) in &mut interaction_query {
@@ -236,3 +219,5 @@ pub fn button_system(
         }
     }
 }
+
+// TODO: equip stuffs

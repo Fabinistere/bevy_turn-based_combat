@@ -5,7 +5,7 @@ use crate::{
     combat::{
         skills::Skill,
         stats::{Hp, Mana},
-        InCombat, CombatPanel, CombatState, Action,
+        Action, CombatPanel, CombatState, InCombat,
     },
     ui::{
         combat_panel::{CasterMeter, TargetMeter},
@@ -30,7 +30,7 @@ pub fn select_skill(
     mut text_query: Query<&mut Text>,
 
     mut combat_panel_query: Query<(Entity, &mut CombatPanel)>,
-    
+
     unit_selected_query: Query<(Entity, &Name, &Selected)>,
 ) {
     for (interaction, skill, children) in &mut interaction_query {
@@ -38,18 +38,18 @@ pub fn select_skill(
         match *interaction {
             Interaction::Clicked => {
                 let (_, mut combat_panel) = combat_panel_query.single_mut();
-                
+
                 // Change last action saved to the new skill selected
                 if combat_panel.phase == CombatState::SelectionTarget {
                     // we already wrote the waiting skill in the actions history
                     // cause we're in the TargetSelection phase
-                    
+
                     let mut last_action = combat_panel.history.pop().unwrap();
                     last_action.skill = skill.clone();
                     combat_panel.history.push(last_action);
 
                     // let (_, caster_name, _) = unit_selected_query.single();
-                    // info!("DEBUG: action = {} do {} to None", caster_name, skill.description);
+                    // info!("DEBUG: action = {} do {} to None", caster_name, skill.name);
 
                     // info!("rewrite last action");
 
@@ -63,23 +63,22 @@ pub fn select_skill(
                     let action = Action::new(caster, skill.clone(), None);
                     combat_panel.history.push(action);
 
-
-                    // info!("DEBUG: action = {} do {} to None", _caster_name, skill.description);
+                    // info!("DEBUG: action = {} do {} to None", _caster_name, skill.name);
                     // info!("new action");
                 }
 
-                let mut display = skill.description.to_uppercase();
+                let mut display = skill.name.to_uppercase();
                 display = display.replace("A", "O");
                 text.sections[0].value = display;
             }
             Interaction::Hovered => {
                 // TODO: feature - Hover Skill - Preview possible Target
 
-                let display = skill.description.to_uppercase();
+                let display = skill.name.to_uppercase();
                 text.sections[0].value = display;
             }
             Interaction::None => {
-                let display = skill.description.to_uppercase();
+                let display = skill.name.to_uppercase();
                 text.sections[0].value = display;
             }
         }
@@ -87,7 +86,7 @@ pub fn select_skill(
 }
 
 /// # Note
-/// 
+///
 /// DEBUG
 pub fn update_caster_stats_panel(
     selected_query: Query<
@@ -112,10 +111,10 @@ pub fn update_caster_stats_panel(
         let (_, _, mut hp_text) = hp_query.single_mut();
         let (_, _, mut mp_text) = mp_query.single_mut();
 
-        let hp_display = format!("Caster {} hp: {}", name, &hp.current_hp.to_string());
+        let hp_display = format!("Caster {} hp: {}", name, &hp.current.to_string());
         hp_text.sections[0].value = hp_display;
 
-        let mp_display = format!("Caster {} mp: {}", name, &mana.current_mana.to_string());
+        let mp_display = format!("Caster {} mp: {}", name, &mana.current.to_string());
         mp_text.sections[0].value = mp_display;
     }
 
@@ -132,7 +131,7 @@ pub fn update_caster_stats_panel(
 }
 
 /// # Note
-/// 
+///
 /// DEBUG
 /// XXX: A proper clone of update_caster_stats_panel but just for target instead of caster
 pub fn update_target_stats_panel(
@@ -158,10 +157,10 @@ pub fn update_target_stats_panel(
         let (_, _, mut hp_text) = hp_query.single_mut();
         let (_, _, mut mp_text) = mp_query.single_mut();
 
-        let hp_display = format!("Target {} hp: {}", name, &hp.current_hp.to_string());
+        let hp_display = format!("Target {} hp: {}", name, &hp.current.to_string());
         hp_text.sections[0].value = hp_display;
 
-        let mp_display = format!("Target {} mp: {}", name, &mana.current_mana.to_string());
+        let mp_display = format!("Target {} mp: {}", name, &mana.current.to_string());
         mp_text.sections[0].value = mp_display;
     }
 

@@ -1,14 +1,14 @@
 //! Implement SKILLS
 
 use bevy::prelude::*;
+use bevy_inspector_egui::Inspectable;
 
-use crate::{
-    combat::{
-        alterations::*,
-        stats::{Attack, AttackSpe, Defense, DefenseSpe, Hp, Mana, Shield},
-    },
-    ui::player_interaction::ExecuteSkillEvent,
+use crate::combat::{
+    alterations::*,
+    stats::{Attack, AttackSpe, Defense, DefenseSpe, Hp, Mana, Shield},
 };
+
+use super::Alterations;
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub enum SkillType {
@@ -25,11 +25,16 @@ pub enum SkillType {
     Flee,
 }
 
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, Inspectable)]
 pub enum TargetSide {
+    /// Identity
+    OneSelf,
     Enemy,
+    /// Include the identity (self)
     #[default]
     Ally,
+    /// Exclude the identity (self)
+    AllyButSelf,
     All,
 }
 
@@ -42,8 +47,6 @@ pub struct Skill {
     pub skill_type: SkillType,
     /// Which side the skill is allow to target
     pub target_side: TargetSide,
-    /// Should the caster be allowed to target themself
-    pub self_cast: bool,
     /// # Example
     ///
     /// - target all ally/enemy party: MAX_PARTY (6)
@@ -85,7 +88,7 @@ pub struct Skill {
     pub mana_cost: i32,
     // TODO: feature: shield cost ?
     /// Debuff or Buff
-    pub alteration: Vec<Alteration>,
+    pub alterations: Vec<Alteration>,
     /// The 'list' of skills called after this one
     ///
     /// # Note
@@ -93,13 +96,13 @@ pub struct Skill {
     /// Used for complex skill
     pub skills_queue: Vec<Skill>,
     pub description: String,
+    pub name: String,
 }
 
 impl Default for Skill {
     fn default() -> Self {
         Skill {
             skill_type: Default::default(),
-            self_cast: true,
             target_side: TargetSide::default(),
             target_number: 1,
             aoe: false,
@@ -110,9 +113,10 @@ impl Default for Skill {
             mana_dealt: 0,
             mana_cost: 0,
             shield_dealt: 0,
-            alteration: vec![],
+            alterations: vec![],
             skills_queue: vec![],
             description: String::from("..."),
+            name: String::from("Skill"),
         }
     }
 }
@@ -121,6 +125,27 @@ fn _skill_caller(_query: Query<(Entity, &Skill)>, // ??
 ) {
 }
 
+/// Happens in
+///   - combat::phases::execution_phase
+///     - There is a skill to execute
+/// Read in
+///   - combat::skills::execute_shill
+///     - Execute the skill with the caster's Stats
+///     to the target
+pub struct ExecuteSkillEvent {
+    pub skill: Skill,
+    pub caster: Entity,
+    pub target: Entity,
+}
+
+/// Execution of the skill queue
+///
+/// - Skill cost
+/// - Multiplier Caculus
+/// - Skill execution
+/// - Insert all the alteration contains in the skill to the target
+///   - this state
+///
 /// # Note
 ///
 /// DOC
@@ -140,6 +165,8 @@ pub fn execute_skill(
             &AttackSpe,
             &Defense,
             &DefenseSpe,
+            &mut Alterations,
+            &Name,
         ),
         // Or<(With<Selected>, With<Targeted>)>
     >,
@@ -158,11 +185,13 @@ pub fn execute_skill(
                     _caster,
                     mut caster_hp,
                     mut caster_mp,
-                    _caster_shield,
+                    mut caster_shield,
                     caster_attack,
                     caster_attack_spe,
                     _caster_defense,
                     _caster_defense_spe,
+                    caster_alterations,
+                    caster_name,
                 ), (
                     _target,
                     mut target_hp,
@@ -170,48 +199,98 @@ pub fn execute_skill(
                     mut target_shield,
                     _target_attack,
                     _target_attack_spe,
-                    target_defense_spe,
                     target_defense,
+                    target_defense_spe,
+                    mut target_alterations,
+                    target_name,
                 )],
             ) => {
+                info!(
+                    "DEBUG: Execute skill: {}, from {} to {}",
+                    skill.name, caster_name, target_name
+                );
+
                 let skill_executed = &skill;
 
                 // TODO: turn delay?
-                // TODO: alteration.s
 
                 // ---- COST ----
 
-                // TODO: feature - reduce cost by stuff and level
-                caster_hp.current_hp -= skill_executed.hp_cost;
-                caster_mp.current_mana -= skill_executed.mana_cost;
+                // If the caster is already deadge, stop the execution
 
-                // don't execute the rest if the current_hp of the caster is < 0
-                if caster_hp.current_hp <= 0 {
+                // TODO: must have - cancel the skill if the mana/shield requirement is not fully satisfied
+                // ^^^^^--- in case of a other skill, just before, lower their mana/shield count
+
+                // TODO: feature - reduce cost by stuff and level
+                caster_hp.current -= skill_executed.hp_cost;
+                caster_mp.current -= skill_executed.mana_cost;
+                caster_shield.0 -= skill_executed.shield_dealt;
+
+                // don't execute the rest if the current of the caster is < 0
+                if caster_hp.current <= 0 {
                     continue;
                 }
 
-                let multiplier;
+                // if the skill is pre alteration
+                // ---- Alterations ----
+
+                // target_alterations.extend(skill.clone().alterations);
+
+                // ---- Multipliers ----
+
+                let mut attack_multiplier: f32 = 100.;
+                let mut attack_spe_multiplier: f32 = 100.;
+                let mut defense_multiplier: f32 = 100.;
+                let mut defense_spe_multiplier: f32 = 100.;
+                let mut damage_multiplier: f32 = 100.;
+                let mut heal_multiplier: f32 = 100.;
+
+                for alt in target_alterations.iter() {
+                    defense_multiplier += alt.defense as f32;
+                    defense_spe_multiplier += alt.defense_spe as f32;
+                    damage_multiplier += alt.damage_suffered as f32;
+                    heal_multiplier += alt.heal_received as f32;
+                }
+                for alt in caster_alterations.iter() {
+                    attack_multiplier += alt.attack as f32;
+                    attack_spe_multiplier += alt.attack_spe as f32;
+                    // REFACTOR: if damage_inflicted <= -100% should be 0 dmg (even if dmg_suffered > 0)
+                    damage_multiplier += alt.damage_inflicted as f32;
+                    heal_multiplier += alt.heal_inflicted as f32;
+                }
+
                 match skill_executed.skill_type {
                     SkillType::Heal => {
                         // IDEA: no multiplier ? based on attackspe?
 
                         // Can't revive with a Heal
 
-                        if target_hp.current_hp < 0 {
-                            target_hp.current_hp += skill_executed.hp_dealt;
-                            if target_hp.current_hp > target_hp.max_hp {
-                                target_hp.current_hp = target_hp.max_hp;
+                        if target_hp.current < 0 {
+                            // round to the bottom (to i32)
+                            target_hp.current +=
+                                (skill_executed.hp_dealt as f32 * heal_multiplier / 100.) as i32;
+                            if target_hp.current > target_hp.max {
+                                target_hp.current = target_hp.max;
                             }
                         }
                     }
                     SkillType::Attack => {
-                        multiplier = caster_attack.0;
+                        // REFACTOR: the calculus of entity's stats in the skill execution
+                        // here having 10 attack is quite inefficent
+                        attack_multiplier += caster_attack.base as f32;
+                        defense_multiplier += target_defense.base as f32;
+                        info!(
+                            "skill_executed.hp_dealt: {}; attack_multiplier: {}; defense_multiplier: {}; damage_multiplier: {}",
+                            skill_executed.hp_dealt, attack_multiplier/100., defense_multiplier/100., damage_multiplier/100.
+                        );
 
-                        // ---- HP ----
                         // x + x*(caster_attack)% - x*(target_defense)%
-                        let hp_dealt = skill_executed.hp_dealt
-                            + skill_executed.hp_dealt * multiplier / 100
-                            - skill_executed.hp_dealt * target_defense.0 / 100;
+                        // round to the bottom
+                        let hp_dealt = (skill_executed.hp_dealt as f32
+                            * (attack_multiplier / 100.)
+                            * (damage_multiplier / 100.)
+                            / (defense_multiplier / 100.))
+                            as i32;
                         if hp_dealt > 0 {
                             info!("hp dealt: {}", hp_dealt);
                         }
@@ -225,46 +304,53 @@ pub fn execute_skill(
 
                         // ---- EXECUTION ----
                         if target_shield.0 < hp_dealt {
-                            target_hp.current_hp -= hp_dealt - target_shield.0;
+                            target_hp.current -= hp_dealt - target_shield.0;
                             target_shield.0 = 0;
                         } else {
-                            // the shield fulyl tank the attack
+                            // the shield fully tank the attack
                             target_shield.0 -= hp_dealt;
                         }
                         // neagtive hp allowed
 
-                        target_hp.current_hp -= mp_dealt;
-                        if target_mp.current_mana < 0 {
-                            target_mp.current_mana = 0
+                        target_hp.current -= mp_dealt;
+                        if target_mp.current < 0 {
+                            target_mp.current = 0
                         }
                     }
                     SkillType::AttackSpe => {
-                        multiplier = caster_attack_spe.0;
+                        attack_spe_multiplier += caster_attack_spe.base as f32;
+                        defense_spe_multiplier += target_defense_spe.base as f32;
+                        info!(
+                            "attack_spe_multiplier: {}; defense_spe_multiplier: {}; damage_multiplier: {}",
+                            attack_spe_multiplier, defense_spe_multiplier, damage_multiplier
+                        );
 
                         // ---- HP ----
                         // x + x*(caster_attack_spe)% - x*(target_defense_spe)%
-                        let hp_dealt = skill_executed.hp_dealt
-                            + skill_executed.hp_dealt * multiplier / 100
-                            - skill_executed.hp_dealt * target_defense_spe.0 / 100;
+                        let hp_dealt = (skill_executed.hp_dealt as f32
+                            * (attack_spe_multiplier / 100.)
+                            * (damage_multiplier / 100.)
+                            / (defense_spe_multiplier / 100.))
+                            as i32;
                         if hp_dealt > 0 {
                             info!("hp dealt: {}", hp_dealt);
                         }
 
                         // ---- MP ----
                         // x + x*(caster_attack_spe)%
-                        let mp_dealt = skill_executed.mana_dealt
-                            + skill_executed.mana_dealt * multiplier / 100;
+                        let mp_dealt = (skill_executed.mana_dealt as f32 * attack_spe_multiplier
+                            / 100.) as i32;
                         if mp_dealt > 0 {
                             info!("mp dealt: {}", mp_dealt);
                         }
 
                         // ---- EXECUTION ----
-                        target_hp.current_hp -= hp_dealt;
+                        target_hp.current -= hp_dealt;
                         // neagtive hp allowed
 
-                        target_mp.current_mana -= mp_dealt;
-                        if target_mp.current_mana < 0 {
-                            target_mp.current_mana = 0
+                        target_mp.current -= mp_dealt;
+                        if target_mp.current < 0 {
+                            target_mp.current = 0
                         }
                     }
                     // shield_dealt is neagtive when harmfull or positive when bonus
@@ -279,9 +365,15 @@ pub fn execute_skill(
                     }
                     SkillType::Pass => {
                         // force action: Pass to the target next turn
+                        // IDEA: The next action of this entity is mute or the next time won't choose an action ?
                     }
                     _ => {}
                 }
+
+                // if the skill is post alteration
+                // ---- Alterations ----
+
+                target_alterations.extend(skill.clone().alterations);
             }
         }
     }

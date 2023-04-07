@@ -56,6 +56,44 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             ));
         });
 
+    // Gifle SKILL
+    commands
+        .spawn((
+            ButtonBundle {
+                style: Style {
+                    size: Size::new(Val::Px(150.0), Val::Px(65.0)),
+                    // center button
+                    margin: UiRect::all(Val::Auto),
+                    // horizontally center child text
+                    justify_content: JustifyContent::Center,
+                    // vertically center child text
+                    align_items: AlignItems::Center,
+                    position: UiRect {
+                        right: Val::Percent(-80.0),
+                        top: Val::Percent(-33.0),
+                        ..default()
+                    },
+                    ..default()
+                },
+                background_color: NORMAL_BUTTON.into(),
+                ..default()
+            },
+            Name::new("GIFLE Skill"),
+            Skill::gifle(),
+            // Draggable,
+            // Clickable,
+        ))
+        .with_children(|parent| {
+            parent.spawn(TextBundle::from_section(
+                "Gifle",
+                TextStyle {
+                    font: asset_server.load("fonts/dpcomic.ttf"),
+                    font_size: 40.0,
+                    color: Color::rgb(0.9, 0.9, 0.9),
+                },
+            ));
+        });
+
     // END OF YOUR TURN
     commands
         .spawn((
