@@ -17,6 +17,7 @@ pub const CLEAR: bevy::render::color::Color = bevy::render::color::Color::rgb(0.
 pub const FIXED_TIME_STEP: f32 = 1.0 / 60.0;
 
 pub const RESOLUTION: f32 = 16.0 / 9.0;
+pub const HEIGHT: f32 = 1080.; // 720.;
 pub const TILE_SIZE: f32 = 1.;
 
 pub mod character {

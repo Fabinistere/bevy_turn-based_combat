@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use crate::{
     combat::{skills::Skill, CombatPanel, CombatState},
     constants::ui::dialogs::*,
-    ui::combat_system::{HpMeter, MpMeter},
+    ui::combat_system::{HpMeter, MpMeter, ActionHistoryDisplayer, LastActionHistoryDisplayer, ActionsLogs},
     ui::player_interaction::ScrollingList,
 };
 
@@ -323,6 +323,78 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                         MpMeter,
                         TargetMeter,
                         Name::new("Target Mp"),
+                    ));
+
+                    parent.spawn((
+                        TextBundle::from_section(
+                            format!("---------------\nActions:"),
+                            TextStyle {
+                                font: asset_server.load("fonts/dpcomic.ttf"),
+                                font_size: 20.,
+                                color: Color::WHITE,
+                            },
+                        )
+                        .with_style(Style {
+                            flex_wrap: FlexWrap::Wrap,
+                            // flex_shrink: 0.,
+                            size: Size::new(Val::Undefined, Val::Auto),
+                            margin: UiRect {
+                                left: Val::Auto,
+                                right: Val::Auto,
+                                ..default()
+                            },
+                            ..default()
+                        }),
+                        ActionHistoryDisplayer,
+                        Name::new("Actions History"),
+                    ));
+
+                    parent.spawn((
+                        TextBundle::from_section(
+                            format!("---------------\nLast Actions:"),
+                            TextStyle {
+                                font: asset_server.load("fonts/dpcomic.ttf"),
+                                font_size: 20.,
+                                color: Color::WHITE,
+                            },
+                        )
+                        .with_style(Style {
+                            flex_wrap: FlexWrap::Wrap,
+                            // flex_shrink: 0.,
+                            size: Size::new(Val::Undefined, Val::Auto),
+                            margin: UiRect {
+                                left: Val::Auto,
+                                right: Val::Auto,
+                                ..default()
+                            },
+                            ..default()
+                        }),
+                        LastActionHistoryDisplayer,
+                        Name::new("Last Actions History"),
+                    ));
+
+                    parent.spawn((
+                        TextBundle::from_section(
+                            format!("---------------\nActions Logs:"),
+                            TextStyle {
+                                font: asset_server.load("fonts/dpcomic.ttf"),
+                                font_size: 20.,
+                                color: Color::WHITE,
+                            },
+                        )
+                        .with_style(Style {
+                            flex_wrap: FlexWrap::Wrap,
+                            // flex_shrink: 0.,
+                            size: Size::new(Val::Undefined, Val::Auto),
+                            margin: UiRect {
+                                left: Val::Auto,
+                                right: Val::Auto,
+                                ..default()
+                            },
+                            ..default()
+                        }),
+                        ActionsLogs,
+                        Name::new("Actions Logs"),
                     ));
                 });
         });
