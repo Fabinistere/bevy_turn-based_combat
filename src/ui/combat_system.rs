@@ -21,6 +21,15 @@ pub struct HpMeter;
 #[derive(Component)]
 pub struct MpMeter;
 
+#[derive(Component)]
+pub struct ActionHistoryDisplayer;
+
+#[derive(Component)]
+pub struct LastActionHistoryDisplayer;
+
+#[derive(Component)]
+pub struct ActionsLogs;
+
 /// DOC
 pub struct UpdateUnitSelectedEvent(pub Entity);
 
@@ -208,9 +217,13 @@ pub fn update_combat_phase_displayer(
 pub fn last_action_displayer(
     mut combat_panel_query: Query<(Entity, &CombatPanel), Changed<CombatPanel>>,
     unit_combat_query: Query<(Entity, &Name), With<InCombat>>,
+    mut action_displayer_query: Query<&mut Text, With<ActionHistoryDisplayer>>,
 ) {
     if let Ok((_, combat_panel)) = combat_panel_query.get_single_mut() {
-        println!("Actions:");
+        let mut action_displayer_text = action_displayer_query.single_mut();
+
+        let mut history = String::from("---------------\nActions:");
+        // println!("Actions:");
         let mut number = 1;
         for action in combat_panel.history.iter() {
             if let Ok((_, caster_name)) = unit_combat_query.get(action.caster) {
@@ -218,28 +231,30 @@ pub fn last_action_displayer(
                 match action.target {
                     None => target_name = "None".to_string(),
                     Some(target) => match unit_combat_query.get(target) {
-                        Err(_) => target_name = "None".to_string(),
+                        Err(_) => target_name = "Target Err".to_string(),
                         Ok((_, name)) => target_name = name.to_string(),
                     },
                 }
                 let action_display = if action.initiative == -1 {
                     format!(
-                        "{} do {} to {}",
-                        caster_name, action.skill.name, target_name
+                        "\n{}. {} do {} to {}",
+                        number, caster_name, action.skill.name, target_name
                     )
                 } else {
                     format!(
-                        "{}: {} do {} to {}",
-                        action.initiative, caster_name, action.skill.name, target_name
+                        "\n{}. {}: {} do {} to {}",
+                        number, action.initiative, caster_name, action.skill.name, target_name
                     )
                 };
                 // let action_display = format!(
                 //     "{}: {} do {} to {}",
                 //     action.initiative, caster_name, action.skill.name, target_name
                 // );
-                println!("{}. {}", number, action_display);
+                // println!("{}. {}", number, action_display);
+                history.push_str(&action_display);
                 number += 1;
             }
         }
+        action_displayer_text.sections[0].value = history;
     }
 }

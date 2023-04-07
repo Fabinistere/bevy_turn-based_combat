@@ -1,7 +1,7 @@
 use bevy::{prelude::*, render::camera::ScalingMode};
 use bevy_tweening::TweeningPlugin;
 use combat::CombatPlugin;
-use constants::{CLEAR, RESOLUTION, TILE_SIZE};
+use constants::{CLEAR, RESOLUTION, HEIGHT, TILE_SIZE};
 
 pub mod combat;
 pub mod constants;
@@ -17,7 +17,7 @@ use ui::UiPlugin;
 
 #[rustfmt::skip]
 fn main() {
-    let height = 720.0;
+    // let height = 720.0;
 
     let mut app = App::new();
     app.insert_resource(ClearColor(CLEAR))
@@ -26,9 +26,10 @@ fn main() {
             DefaultPlugins
                 .set(WindowPlugin {
                     window: WindowDescriptor {
-                        width: height * RESOLUTION,
-                        height: height,
+                        width: HEIGHT * RESOLUTION,
+                        height: HEIGHT,
                         title: "Turn-Based Combat".to_string(),
+                        // TODO: maybe not resizable ?
                         resizable: true,
                         ..default()
                     },

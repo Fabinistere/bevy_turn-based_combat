@@ -7,7 +7,7 @@ use bevy::{
 
 use crate::{
     combat::{CombatPanel, CombatState},
-    constants::{ui::dialogs::*, RESOLUTION},
+    constants::{ui::dialogs::*, RESOLUTION, HEIGHT},
 };
 
 pub const SPRITE_SIZE: (f32, f32) = (25.0, 40.0);
@@ -65,7 +65,7 @@ pub fn select_unit_by_mouse(
     if let Some(position) = window.cursor_position() {
         if buttons.just_pressed(MouseButton::Left) {
             // info!("({}, {})", position.x, position.y);
-            let window_height = 720.0;
+            let window_height = HEIGHT;
             let window_width = window_height * RESOLUTION;
 
             // TODO: Magical Number...

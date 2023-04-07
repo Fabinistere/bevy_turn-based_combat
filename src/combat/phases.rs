@@ -4,6 +4,7 @@ use rand::Rng;
 use crate::{
     combat::{stats::Initiative, Action, CombatPanel, CombatState},
     npc::NPC,
+    ui::combat_system::{ActionHistoryDisplayer, ActionsLogs, LastActionHistoryDisplayer},
 };
 
 use super::{
@@ -204,8 +205,33 @@ pub fn execution_phase(
     mut combat_panel_query: Query<&mut CombatPanel>,
 
     mut execute_skill_event: EventWriter<ExecuteSkillEvent>,
+
+    action_displayer_query: Query<&Text, With<ActionHistoryDisplayer>>,
+    mut last_action_displayer_query: Query<
+        &mut Text,
+        (
+            With<LastActionHistoryDisplayer>,
+            Without<ActionHistoryDisplayer>,
+        ),
+    >,
+    mut actions_logs_query: Query<
+        &mut Text,
+        (
+            With<ActionsLogs>,
+            Without<LastActionHistoryDisplayer>,
+            Without<ActionHistoryDisplayer>,
+        ),
+    >,
 ) {
     let mut combat_panel = combat_panel_query.single_mut();
+
+    // -----------------------------------------------
+    // REFACTOR: Move these ui lines somewhere else
+    // IDEA: Reset or just push infinitly ?
+    let mut actions_logs_text = actions_logs_query.single_mut();
+
+    actions_logs_text.sections[0].value = String::from("---------------\nActions Logs:");
+    // -----------------------------------------------
 
     for Action {
         caster,
@@ -235,6 +261,18 @@ pub fn execution_phase(
     }
 
     // IDEA: add this history into a log to permit the player to see it.
+
+    // -----------------------------------------------
+    // REFACTOR: Move these ui related lines somewhere else
+    // Save the Sorted Initiative Action Historic
+    let action_displayer_text = action_displayer_query.single();
+    let mut last_action_displayer_text = last_action_displayer_query.single_mut();
+
+    last_action_displayer_text.sections[0].value = action_displayer_text.sections[0]
+        .value
+        .replace("Actions:", "Last Turn Actions:");
+
+    // -----------------------------------------------
 
     // Reset the action history
     combat_panel.history = Vec::new();
