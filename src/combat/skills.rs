@@ -3,9 +3,12 @@
 use bevy::prelude::*;
 use bevy_inspector_egui::Inspectable;
 
-use crate::combat::{
-    alterations::*,
-    stats::{Attack, AttackSpe, Defense, DefenseSpe, Hp, Mana, Shield},
+use crate::{
+    combat::{
+        alterations::*,
+        stats::{Attack, AttackSpe, Defense, DefenseSpe, Hp, Mana, Shield},
+    },
+    ui::combat_system::ActionsLogs
 };
 
 use super::Alterations;
@@ -170,6 +173,7 @@ pub fn execute_skill(
         ),
         // Or<(With<Selected>, With<Targeted>)>
     >,
+    mut actions_logs_query: Query<&mut Text, With<ActionsLogs>>,
 ) {
     for ExecuteSkillEvent {
         skill,
@@ -210,6 +214,17 @@ pub fn execute_skill(
                     skill.name, caster_name, target_name
                 );
 
+                // -----------------------------------------------
+                // REFACTOR: Move these ui lines somewhere else
+                // IDEA: Reset or just push infinitly ?
+                let mut actions_logs_text = actions_logs_query.single_mut();
+
+                actions_logs_text.sections[0].value.push_str(&format!(
+                    "\n- Execute skill: {}, from {} to {}",
+                    skill.name, caster_name, target_name
+                ));
+                // -----------------------------------------------
+
                 let skill_executed = &skill;
 
                 // TODO: turn delay?
@@ -228,6 +243,19 @@ pub fn execute_skill(
 
                 // don't execute the rest if the current of the caster is < 0
                 if caster_hp.current <= 0 {
+                    if caster_hp.current + skill_executed.hp_cost <= 0 {
+                        actions_logs_text.sections[0].value.push_str(&format!(
+                            "\n  - Caster is already dead: {}",
+                            caster_name
+                        ));
+                    } else {
+                        actions_logs_text.sections[0].value.push_str(&format!(
+                            "\n  - Caster killed him.herself: {}, from {} to {}",
+                            caster_name,
+                            caster_hp.current + skill_executed.hp_cost,
+                            skill_executed.hp_cost
+                        ));
+                    }
                     continue;
                 }
 
@@ -293,6 +321,9 @@ pub fn execute_skill(
                             as i32;
                         if hp_dealt > 0 {
                             info!("hp dealt: {}", hp_dealt);
+                            actions_logs_text.sections[0]
+                                .value
+                                .push_str(&format!("\n  - hp dealt: {}", hp_dealt));
                         }
 
                         // ---- MP ----
@@ -300,6 +331,9 @@ pub fn execute_skill(
                         let mp_dealt = skill_executed.mana_dealt;
                         if mp_dealt > 0 {
                             info!("mp dealt: {}", mp_dealt);
+                            actions_logs_text.sections[0]
+                                .value
+                                .push_str(&format!("\n  - mp dealt: {}", mp_dealt));
                         }
 
                         // ---- EXECUTION ----
@@ -334,14 +368,21 @@ pub fn execute_skill(
                             as i32;
                         if hp_dealt > 0 {
                             info!("hp dealt: {}", hp_dealt);
+                            actions_logs_text.sections[0]
+                                .value
+                                .push_str(&format!("\n  - hp dealt: {}", hp_dealt));
                         }
 
                         // ---- MP ----
                         // x + x*(caster_attack_spe)%
-                        let mp_dealt = (skill_executed.mana_dealt as f32 * attack_spe_multiplier
+                        let mp_dealt = (skill_executed.mana_dealt as f32
+                            * attack_spe_multiplier
                             / 100.) as i32;
                         if mp_dealt > 0 {
                             info!("mp dealt: {}", mp_dealt);
+                            actions_logs_text.sections[0]
+                                .value
+                                .push_str(&format!("\n  - mp dealt: {}", mp_dealt));
                         }
 
                         // ---- EXECUTION ----
