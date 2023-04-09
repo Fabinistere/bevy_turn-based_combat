@@ -55,7 +55,7 @@ pub struct Alteration {
     ///
     /// - target all ally party: (Ally, 6)
     /// - self-target: (Ally, 0)
-    pub target_option: (TargetSide, i32),
+    pub target_option: (TargetSide, usize),
 
     /// hp dealt or healed each time the target plays
     ///

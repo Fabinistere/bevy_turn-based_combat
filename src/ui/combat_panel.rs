@@ -3,11 +3,13 @@ use bevy::prelude::*;
 use crate::{
     combat::{skills::Skill, CombatPanel, CombatState},
     constants::ui::dialogs::*,
-    ui::combat_system::{HpMeter, MpMeter, ActionHistoryDisplayer, LastActionHistoryDisplayer, ActionsLogs},
+    ui::combat_system::{
+        ActionHistoryDisplayer, ActionsLogs, HpMeter, LastActionHistoryDisplayer, MpMeter,
+    },
     ui::player_interaction::ScrollingList,
 };
 
-use super::player_interaction::EndOfTurnButton;
+use super::player_interaction::{ConfirmActionButton, EndOfTurnButton};
 
 /// XXX: Useless component used to differentiate Hp/MpMeters of a target or a caster
 #[derive(Component)]
@@ -94,6 +96,45 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             ));
         });
 
+    // Implosion SKILL
+    // `Deal 25dmg to 3targets` (example of multi-targets skills)
+    commands
+        .spawn((
+            ButtonBundle {
+                style: Style {
+                    size: Size::new(Val::Px(150.0), Val::Px(65.0)),
+                    // center button
+                    margin: UiRect::all(Val::Auto),
+                    // horizontally center child text
+                    justify_content: JustifyContent::Center,
+                    // vertically center child text
+                    align_items: AlignItems::Center,
+                    position: UiRect {
+                        right: Val::Percent(-80.0),
+                        top: Val::Percent(-33.0),
+                        ..default()
+                    },
+                    ..default()
+                },
+                background_color: NORMAL_BUTTON.into(),
+                ..default()
+            },
+            Name::new("IMPLOSION Skill"),
+            Skill::implosion(),
+            // Draggable,
+            // Clickable,
+        ))
+        .with_children(|parent| {
+            parent.spawn(TextBundle::from_section(
+                "Implosion",
+                TextStyle {
+                    font: asset_server.load("fonts/dpcomic.ttf"),
+                    font_size: 40.0,
+                    color: Color::rgb(0.9, 0.9, 0.9),
+                },
+            ));
+        });
+
     // END OF YOUR TURN
     commands
         .spawn((
@@ -122,6 +163,43 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         .with_children(|parent| {
             parent.spawn(TextBundle::from_section(
                 "End of Turn",
+                TextStyle {
+                    font: asset_server.load("fonts/dpcomic.ttf"),
+                    font_size: 40.0,
+                    color: Color::rgb(0.9, 0.9, 0.9),
+                },
+            ));
+        });
+
+    // CONFIRM ACTION
+    // only active when in SelectionTarget
+    commands
+        .spawn((
+            ButtonBundle {
+                style: Style {
+                    size: Size::new(Val::Px(200.0), Val::Px(65.0)),
+                    // center button
+                    margin: UiRect::all(Val::Auto),
+                    // horizontally center child text
+                    justify_content: JustifyContent::Center,
+                    // vertically center child text
+                    align_items: AlignItems::Center,
+                    position: UiRect {
+                        right: Val::Percent(-33.),
+                        top: Val::Percent(-41.),
+                        ..default()
+                    },
+                    ..default()
+                },
+                background_color: NORMAL_BUTTON.into(),
+                ..default()
+            },
+            Name::new("Confirm Action Button"),
+            ConfirmActionButton,
+        ))
+        .with_children(|parent| {
+            parent.spawn(TextBundle::from_section(
+                "Confirm Action",
                 TextStyle {
                     font: asset_server.load("fonts/dpcomic.ttf"),
                     font_size: 40.0,
