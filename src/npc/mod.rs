@@ -1,8 +1,13 @@
+//! Spawn 5 NPC Entity
+
 use bevy::prelude::*;
 use bevy_inspector_egui::Inspectable;
 
 use crate::{
-    combat::{stats::*, InCombat, Leader, Recruted, Team},
+    combat::{
+        skills::Skill, stats::*, stuff::Equipements, Alterations, CombatBundle, InCombat, Karma,
+        Recruted, Skills, Team,
+    },
     constants::{
         character::npc::{
             movement::{ADMIRAL_POSITION, FABICURION_POSITION, HUGO_POSITION, OLF_POSITION},
@@ -11,6 +16,7 @@ use crate::{
         combat::team::*,
     },
     spritesheet::FabienSheet,
+    ui::player_interaction::{Clickable, Hoverable, SpriteSize, SPRITE_SIZE},
 };
 
 #[derive(Component, Inspectable)]
@@ -29,13 +35,10 @@ impl Plugin for NPCPlugin {
 // Check in location/temple/mod.rs
 // the npc_z_position
 
-fn spawn_characters(
-    mut commands: Commands,
-    fabien: Res<FabienSheet>,
-) {
+fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
     // ADMIRAL
-    commands
-        .spawn(SpriteSheetBundle {
+    commands.spawn((
+        SpriteSheetBundle {
             sprite: TextureAtlasSprite::new(ADMIRAL_STARTING_ANIM),
             texture_atlas: fabien.0.clone(),
             transform: Transform {
@@ -44,18 +47,35 @@ fn spawn_characters(
                 ..default()
             },
             ..default()
-        })
-        .insert(Name::new("NPC Admiral"))
-        .insert(NPC)
-        .insert(Team(TEAM_MC))
-        .insert(Recruted)
-        .insert(StatBundle::default())
-        .insert(InCombat)
-        .insert(Interaction::None);
+        },
+        SpriteSize {
+            width: SPRITE_SIZE.0,
+            height: SPRITE_SIZE.1,
+        },
+        Name::new("NPC Admiral"),
+        NPC,
+        // -- Combat Components --
+        InCombat,
+        Recruted,
+        CombatBundle {
+            team: Team(TEAM_MC),
+            karma: Karma(100),
+            equipements: Equipements {
+                weapon: None,
+                armor: None,
+            },
+            skills: Skills(vec![Skill::bam()]),
+            alterations: Alterations(vec![]),
+            stats: StatBundle::default(),
+        },
+        // -- UI Related Components --
+        Hoverable,
+        Clickable,
+    ));
 
     // HUGO
-    commands
-        .spawn(SpriteSheetBundle {
+    commands.spawn((
+        SpriteSheetBundle {
             sprite: TextureAtlasSprite::new(HUGO_STARTING_ANIM),
             texture_atlas: fabien.0.clone(),
             transform: Transform {
@@ -64,24 +84,37 @@ fn spawn_characters(
                 ..default()
             },
             ..default()
-        })
-        .insert(Name::new("NPC Hugo"))
-        .insert(NPC)
-        .insert(Team(TEAM_MC))
-        .insert(Recruted)
-        .insert(StatBundle::default())
-        .insert(InCombat);
+        },
+        SpriteSize {
+            width: SPRITE_SIZE.0,
+            height: SPRITE_SIZE.1,
+        },
+        Name::new("NPC Hugo"),
+        NPC,
+        // -- Combat Components --
+        InCombat,
+        Recruted,
+        CombatBundle {
+            team: Team(TEAM_MC),
+            karma: Karma(100),
+            equipements: Equipements {
+                weapon: None,
+                armor: None,
+            },
+            skills: Skills(vec![Skill::bam()]),
+            alterations: Alterations(vec![]),
+            stats: StatBundle::default(),
+        },
+        // -- UI Related Components --
+        Hoverable,
+        Clickable,
+    ));
 }
 
-fn spawn_aggresives_characters(
-    mut commands: Commands,
-    fabien: Res<FabienSheet>,
-) {
-    // let olf_dialog_tree = init_tree_flat(String::from(OLF_DIALOG));
-
+fn spawn_aggresives_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
     // OLF
-    commands
-        .spawn(SpriteSheetBundle {
+    commands.spawn((
+        SpriteSheetBundle {
             sprite: TextureAtlasSprite {
                 index: OLF_STARTING_ANIM,
                 flip_x: true,
@@ -94,20 +127,37 @@ fn spawn_aggresives_characters(
                 ..default()
             },
             ..default()
-        })
-        .insert(Name::new("NPC Olf"))
-        .insert(NPC)
-        .insert(Leader)
-        .insert(Team(TEAM_OLF))
-        .insert(StatBundle::default())
-        .insert(InCombat);
+        },
+        SpriteSize {
+            width: SPRITE_SIZE.0,
+            height: SPRITE_SIZE.1,
+        },
+        Name::new("NPC Olf"),
+        NPC,
+        // -- Combat Components --
+        InCombat,
+        CombatBundle {
+            team: Team(TEAM_OLF),
+            karma: Karma(-100),
+            equipements: Equipements {
+                weapon: None,
+                armor: None,
+            },
+            skills: Skills(vec![Skill::bam()]),
+            alterations: Alterations(vec![]),
+            stats: StatBundle::default(),
+        },
+        // -- UI Related Components --
+        Hoverable,
+        Clickable,
+    ));
 
     // Two FABICURION
     for i in 0..2 {
         let name = "NPC Fabicurion nmb".replace("nmb", &i.to_string());
 
-        commands
-            .spawn(SpriteSheetBundle {
+        commands.spawn((
+            SpriteSheetBundle {
                 sprite: TextureAtlasSprite {
                     index: FABICURION_STARTING_ANIM,
                     flip_x: true,
@@ -124,12 +174,29 @@ fn spawn_aggresives_characters(
                     ..default()
                 },
                 ..default()
-            })
-            .insert(Name::new(name))
-            .insert(NPC)
-            .insert(Leader)
-            .insert(Team(TEAM_OLF))
-            .insert(StatBundle::default())
-            .insert(InCombat);
+            },
+            SpriteSize {
+                width: SPRITE_SIZE.0,
+                height: SPRITE_SIZE.1,
+            },
+            Name::new(name),
+            NPC,
+            // -- Combat Components --
+            InCombat,
+            CombatBundle {
+                team: Team(TEAM_OLF),
+                karma: Karma(-100),
+                equipements: Equipements {
+                    weapon: None,
+                    armor: None,
+                },
+                skills: Skills(vec![Skill::bam()]),
+                alterations: Alterations(vec![]),
+                stats: StatBundle::default(),
+            },
+            // -- UI Related Components --
+            Hoverable,
+            Clickable,
+        ));
     }
 }

@@ -1,7 +1,7 @@
 use bevy::{prelude::*, render::camera::ScalingMode};
 use bevy_tweening::TweeningPlugin;
 use combat::CombatPlugin;
-use constants::*;
+use constants::{CLEAR, RESOLUTION, HEIGHT, TILE_SIZE};
 
 pub mod combat;
 pub mod constants;
@@ -15,8 +15,9 @@ use npc::NPCPlugin;
 use spritesheet::FabienPlugin;
 use ui::UiPlugin;
 
+#[rustfmt::skip]
 fn main() {
-    let height = 720.0;
+    // let height = 720.0;
 
     let mut app = App::new();
     app.insert_resource(ClearColor(CLEAR))
@@ -25,10 +26,11 @@ fn main() {
             DefaultPlugins
                 .set(WindowPlugin {
                     window: WindowDescriptor {
-                        width: height * RESOLUTION,
-                        height: height,
+                        width: HEIGHT * RESOLUTION,
+                        height: HEIGHT,
                         title: "Turn-Based Combat".to_string(),
-                        resizable: false,
+                        // TODO: maybe not resizable ?
+                        resizable: true,
                         ..default()
                     },
                     ..default()
@@ -44,6 +46,9 @@ fn main() {
         .add_startup_system(spawn_camera);
 
     app.run();
+
+    // TODO: update the assets folder in the cloud
+    // TODO: publish the demo on the web
 }
 
 fn spawn_camera(mut commands: Commands) {
