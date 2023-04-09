@@ -3,6 +3,7 @@
 
 use crate::{
     combat::{
+        phases::TransitionPhaseEvent,
         skills::Skill,
         stats::{Hp, Mana},
         Action, CombatPanel, CombatState, InCombat,
@@ -32,6 +33,7 @@ pub fn select_skill(
     mut combat_panel_query: Query<(Entity, &mut CombatPanel)>,
 
     unit_selected_query: Query<(Entity, &Name, &Selected)>,
+    mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
     for (interaction, skill, children) in &mut interaction_query {
         let mut text = text_query.get_mut(children[0]).unwrap();
@@ -59,7 +61,9 @@ pub fn select_skill(
                     // we are in SelectionSkill or SelectionTarget
                     // so there is a selected unit.
                     let (caster, _caster_name, _) = unit_selected_query.single();
-                    combat_panel.phase = CombatState::SelectionTarget;
+
+                    transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionTarget));
+
                     let action = Action::new(caster, skill.clone(), None);
                     combat_panel.history.push(action);
 

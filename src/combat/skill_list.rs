@@ -49,4 +49,18 @@ impl Skill {
             ..Default::default()
         }
     }
+
+    pub fn implosion() -> Self {
+        Skill {
+            skill_type: SkillType::AttackSpe,
+            target_side: TargetSide::Enemy,
+            target_number: 3,
+            aoe: false,
+            hp_dealt: 50,
+            initiative: 25,
+            description: String::from("Deal 25 dmg to 3 enemies"),
+            name: String::from("Implosion"),
+            ..Default::default()
+        }
+    }
 }
