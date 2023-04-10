@@ -186,6 +186,9 @@ pub fn select_unit_by_mouse(
 #[derive(Component)]
 pub struct EndOfTurnButton;
 
+/// # Note
+///
+/// @see [`ui::player_interaction::confirm_action_button()`] to check: correct target number
 pub fn end_of_turn_button(
     mut interaction_query: Query<
         (&Interaction, &Children),
@@ -209,6 +212,7 @@ pub fn end_of_turn_button(
                         // reput the last_action in the pool
                         combat_panel.history.push(last_action);
                     }
+                    // TODO: Check correct target number
                 }
 
                 transition_phase_event.send(TransitionPhaseEvent(CombatState::RollInitiative));
@@ -254,6 +258,7 @@ pub struct ConfirmActionButton;
 /// IDEA: bypass the confirmation when targetting for a mono-target action
 /// ^^^^^--- find a way to accept that (by options, etc)
 ///
+/// [`ui::player_interaction::confirm_action_button()`]!
 pub fn confirm_action_button(
     mut interaction_query: Query<
         (&Interaction, &Children),
