@@ -6,6 +6,8 @@ use crate::{
     ui::player_interaction::Clicked,
 };
 
+// ------------------------- UI Components -------------------------
+
 #[derive(Component)]
 pub struct ButtonTargeting;
 
@@ -35,6 +37,8 @@ pub struct UpdateUnitSelectedEvent(pub Entity);
 
 /// DOC
 pub struct UpdateUnitTargetedEvent(pub Entity);
+
+// -------------------------- UI Systems --------------------------
 
 /// # Note
 pub fn caster_selection(
@@ -112,6 +116,8 @@ pub fn target_random_system(
         }
     }
 }
+
+// -------------------------- UI Updates --------------------------
 
 /// Event Handler of UpdateUnitSelectedEvent
 ///
@@ -222,6 +228,8 @@ pub fn update_targeted_unit(
         }
     }
 }
+
+// ---------------------------- UI Logs ----------------------------
 
 /// Display the current phase
 ///
