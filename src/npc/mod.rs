@@ -64,7 +64,7 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
                 weapon: None,
                 armor: None,
             },
-            skills: Skills(vec![Skill::bam()]),
+            skills: Skills(vec![Skill::bam(), Skill::gifle()]),
             alterations: Alterations(vec![]),
             stats: StatBundle::default(),
         },
