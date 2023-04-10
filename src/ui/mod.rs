@@ -37,7 +37,7 @@ impl Plugin for UiPlugin {
             // --- Player Input Global ---
             .add_system(player_interaction::mouse_scroll.label(UiLabel::Player))
             .add_system(player_interaction::select_unit_by_mouse.label(UiLabel::Player))
-            .add_system(combat_system::target_random_system)
+            // .add_system(combat_system::target_random_system)
 
             // --- Limited Phase ---
             .add_system_set(
@@ -47,6 +47,7 @@ impl Plugin for UiPlugin {
             .add_system_set(
                 SystemSet::new()
                     .with_run_criteria(run_if_in_caster_phase)
+                    // REFACTOR: maybe include other starting phase to endTheTurn
                     .with_system(combat_system::caster_selection)
                     .with_system(player_interaction::end_of_turn_button)
             )
@@ -55,14 +56,17 @@ impl Plugin for UiPlugin {
                     .with_run_criteria(run_if_in_skill_phase)
                     .with_system(combat_system::caster_selection)
                     .with_system(character_sheet::select_skill)
+                    // cancel the current action if imcomplete -----vvv
                     .with_system(player_interaction::end_of_turn_button)
             )
             .add_system_set(
                 SystemSet::new()
                     .with_run_criteria(run_if_in_target_phase)
                     .with_system(combat_system::target_selection)
+                    // switch to a new action ----vvv
                     .with_system(character_sheet::select_skill)
                     .with_system(player_interaction::end_of_turn_button)
+                    .with_system(player_interaction::confirm_action_button)
             )
             .add_system_set(
                 SystemSet::new()

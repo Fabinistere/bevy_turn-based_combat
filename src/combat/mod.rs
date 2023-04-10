@@ -101,6 +101,7 @@ impl Plugin for CombatPlugin {
             //     }
             // )
             
+            .add_event::<phases::TransitionPhaseEvent>()
             .add_event::<skills::ExecuteSkillEvent>()
             // .add_event::<alterations::ExecuteAlterationEvent>()
             
@@ -126,6 +127,7 @@ impl Plugin for CombatPlugin {
                 .label(CombatState::ExecuteSkills)
             )
             .add_system(skills::execute_skill)
+            .add_system(phases::phase_transition)
             // .add_system_set_to_stage(
             //     CoreStage::PostUpdate,
             //     SystemSet::new()
@@ -191,7 +193,7 @@ pub struct Action {
     pub caster: Entity,
     pub skill: Skill,
     /// Optional only to allow selecting skill before the target
-    pub target: Option<Entity>,
+    pub targets: Option<Vec<Entity>>,
     /// From caster + skill calculus
     ///
     /// Default: -1
@@ -214,11 +216,11 @@ pub struct Action {
 // }
 
 impl Action {
-    pub fn new(caster: Entity, skill: Skill, target: Option<Entity>) -> Action {
+    pub fn new(caster: Entity, skill: Skill, targets: Option<Vec<Entity>>) -> Action {
         Action {
             caster,
             skill,
-            target,
+            targets,
             initiative: -1,
         }
     }

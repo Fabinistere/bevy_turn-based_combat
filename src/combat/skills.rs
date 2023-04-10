@@ -8,7 +8,7 @@ use crate::{
         alterations::*,
         stats::{Attack, AttackSpe, Defense, DefenseSpe, Hp, Mana, Shield},
     },
-    ui::combat_system::ActionsLogs
+    ui::combat_system::ActionsLogs,
 };
 
 use super::Alterations;
@@ -56,7 +56,7 @@ pub struct Skill {
     /// - self-target: 1
     /// - targeted heal: 1
     /// - small explosion: 2
-    pub target_number: i32,
+    pub target_number: usize,
     /// Area of Effect
     ///
     /// Should the skill affect all target
@@ -141,7 +141,7 @@ pub struct ExecuteSkillEvent {
     pub target: Entity,
 }
 
-/// Execution of the skill queue
+/// Execution of the skill queue to all entity targeted
 ///
 /// - Skill cost
 /// - Multiplier Caculus
@@ -244,10 +244,9 @@ pub fn execute_skill(
                 // don't execute the rest if the current of the caster is < 0
                 if caster_hp.current <= 0 {
                     if caster_hp.current + skill_executed.hp_cost <= 0 {
-                        actions_logs_text.sections[0].value.push_str(&format!(
-                            "\n  - Caster is already dead: {}",
-                            caster_name
-                        ));
+                        actions_logs_text.sections[0]
+                            .value
+                            .push_str(&format!("\n  - Caster is already dead: {}", caster_name));
                     } else {
                         actions_logs_text.sections[0].value.push_str(&format!(
                             "\n  - Caster killed him.herself: {}, from {} to {}",
@@ -307,12 +306,8 @@ pub fn execute_skill(
                         // here having 10 attack is quite inefficent
                         attack_multiplier += caster_attack.base as f32;
                         defense_multiplier += target_defense.base as f32;
-                        info!(
-                            "skill_executed.hp_dealt: {}; attack_multiplier: {}; defense_multiplier: {}; damage_multiplier: {}",
-                            skill_executed.hp_dealt, attack_multiplier/100., defense_multiplier/100., damage_multiplier/100.
-                        );
 
-                        // x + x*(caster_attack)% - x*(target_defense)%
+                        // x * (caster_attack + caster_alt_att)% / (target_defense + target_alt_def)% * (caster_alt_dmg_inflicted - target_alt_dmg_suffered)%
                         // round to the bottom
                         let hp_dealt = (skill_executed.hp_dealt as f32
                             * (attack_multiplier / 100.)
@@ -354,13 +349,9 @@ pub fn execute_skill(
                     SkillType::AttackSpe => {
                         attack_spe_multiplier += caster_attack_spe.base as f32;
                         defense_spe_multiplier += target_defense_spe.base as f32;
-                        info!(
-                            "attack_spe_multiplier: {}; defense_spe_multiplier: {}; damage_multiplier: {}",
-                            attack_spe_multiplier, defense_spe_multiplier, damage_multiplier
-                        );
 
                         // ---- HP ----
-                        // x + x*(caster_attack_spe)% - x*(target_defense_spe)%
+                        // x * (caster_att_spe + caster_alt_att_spe)% / (target_def_spe + target_alt_def_spe)% * (caster_alt_dmg_inflicted - target_alt_dmg_suffered)%
                         let hp_dealt = (skill_executed.hp_dealt as f32
                             * (attack_spe_multiplier / 100.)
                             * (damage_multiplier / 100.)
@@ -375,8 +366,7 @@ pub fn execute_skill(
 
                         // ---- MP ----
                         // x + x*(caster_attack_spe)%
-                        let mp_dealt = (skill_executed.mana_dealt as f32
-                            * attack_spe_multiplier
+                        let mp_dealt = (skill_executed.mana_dealt as f32 * attack_spe_multiplier
                             / 100.) as i32;
                         if mp_dealt > 0 {
                             info!("mp dealt: {}", mp_dealt);

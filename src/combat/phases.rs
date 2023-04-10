@@ -4,7 +4,9 @@ use rand::Rng;
 use crate::{
     combat::{stats::Initiative, Action, CombatPanel, CombatState},
     npc::NPC,
-    ui::combat_system::{ActionHistoryDisplayer, ActionsLogs, LastActionHistoryDisplayer},
+    ui::combat_system::{
+        ActionHistoryDisplayer, ActionsLogs, LastActionHistoryDisplayer, Targeted,
+    },
 };
 
 use super::{
@@ -13,6 +15,45 @@ use super::{
     stats::{Attack, AttackSpe, Defense, DefenseSpe, Hp, Mana, Shield},
     Alterations,
 };
+
+// ----- Transitions Between Phase -----
+
+pub struct TransitionPhaseEvent(pub CombatState);
+
+pub fn phase_transition(
+    mut transition_phase_event: EventReader<TransitionPhaseEvent>,
+
+    mut commands: Commands,
+    mut combat_panel_query: Query<&mut CombatPanel>,
+
+    targeted_unit_query: Query<(Entity, &Name), With<Targeted>>,
+) {
+    // TODO: event Handler to change phase
+    for TransitionPhaseEvent(next_phase) in transition_phase_event.iter() {
+        let mut combat_panel = combat_panel_query.single_mut();
+
+        match (combat_panel.phase.clone(), next_phase) {
+            (CombatState::SelectionCaster, CombatState::SelectionSkills) => {}
+            (CombatState::SelectionSkills, CombatState::SelectionTarget) => {
+                // TODO: Skill to Target => remove all previously Targeted
+                // ^^^^---- if only self just bypass SelectionTarget
+                // remove from previous entity the targeted component
+                for (targeted, _) in targeted_unit_query.iter() {
+                    commands.entity(targeted).remove::<Targeted>();
+                }
+
+                // if the skill is a selfcast => put the self into the target, change the phase to SelectionCaster and `continue;` -> skip the phase chnage
+            }
+            (CombatState::SelectionTarget, CombatState::SelectionCaster) => {}
+            (_, CombatState::RollInitiative) => {}
+            _ => {}
+        }
+
+        combat_panel.phase = next_phase.clone();
+    }
+}
+
+// ----------- Phase Actions -----------
 
 // /// Inflict Dots and lower of 1turn all alterations duration
 // ///
@@ -38,8 +79,7 @@ use super::{
 //     combat_panel.phase = CombatState::SelectionCaster;
 // }
 
-// TODO: ShouldHave - Display mutable change (dmg, heal)
-// TODO: CouldHave - Display the combat log somewhere
+// TODO: ShouldHave - Display mutable change (dmg, heal) (on the field)
 
 /// # Note
 ///
@@ -236,27 +276,37 @@ pub fn execution_phase(
     for Action {
         caster,
         skill,
-        target,
+        targets,
         initiative: _,
     } in combat_panel.history.iter()
     {
-        // we will do a verification anyway (skill's hp_cost)
-        // in the event handler
-        // to control tabht the caster is alive at the time of the execution
-        execute_skill_event.send(ExecuteSkillEvent {
-            skill: skill.clone(),
-            caster: *caster,
-            target: target.unwrap(),
-        });
+        match targets {
+            None => warn!(
+                "A Skill without any target ! \n caster: {:?} skill: {:?}",
+                caster, skill
+            ),
+            Some(targets) => {
+                for target in targets {
+                    // we will do a verification anyway (skill's hp_cost)
+                    // in the event handler
+                    // to control that the caster is alive at the time of the execution
+                    execute_skill_event.send(ExecuteSkillEvent {
+                        skill: skill.clone(),
+                        caster: *caster,
+                        target: *target,
+                    });
 
-        // should be in order
-        for combo_skill in skill.skills_queue.iter() {
-            execute_skill_event.send(ExecuteSkillEvent {
-                skill: combo_skill.clone(),
-                caster: *caster,
-                // All skills in the queue will be directed to the same target
-                target: target.unwrap(),
-            });
+                    // should be in order
+                    for combo_skill in skill.skills_queue.iter() {
+                        execute_skill_event.send(ExecuteSkillEvent {
+                            skill: combo_skill.clone(),
+                            caster: *caster,
+                            // All skills in the queue will be directed to the same target
+                            target: *target,
+                        });
+                    }
+                }
+            }
         }
     }
 
