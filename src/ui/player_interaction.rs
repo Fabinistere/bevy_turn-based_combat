@@ -10,6 +10,8 @@ use crate::{
     constants::{ui::dialogs::*, HEIGHT, RESOLUTION},
 };
 
+use super::combat_system::{Selected, Targeted};
+
 // ----- UI Components -----
 
 pub const SPRITE_SIZE: (f32, f32) = (25.0, 40.0);
@@ -154,7 +156,7 @@ pub fn select_unit_by_mouse(
             let ratio_x = -transform_width / window_width;
             let ratio_y = transform_height / window_height;
 
-            for (unit, transform, sprite_size, name) in selectable_unit_query.iter() {
+            for (unit, transform, sprite_size, _name) in selectable_unit_query.iter() {
                 // TODO: Too big
                 let half_width = (sprite_size.width * transform.scale.x) / 2.0;
                 let half_height = (sprite_size.height * transform.scale.y) / 2.0;
@@ -171,7 +173,7 @@ pub fn select_unit_by_mouse(
                     && transform.translation.y - half_height < cursor_transform_y
                     && transform.translation.y + half_height > cursor_transform_y
                 {
-                    info!("{} clicked", name);
+                    // info!("{} clicked", _name);
                     commands.entity(unit).insert(Clicked);
                     // v-- instead of --^
                     // update_unit_selected_event.send(UpdateUnitSelectedEvent(unit));
@@ -208,11 +210,11 @@ pub fn end_of_turn_button(
 
                 // allow pass with no action in the history
                 if let Some(last_action) = combat_panel.history.pop() {
+                    // TODO: Check correct target number
                     if last_action.targets != None {
                         // reput the last_action in the pool
                         combat_panel.history.push(last_action);
                     }
-                    // TODO: Check correct target number
                 }
 
                 transition_phase_event.send(TransitionPhaseEvent(CombatState::RollInitiative));
@@ -259,6 +261,7 @@ pub struct ConfirmActionButton;
 /// ^^^^^--- find a way to accept that (by options, etc)
 ///
 /// [`ui::player_interaction::confirm_action_button()`]!
+#[deprecated(since = "0.0.4", note = "This action is automatic now")]
 pub fn confirm_action_button(
     mut interaction_query: Query<
         (&Interaction, &Children),
@@ -308,6 +311,70 @@ pub fn confirm_action_button(
             Interaction::None => {
                 text.sections[0].value = "Confirm Action".to_string();
             }
+        }
+    }
+}
+
+/// If the user press 'esc',
+/// depending of the phase we're in,
+/// will undo the previous input (predicted, not real undo)
+pub fn cancel_last_input(
+    mut commands: Commands,
+    keyboard_input: Res<Input<KeyCode>>,
+
+    selected_unit_query: Query<Entity, With<Selected>>,
+
+    mut combat_panel_query: Query<&mut CombatPanel>,
+    mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
+) {
+    let mut combat_panel = combat_panel_query.single_mut();
+
+    if keyboard_input.just_pressed(KeyCode::Escape) {
+        info!("Esc in {}", combat_panel.phase);
+        match combat_panel.phase {
+            CombatState::SelectionSkills => {
+                let selected = selected_unit_query.single();
+                commands.entity(selected).remove::<Selected>();
+                transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionCaster));
+            }
+            CombatState::SelectionCaster | CombatState::SelectionTarget => {
+                // Remove last targeted and modify the last action
+                match combat_panel.history.pop() {
+                    None => {
+                        if combat_panel.phase == CombatState::SelectionTarget {
+                            warn!("In TargetSelectionPhase, it should have at least a Target")
+                        } else {
+                            // Nothing to undo
+                        }
+                    }
+                    Some(ref mut last_action) => {
+                        // remove last targeted
+                        match &mut last_action.targets {
+                            None => {
+                                // undo the skill selection and go back to SelectionSkill
+                                // ^^^^--- by not placing the action in the hisotry
+                                transition_phase_event
+                                    .send(TransitionPhaseEvent(CombatState::SelectionSkills));
+                            }
+                            Some(ref mut targets) => {
+                                let old_target = targets.pop().unwrap();
+                                commands.entity(old_target).remove::<Targeted>();
+                                if targets.len() == 0 {
+                                    last_action.targets = None;
+                                }
+                                // combat_panel.history.push((*last_action).clone());
+                                combat_panel.history.push(last_action.clone());
+
+                                if combat_panel.phase == CombatState::SelectionCaster {
+                                    transition_phase_event
+                                        .send(TransitionPhaseEvent(CombatState::SelectionTarget));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            _ => {}
         }
     }
 }

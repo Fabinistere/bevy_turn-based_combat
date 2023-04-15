@@ -13,7 +13,7 @@ use crate::{
 
 use super::Alterations;
 
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Inspectable)]
 pub enum SkillType {
     Heal,
     Attack,
@@ -45,7 +45,7 @@ pub enum TargetSide {
 ///
 /// - Negative = MALUS
 /// - Positive = BONUS
-#[derive(Debug, Component, Clone)]
+#[derive(Debug, Component, Clone, Inspectable)]
 pub struct Skill {
     pub skill_type: SkillType,
     /// Which side the skill is allow to target

@@ -37,8 +37,9 @@ impl Plugin for UiPlugin {
             // --- Player Input Global ---
             .add_system(player_interaction::mouse_scroll.label(UiLabel::Player))
             .add_system(player_interaction::select_unit_by_mouse.label(UiLabel::Player))
+            .add_system(player_interaction::cancel_last_input.label(UiLabel::Player))
             // .add_system(combat_system::target_random_system)
-
+            
             // --- Limited Phase ---
             .add_system_set(
                 SystemSet::new()
@@ -47,14 +48,16 @@ impl Plugin for UiPlugin {
             .add_system_set(
                 SystemSet::new()
                     .with_run_criteria(run_if_in_caster_phase)
-                    // REFACTOR: maybe include other starting phase to endTheTurn
                     .with_system(combat_system::caster_selection)
+                    .with_system(combat_system::update_selected_unit.after(UiLabel::Player))
                     .with_system(player_interaction::end_of_turn_button)
             )
+            // in SkillPhase: There is one selected
             .add_system_set(
                 SystemSet::new()
                     .with_run_criteria(run_if_in_skill_phase)
                     .with_system(combat_system::caster_selection)
+                    .with_system(combat_system::update_selected_unit.after(UiLabel::Player))
                     .with_system(character_sheet::select_skill)
                     // cancel the current action if imcomplete -----vvv
                     .with_system(player_interaction::end_of_turn_button)
@@ -63,10 +66,11 @@ impl Plugin for UiPlugin {
                 SystemSet::new()
                     .with_run_criteria(run_if_in_target_phase)
                     .with_system(combat_system::target_selection)
+                    .with_system(combat_system::update_targeted_unit.after(UiLabel::Player))
                     // switch to a new action ----vvv
                     .with_system(character_sheet::select_skill)
                     .with_system(player_interaction::end_of_turn_button)
-                    .with_system(player_interaction::confirm_action_button)
+                    // .with_system(player_interaction::confirm_action_button)
             )
             .add_system_set(
                 SystemSet::new()
@@ -80,20 +84,16 @@ impl Plugin for UiPlugin {
                 SystemSet::new()
                     .with_run_criteria(run_if_in_evasive_phase)
             )
-            // DONE: Display Actions
-            // DONE: Confirm Actions
-            // DONE: Roll Initiative
-            // DONE: Execute in order Actions
-
-            // --- COLOR ---
-            .add_system(player_interaction::button_system)
-
+            
             // DEBUG -- DISPLAYER --
-            .add_system(combat_system::update_selected_unit.after(UiLabel::Player))
-            .add_system(combat_system::update_targeted_unit.after(UiLabel::Player))
-            .add_system(combat_system::update_combat_phase_displayer)
-            .add_system(combat_system::last_action_displayer)
-
+            .add_system(
+                combat_system::update_combat_phase_displayer
+                    .label(UiLabel::Display)
+            )
+            .add_system(
+                combat_system::last_action_displayer
+                    .label(UiLabel::Display)
+            )
             .add_system(
                 character_sheet::update_caster_stats_panel
                     .label(UiLabel::Display)
@@ -104,6 +104,9 @@ impl Plugin for UiPlugin {
                     .label(UiLabel::Display)
                     .after(UiLabel::Player)
             )
+
+            // --- COLOR ---
+            .add_system(player_interaction::button_system)
             ;
     }
 }
