@@ -63,4 +63,34 @@ impl Skill {
             ..Default::default()
         }
     }
+
+    // ------------------------- Weapons' Skills -------------------------
+
+    pub fn jar_selfdestruction() -> Self {
+        Skill {
+            skill_type: SkillType::Attack,
+            target_side: TargetSide::Enemy,
+            target_number: 1,
+            hp_dealt: 60,
+            initiative: 30,
+            description: String::from("Explode 60 dmg to 1 enemies"),
+            name: String::from("SelfDestruct of the Pickles Jar"),
+            ..Default::default()
+        }
+    }
+
+    pub fn eat_a_pickle() -> Self {
+        Skill {
+            skill_type: SkillType::Heal,
+            target_side: TargetSide::OneSelf,
+            // TODO: UI Fluidity - Self -> # of target = 0
+            target_number: 1,
+            hp_dealt: 25,
+            initiative: 60,
+            alterations: vec![Alteration::regenerate()],
+            description: String::from("Heal 25Hp and add Regenerate"),
+            name: String::from("Open the jar and eat a pickle"),
+            ..Default::default()
+        }
+    }
 }

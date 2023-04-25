@@ -20,6 +20,8 @@ use super::{
 
 pub struct TransitionPhaseEvent(pub CombatState);
 
+/// Action manager, about phase transition.
+/// And Change phase afterall
 pub fn phase_transition(
     mut transition_phase_event: EventReader<TransitionPhaseEvent>,
 
@@ -266,7 +268,7 @@ pub fn execution_phase(
     let mut combat_panel = combat_panel_query.single_mut();
 
     // -----------------------------------------------
-    // REFACTOR: Move these ui lines somewhere else
+    // REFACTOR: Move these ui lines somewhere else -> [[combat::phases::phase_transition()]]
     // IDEA: Reset or just push infinitly ?
     let mut actions_logs_text = actions_logs_query.single_mut();
 

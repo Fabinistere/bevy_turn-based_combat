@@ -28,4 +28,16 @@ impl Alteration {
             ..Default::default()
         }
     }
+
+    pub fn regenerate() -> Self {
+        Alteration {
+            action: AlterationAction::Dots,
+            duration: 3,
+            target_option: (TargetSide::Ally, 1),
+            hp: 10,
+            description: String::from("10hp per turn for 3turns"),
+            name: String::from("Regenerate"),
+            ..Default::default()
+        }
+    }
 }
