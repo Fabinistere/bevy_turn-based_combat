@@ -6,6 +6,8 @@ use crate::{
     ui::player_interaction::Clicked,
 };
 
+// ------------------------- UI Components -------------------------
+
 #[derive(Component)]
 pub struct ButtonTargeting;
 
@@ -35,6 +37,8 @@ pub struct UpdateUnitSelectedEvent(pub Entity);
 
 /// DOC
 pub struct UpdateUnitTargetedEvent(pub Entity);
+
+// -------------------------- UI Systems --------------------------
 
 /// # Note
 pub fn caster_selection(
@@ -113,6 +117,8 @@ pub fn target_random_system(
     }
 }
 
+// -------------------------- UI Updates --------------------------
+
 /// Event Handler of UpdateUnitSelectedEvent
 ///
 /// There can only be one entity selected.
@@ -170,6 +176,7 @@ pub fn update_targeted_unit(
     combat_unit_query: Query<(Entity, &Name), With<InCombat>>,
 
     mut combat_panel_query: Query<(Entity, &mut CombatPanel)>,
+    mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
     // DEBUG DISPLAYER
     // unit_selected_query: Query<(Entity, &Name, &Selected)>,
 ) {
@@ -188,10 +195,21 @@ pub fn update_targeted_unit(
                 // TODO: impl change target/skill in the Vec<Action>
                 // Possibility to target multiple depending to the skill selected
                 last_action.targets = match last_action.targets {
-                    None => Some(vec![character]),
+                    None => {
+                        // Number of target = max targetable
+                        if last_action.skill.target_number == 1 {
+                            transition_phase_event
+                                .send(TransitionPhaseEvent(CombatState::SelectionCaster));
+                        }
+                        Some(vec![character])
+                    }
                     Some(mut targets) => {
                         if targets.len() < last_action.skill.target_number {
                             targets.push(character);
+                            if targets.len() == last_action.skill.target_number {
+                                transition_phase_event
+                                    .send(TransitionPhaseEvent(CombatState::SelectionCaster));
+                            }
                         } else if targets.len() > last_action.skill.target_number {
                             // abrsurd, should not happen
                             // FIXME: error Handling -> back to a length acceptable
@@ -201,19 +219,20 @@ pub fn update_targeted_unit(
                                 last_action.skill.target_number
                             );
                             while targets.len() > last_action.skill.target_number {
-                                targets.pop();
+                                commands.entity(targets.pop().unwrap()).remove::<Targeted>();
                             }
                         }
-                        // Number of target = max targetable
-                        else {
-                            // 'replace' the first one by the newly targeted
-                            // ^^^^^^^^^---- Remove the first and push the new one
-                            if let Some((first_target, rem_targets)) = targets.split_first_mut() {
-                                commands.entity(*first_target).remove::<Targeted>();
-                                targets = rem_targets.to_vec();
-                                targets.push(character);
-                            }
-                        }
+                        // else {
+                        //     // vv-- these modifications will happen when pressing 'esc' --vv
+
+                        //     // // 'replace' the first one by the newly targeted
+                        //     // // ^^^^^^^^^---- Remove the first and push the new one
+                        //     // if let Some((first_target, rem_targets)) = targets.split_first_mut() {
+                        //     //     commands.entity(*first_target).remove::<Targeted>();
+                        //     //     targets = rem_targets.to_vec();
+                        //     //     targets.push(character);
+                        //     // }
+                        // }
                         Some(targets)
                     }
                 };
@@ -222,6 +241,8 @@ pub fn update_targeted_unit(
         }
     }
 }
+
+// ---------------------------- UI Logs ----------------------------
 
 /// Display the current phase
 ///

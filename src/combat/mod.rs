@@ -52,7 +52,7 @@ pub mod stats;
 pub mod stuff;
 
 /// Just help to create a ordered system in the app builder
-#[derive(PartialEq, Clone, Hash, Debug, Eq, SystemLabel)]
+#[derive(PartialEq, Clone, Hash, Debug, Eq, SystemLabel, Inspectable)]
 pub enum CombatState {
     /// DOC: what the freak is this phase
     Initiation,

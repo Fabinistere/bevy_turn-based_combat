@@ -74,6 +74,8 @@ pub fn select_skill(
                 let mut display = skill.name.to_uppercase();
                 display = display.replace("A", "O");
                 text.sections[0].value = display;
+
+                info!("Skill {} selected", skill.name);
             }
             Interaction::Hovered => {
                 // TODO: feature - Hover Skill - Preview possible Target

@@ -4,8 +4,8 @@ use bevy_inspector_egui::{RegisterInspectable, WorldInspectorPlugin};
 use crate::{
     combat::{
         alterations::{Alteration, AlterationAction},
-        skills::TargetSide,
-        Alterations, stats::{Hp, Mana, Shield, Initiative, Attack, AttackSpe, Defense, DefenseSpe},
+        skills::{TargetSide, Skill, SkillType},
+        Alterations, stats::{Hp, Mana, Shield, Initiative, Attack, AttackSpe, Defense, DefenseSpe}, CombatState,
     },
     npc::NPC,
 };
@@ -17,10 +17,16 @@ impl Plugin for DebugPlugin {
         if cfg!(debug_assertions) {
             app.add_plugin(WorldInspectorPlugin::new())
                 .register_inspectable::<NPC>()
+
+                .register_inspectable::<CombatState>()
+
                 .register_inspectable::<Alteration>()
                 .register_inspectable::<Alterations>()
                 .register_inspectable::<AlterationAction>()
                 .register_inspectable::<TargetSide>()
+                
+                .register_inspectable::<Skill>()
+                .register_inspectable::<SkillType>()
                 
                 // stats
                 
