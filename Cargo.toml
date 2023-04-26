@@ -1,6 +1,6 @@
 [package]
 name = "bevy_turn-based_combat"
-version = "0.1.0"
+version = "0.3.0"
 authors = ["Olf EPAIN aka Wabtey <wabtey@disroot.org>", "Morgan Van Amerongen <vanamerongen.morgan@gmail.com>"]
 edition = "2021"
 
@@ -23,8 +23,10 @@ rand = "0.8.5"
 bevy-inspector-egui = "0.15"
 log = "0.4.17"
 
+# Optimize the dependencies
 [profile.dev.package."*"]
 opt-level = 3
 
+# Don't optimize the code
 [profile.dev]
 opt-level = 1

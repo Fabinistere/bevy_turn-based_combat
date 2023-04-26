@@ -19,7 +19,8 @@ Assets are deported on a different cloud to stop wasting git use which is very c
 - DONE: Confirm Actions
 - DONE: Roll Initiative
 - DONE: Execute in order Actions
-- // REFACTOR: Nice, Smooth and intuitive ui inputs
+- DONE: Nice, Smooth and intuitive ui inputs
+- TODO: Display all skill per entity (when selected)
 
 ## Example
 
