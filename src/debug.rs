@@ -1,11 +1,23 @@
 use bevy::prelude::*;
-use bevy_inspector_egui::{RegisterInspectable, WorldInspectorPlugin};
+
+// RegisterInspectable, 
+use bevy_inspector_egui::quick::{
+    // FilterQueryInspectorPlugin,
+    ResourceInspectorPlugin,
+    WorldInspectorPlugin,
+};
+// // use bevy_inspector_egui::prelude::*;
 
 use crate::{
     combat::{
+        // Alterations,
         alterations::{Alteration, AlterationAction},
-        skills::{TargetSide, Skill, SkillType},
-        Alterations, stats::{Hp, Mana, Shield, Initiative, Attack, AttackSpe, Defense, DefenseSpe}, CombatState,
+        skills::{
+            // Skill,
+            SkillType,
+            TargetSide,
+        },
+        stats::{Hp, Mana, Shield, Initiative, Attack, AttackSpe, Defense, DefenseSpe}, CombatState,
     },
     npc::NPC,
 };
@@ -16,28 +28,31 @@ impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
         if cfg!(debug_assertions) {
             app.add_plugin(WorldInspectorPlugin::new())
-                .register_inspectable::<NPC>()
+                // .add_plugin(FilterQueryInspectorPlugin::<With<TextureAtlasSprite>>::default())
+                .add_plugin(ResourceInspectorPlugin::<Time>::default())
 
-                .register_inspectable::<CombatState>()
+                .register_type::<NPC>()
 
-                .register_inspectable::<Alteration>()
-                .register_inspectable::<Alterations>()
-                .register_inspectable::<AlterationAction>()
-                .register_inspectable::<TargetSide>()
+                .register_type::<CombatState>()
+
+                .register_type::<Alteration>()
+                // .register_type::<Alterations>()
+                .register_type::<AlterationAction>()
+                .register_type::<TargetSide>()
                 
-                .register_inspectable::<Skill>()
-                .register_inspectable::<SkillType>()
+                // .register_type::<Skill>()
+                .register_type::<SkillType>()
                 
                 // stats
                 
-                .register_inspectable::<Hp>()
-                .register_inspectable::<Mana>()
-                .register_inspectable::<Shield>()
-                .register_inspectable::<Initiative>()
-                .register_inspectable::<Attack>()
-                .register_inspectable::<AttackSpe>()
-                .register_inspectable::<Defense>()
-                .register_inspectable::<DefenseSpe>()
+                .register_type::<Hp>()
+                .register_type::<Mana>()
+                .register_type::<Shield>()
+                .register_type::<Initiative>()
+                .register_type::<Attack>()
+                .register_type::<AttackSpe>()
+                .register_type::<Defense>()
+                .register_type::<DefenseSpe>()
 
                 // UI
                 ;

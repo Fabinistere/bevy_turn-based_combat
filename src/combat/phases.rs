@@ -118,7 +118,7 @@ pub fn execute_alteration(
     ) in character_query.iter_mut()
     {
         let mut new_alterations_vector: Vec<Alteration> = vec![];
-        for mut alteration in alterations.iter_mut() {
+        for alteration in alterations.iter_mut() {
             info!("DEBUG: Execute Alteration: {} on {}", alteration.name, name);
 
             match alteration.action {
@@ -195,7 +195,7 @@ pub fn roll_initiative(
 
     let mut initiatives: Vec<Action> = Vec::new();
 
-    for mut action in combat_panel.history.iter_mut() {
+    for action in combat_panel.history.iter_mut() {
         let caster = action.caster;
         // REFACTOR: how the initiative is calculated
         let skill_init = action.skill.initiative.clone();
@@ -239,6 +239,8 @@ pub fn roll_initiative(
 
     // Update the actions history
     combat_panel.history = initiatives;
+
+    // info!("DEBUG: history: {:?}", combat_panel.history);
 
     combat_panel.phase = CombatState::ExecuteSkills;
 }
