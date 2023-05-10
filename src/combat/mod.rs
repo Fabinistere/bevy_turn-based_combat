@@ -31,11 +31,8 @@
 
 use std::{cmp::Ordering, fmt};
 
-use bevy::{
-    ecs::schedule::ShouldRun,
-    prelude::*,
-};
-use bevy_inspector_egui::Inspectable;
+use bevy::prelude::*;
+// use bevy_inspector_egui::prelude::*;
 
 use self::{
     alterations::Alteration, phases::observation, skills::Skill, stats::StatBundle,
@@ -52,7 +49,7 @@ pub mod stats;
 pub mod stuff;
 
 /// Just help to create a ordered system in the app builder
-#[derive(PartialEq, Clone, Hash, Debug, Eq, SystemLabel, Inspectable)]
+#[derive(Default, SystemSet, PartialEq, Eq, Hash, Clone, Debug, Reflect)]
 pub enum CombatState {
     /// DOC: what the freak is this phase
     Initiation,
@@ -63,6 +60,7 @@ pub enum CombatState {
     /// - Watch Knows infos/techs from enemies
     /// - Watch yours
     Observation,
+    #[default]
     SelectionCaster,
     SelectionSkills,
     SelectionTarget,
@@ -107,33 +105,31 @@ impl Plugin for CombatPlugin {
             
             .add_system(
                 observation
-                    // .with_run_criteria(run_if_in_observation_phase)
-                    .label(CombatState::Observation)
+                    // .run_if(in_observation_phase)
+                    .in_set(CombatState::Observation)
             )
             .add_system(
                 phases::execute_alteration
-                    .with_run_criteria(run_if_in_alteration_phase)
-                    .label(CombatState::AlterationsExecution)
+                    .run_if(in_alteration_phase)
+                    .in_set(CombatState::AlterationsExecution)
             )
             .add_system(
                 phases::roll_initiative
                 // FixedTimestep::step(FIXED_TIME_STEP as f64)
-                .with_run_criteria(run_if_in_initiative_phase)
-                .label(CombatState::RollInitiative)
+                .run_if(in_initiative_phase)
+                .in_set(CombatState::RollInitiative)
             )
             .add_system(
                 phases::execution_phase
-                .with_run_criteria(run_if_in_executive_phase)
-                .label(CombatState::ExecuteSkills)
+                .run_if(in_executive_phase)
+                .in_set(CombatState::ExecuteSkills)
             )
             .add_system(skills::execute_skill)
             .add_system(phases::phase_transition)
-            // .add_system_set_to_stage(
-            //     CoreStage::PostUpdate,
-            //     SystemSet::new()
-            //         .with_run_criteria(run_if_pressed_h)
-            //         .with_system(show_hp)
-            //         .with_system(show_mana)
+            // .add_systems(
+            //     (show_hp, show_mana)
+            //         .run_if(pressed_h)
+            //         .in_base_set(CoreSet::PostUpdate)
             // )
             ;
     }
@@ -161,7 +157,7 @@ pub struct Karma(pub i32);
 pub struct Team(pub i32);
 
 /// Ongoing alterations, Debuff or Buff
-#[derive(Component, Deref, DerefMut, Inspectable)]
+#[derive(Default, Component, Deref, DerefMut)]
 pub struct Alterations(pub Vec<Alteration>);
 
 /// Basic/Natural skills own by the entity  
@@ -249,74 +245,42 @@ impl Eq for Action {}
 
 // -- Run Criteria --
 
-pub fn run_if_in_initiation_phase(combat_panel_query: Query<&CombatPanel>) -> ShouldRun {
+pub fn in_initiation_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
     let combat_panel = combat_panel_query.single();
-    if combat_panel.phase == CombatState::Initiation {
-        ShouldRun::Yes
-    } else {
-        ShouldRun::No
-    }
+    combat_panel.phase == CombatState::Initiation
 }
 
-pub fn run_if_in_alteration_phase(combat_panel_query: Query<&CombatPanel>) -> ShouldRun {
+pub fn in_alteration_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
     let combat_panel = combat_panel_query.single();
-    if combat_panel.phase == CombatState::AlterationsExecution {
-        ShouldRun::Yes
-    } else {
-        ShouldRun::No
-    }
+    combat_panel.phase == CombatState::AlterationsExecution
 }
 
-pub fn run_if_in_caster_phase(combat_panel_query: Query<&CombatPanel>) -> ShouldRun {
+pub fn in_caster_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
     let combat_panel = combat_panel_query.single();
-    if combat_panel.phase == CombatState::SelectionCaster {
-        ShouldRun::Yes
-    } else {
-        ShouldRun::No
-    }
+    combat_panel.phase == CombatState::SelectionCaster
 }
 
-pub fn run_if_in_skill_phase(combat_panel_query: Query<&CombatPanel>) -> ShouldRun {
+pub fn in_skill_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
     let combat_panel = combat_panel_query.single();
-    if combat_panel.phase == CombatState::SelectionSkills {
-        ShouldRun::Yes
-    } else {
-        ShouldRun::No
-    }
+    combat_panel.phase == CombatState::SelectionSkills
 }
 
-pub fn run_if_in_target_phase(combat_panel_query: Query<&CombatPanel>) -> ShouldRun {
+pub fn in_target_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
     let combat_panel = combat_panel_query.single();
-    if combat_panel.phase == CombatState::SelectionTarget {
-        ShouldRun::Yes
-    } else {
-        ShouldRun::No
-    }
+    combat_panel.phase == CombatState::SelectionTarget
 }
 
-pub fn run_if_in_initiative_phase(combat_panel_query: Query<&CombatPanel>) -> ShouldRun {
+pub fn in_initiative_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
     let combat_panel = combat_panel_query.single();
-    if combat_panel.phase == CombatState::RollInitiative {
-        ShouldRun::Yes
-    } else {
-        ShouldRun::No
-    }
+    combat_panel.phase == CombatState::RollInitiative
 }
 
-pub fn run_if_in_executive_phase(combat_panel_query: Query<&CombatPanel>) -> ShouldRun {
+pub fn in_executive_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
     let combat_panel = combat_panel_query.single();
-    if combat_panel.phase == CombatState::ExecuteSkills {
-        ShouldRun::Yes
-    } else {
-        ShouldRun::No
-    }
+    combat_panel.phase == CombatState::ExecuteSkills
 }
 
-pub fn run_if_in_evasive_phase(combat_panel_query: Query<&CombatPanel>) -> ShouldRun {
+pub fn in_evasive_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
     let combat_panel = combat_panel_query.single();
-    if combat_panel.phase == CombatState::Evasion {
-        ShouldRun::Yes
-    } else {
-        ShouldRun::No
-    }
+    combat_panel.phase == CombatState::Evasion
 }

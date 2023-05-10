@@ -108,30 +108,27 @@ pub fn update_caster_stats_panel(
         ),
     >,
 
-    select_removals: RemovedComponents<Selected>,
+    mut select_removals: RemovedComponents<Selected>,
 
     mut hp_query: Query<(Entity, &HpMeter, &mut Text), (Without<MpMeter>, With<CasterMeter>)>,
     mut mp_query: Query<(Entity, &MpMeter, &mut Text), (Without<HpMeter>, With<CasterMeter>)>,
 ) {
-    for (_, _, name, hp, mana) in selected_query.iter() {
-        let (_, _, mut hp_text) = hp_query.single_mut();
-        let (_, _, mut mp_text) = mp_query.single_mut();
+    let (_, _, mut hp_text) = hp_query.single_mut();
+    let (_, _, mut mp_text) = mp_query.single_mut();
 
-        let hp_display = format!("Caster {} hp: {}", name, &hp.current.to_string());
+    for _ in select_removals.iter() {
+        let hp_display = String::from("Caster hp: ??");
+        let mp_display = String::from("Caster mp: ??");
+
         hp_text.sections[0].value = hp_display;
-
-        let mp_display = format!("Caster {} mp: {}", name, &mana.current.to_string());
         mp_text.sections[0].value = mp_display;
     }
 
-    for _entity in select_removals.iter() {
-        let (_, _, mut hp_text) = hp_query.single_mut();
-        let (_, _, mut mp_text) = mp_query.single_mut();
+    if let Ok((_, _, name, hp, mana)) = selected_query.get_single() {
+        let hp_display = format!("Caster {} hp: {}", name, &hp.current.to_string());
+        let mp_display = format!("Caster {} mp: {}", name, &mana.current.to_string());
 
-        let hp_display = String::from("Caster hp: ??");
         hp_text.sections[0].value = hp_display;
-
-        let mp_display = String::from("Caster mp: ??");
         mp_text.sections[0].value = mp_display;
     }
 }
@@ -154,7 +151,7 @@ pub fn update_target_stats_panel(
         ),
     >,
 
-    target_removals: RemovedComponents<Targeted>,
+    mut target_removals: RemovedComponents<Targeted>,
 
     mut hp_query: Query<(Entity, &HpMeter, &mut Text), (Without<MpMeter>, With<TargetMeter>)>,
     mut mp_query: Query<(Entity, &MpMeter, &mut Text), (Without<HpMeter>, With<TargetMeter>)>,

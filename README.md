@@ -6,7 +6,7 @@ This project has purpose to help rust game dev to implement a full turn-based co
 
 ## [Release Demo](https://fabinistere.github.io/bevy_turn-based_combat/)
 
-v0.3
+v0.4
 
 ## Assets
 
@@ -20,6 +20,10 @@ Assets are deported on a different cloud to stop wasting git use which is very c
 - DONE: Roll Initiative
 - DONE: Execute in order Actions
 - DONE: Nice, Smooth and intuitive ui inputs
+- DONE: Scrolling Logs
+- TODO: Display all skill per entity (when selected)
+- TODO: Display all action in the Initiative Vertical Bar
+- TODO: Display all basic stats on the Fighting Hall (Hp/Mp under all entities)
 
 ## Example
 
