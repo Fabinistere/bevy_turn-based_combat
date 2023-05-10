@@ -206,6 +206,10 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 },
                 background_color: Color::OLIVE.into(),
                 ..default()
+            }).with_children(|parent| {
+                // 24 max actions (12entities playing twice)
+
+
             });
 
             // HUD Wall
@@ -234,7 +238,9 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                             ..default()
                         })
                         .with_children(|parent| {
-                            // BAM SKILL
+                            // 6 skill max
+
+                            // SKILL 1
                             parent
                                 .spawn((
                                     ButtonBundle {
@@ -252,7 +258,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                         background_color: NORMAL_BUTTON.into(),
                                         ..default()
                                     },
-                                    Name::new("BAM Skill"),
+                                    Name::new("Skill 1"),
                                     Skill::bam(),
                                     // Draggable,
                                     // Clickable,
@@ -283,7 +289,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                         background_color: NORMAL_BUTTON.into(),
                                         ..default()
                                     },
-                                    Name::new("GIFLE Skill"),
+                                    Name::new("Skill 2"),
                                     Skill::gifle(),
                                     // Draggable,
                                     // Clickable,
@@ -315,7 +321,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                         background_color: NORMAL_BUTTON.into(),
                                         ..default()
                                     },
-                                    Name::new("IMPLOSION Skill"),
+                                    Name::new("Skill 3"),
                                     Skill::implosion(),
                                     // Draggable,
                                     // Clickable,
