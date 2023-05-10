@@ -1,7 +1,7 @@
 //! Implement SKILLS
 
 use bevy::prelude::*;
-use bevy_inspector_egui::Inspectable;
+// use bevy_inspector_egui::prelude::*;
 
 use crate::{
     combat::{
@@ -13,7 +13,7 @@ use crate::{
 
 use super::Alterations;
 
-#[derive(Debug, Default, Clone, PartialEq, Inspectable)]
+#[derive(Default, Debug, Clone, PartialEq, Reflect)]
 pub enum SkillType {
     Heal,
     Attack,
@@ -28,7 +28,7 @@ pub enum SkillType {
     Flee,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Inspectable)]
+#[derive(Default, Debug, Clone, PartialEq, Reflect)]
 pub enum TargetSide {
     /// Identity
     OneSelf,
@@ -45,7 +45,7 @@ pub enum TargetSide {
 ///
 /// - Negative = MALUS
 /// - Positive = BONUS
-#[derive(Debug, Component, Clone, Inspectable)]
+#[derive(Debug, Component, Clone)]
 pub struct Skill {
     pub skill_type: SkillType,
     /// Which side the skill is allow to target

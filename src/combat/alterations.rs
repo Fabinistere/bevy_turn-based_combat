@@ -3,7 +3,7 @@
 // use std::default;
 
 use bevy::prelude::*;
-use bevy_inspector_egui::Inspectable;
+// // use bevy_inspector_egui::prelude::*;
 
 use super::skills::*;
 
@@ -19,7 +19,7 @@ use super::skills::*;
 
 // TODO: CouldHave - Display alteration's icon
 
-#[derive(Debug, Clone, Default, Inspectable)]
+#[derive(Default, Debug, Clone, Reflect)]
 pub enum AlterationAction {
     #[default]
     Dots,
@@ -38,7 +38,7 @@ pub enum AlterationAction {
 /// - Curse or Benediction
 /// - Debuff or Buff
 /// - Detract or Enhance
-#[derive(Debug, Component, Clone, Inspectable)]
+#[derive(Debug, Component, Clone, Reflect)]
 pub struct Alteration {
     /// Alteration's type
     pub action: AlterationAction,

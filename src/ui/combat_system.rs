@@ -2,7 +2,6 @@ use bevy::prelude::*;
 
 use crate::{
     combat::{phases::TransitionPhaseEvent, CombatPanel, CombatState, InCombat},
-    constants::ui::dialogs::*,
     ui::player_interaction::Clicked,
 };
 
@@ -69,51 +68,6 @@ pub fn target_selection(
 
         commands.entity(entity).remove::<Clicked>();
         // info!("DEBUG: {} remove clicked to be targeted", _name);
-    }
-}
-
-#[deprecated(
-    since = "0.0.3",
-    note = "please use `select_unit_by_mouse` and `target_selection` instead"
-)]
-pub fn target_random_system(
-    mut commands: Commands,
-
-    mut button_system: Query<
-        (Entity, &Interaction, &mut BackgroundColor),
-        (Changed<Interaction>, With<Button>, With<ButtonTargeting>),
-    >,
-
-    combat_unit_query: Query<(Entity, &Name), (With<InCombat>, Without<Targeted>)>,
-    targeted_unit: Query<Entity, With<Targeted>>,
-
-    mut update_unit_targeted_event: EventWriter<UpdateUnitTargetedEvent>,
-) {
-    for (_button, interaction, mut color) in &mut button_system {
-        match *interaction {
-            Interaction::Clicked => {
-                for (npc, _name) in combat_unit_query.iter() {
-                    // target the first one on the list
-                    if let Ok(targeted) = targeted_unit.get_single() {
-                        commands.entity(targeted).remove::<Targeted>();
-                    }
-                    // DEBUG: TEMPORARY TARGET
-                    update_unit_targeted_event.send(UpdateUnitTargetedEvent(npc));
-
-                    break;
-                }
-
-                *color = PRESSED_BUTTON.into();
-            }
-            // TODO: feature - preview
-            // Store the previous selected in the temp and restore it when none
-            Interaction::Hovered => {
-                *color = HOVERED_BUTTON.into();
-            }
-            Interaction::None => {
-                *color = NORMAL_BUTTON.into();
-            }
-        }
     }
 }
 
@@ -211,7 +165,7 @@ pub fn update_targeted_unit(
                                     .send(TransitionPhaseEvent(CombatState::SelectionCaster));
                             }
                         } else if targets.len() > last_action.skill.target_number {
-                            // abrsurd, should not happen
+                            // absurd, should not happen
                             // FIXME: error Handling -> back to a length acceptable
                             warn!(
                                 "The number of target is exceeded {}/{}",
@@ -294,6 +248,10 @@ pub fn last_action_displayer(
                         }
                     }
                 }
+
+                // FIXME: Never show sorted action History
+                println!("{}", action.initiative);
+
                 let action_display = if action.initiative == -1 {
                     format!(
                         "\n{}. {} do {} to {}",

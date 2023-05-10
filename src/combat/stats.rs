@@ -1,7 +1,7 @@
 //! Implement all Combat stats
 
 use bevy::prelude::*;
-use bevy_inspector_egui::Inspectable;
+// use bevy_inspector_egui::prelude::*;
 
 use crate::npc::NPC;
 
@@ -44,7 +44,7 @@ pub struct StatBundle {
 /// # Note
 ///
 /// At the moment, current <= max
-#[derive(Component, Inspectable)]
+#[derive(Component, Reflect)]
 pub struct Hp {
     pub current: i32,
     pub max: i32,
@@ -78,7 +78,7 @@ pub fn show_hp(npc_query: Query<(&Hp, &Name), With<NPC>>) {
 /// # Note
 ///
 /// At the moment, current <= max
-#[derive(Component, Inspectable)]
+#[derive(Component, Reflect)]
 pub struct Mana {
     pub current: i32,
     pub max: i32,
@@ -108,7 +108,7 @@ pub fn show_mana(npc_query: Query<(&Mana, &Name), With<NPC>>) {
 /// Start of the Game: 0-100shield -> End of the Game: 10 000shield.
 ///
 /// Can be modified by level, item, buff, debuff, technics.
-#[derive(Component, Inspectable, Deref, DerefMut)]
+#[derive(Component, Deref, DerefMut, Reflect)]
 pub struct Shield(pub i32);
 
 impl Default for Shield {
@@ -128,7 +128,7 @@ impl Default for Shield {
 /// # Modifiers
 ///
 /// (base + modifier_flat) * modifer_percent%
-#[derive(Component, Inspectable, Debug, Clone)]
+#[derive(Component, Debug, Clone, Reflect)]
 pub struct Attack {
     pub base: i32,
 }
@@ -150,7 +150,7 @@ impl Default for Attack {
 /// # Modifiers
 ///
 /// (base + modifier_flat) * modifer_percent%
-#[derive(Component, Inspectable, Debug, Clone)]
+#[derive(Component, Debug, Clone, Reflect)]
 pub struct AttackSpe {
     pub base: i32,
 }
@@ -177,7 +177,7 @@ impl Default for AttackSpe {
 /// # Modifiers
 ///
 /// (base + modifier_flat) * modifer_percent%
-#[derive(Component, Inspectable, Debug, Clone)]
+#[derive(Component, Debug, Clone, Reflect)]
 pub struct Defense {
     pub base: i32,
 }
@@ -204,7 +204,7 @@ impl Default for Defense {
 /// # Modifiers
 ///
 /// (base + modifier_flat) * modifer_percent%
-#[derive(Component, Inspectable, Debug, Clone)]
+#[derive(Component, Debug, Clone, Reflect)]
 pub struct DefenseSpe {
     pub base: i32,
 }
@@ -221,7 +221,7 @@ impl Default for DefenseSpe {
 ///
 /// Indicate the speed of initiative, the entity has.
 /// The more they has, the more likly they will start their turn first.
-#[derive(Component, Inspectable, Clone, Deref, DerefMut)]
+#[derive(Component, Clone, Deref, DerefMut, Reflect)]
 pub struct Initiative(pub i32);
 
 impl Default for Initiative {
@@ -233,7 +233,7 @@ impl Default for Initiative {
 /// ----------ACCURACY----------
 ///
 /// Used to calculate if the technic will hit (in percentage).
-#[derive(Component, Inspectable, Deref, DerefMut)]
+#[derive(Component, Deref, DerefMut, Reflect)]
 pub struct Accuracy(pub i32);
 
 impl Default for Accuracy {
@@ -249,7 +249,7 @@ impl Default for Accuracy {
 /// A Critical technic has its dmg inflicted multiplied by 300%
 ///
 /// ONLY allow critics on hit
-#[derive(Component, Inspectable, Deref, DerefMut)]
+#[derive(Component, Deref, DerefMut, Reflect)]
 pub struct Critical(pub i32);
 
 impl Default for Critical {

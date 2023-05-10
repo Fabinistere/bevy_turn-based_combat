@@ -17,6 +17,7 @@ pub const CLEAR: bevy::render::color::Color = bevy::render::color::Color::rgb(0.
 pub const FIXED_TIME_STEP: f32 = 1.0 / 60.0;
 
 pub const RESOLUTION: f32 = 16.0 / 9.0;
+// TODO: feature - dynamic scale height (or option)
 pub const HEIGHT: f32 = 1080.; // 720.;
 pub const TILE_SIZE: f32 = 1.;
 
@@ -43,10 +44,10 @@ pub mod character {
 
         pub mod movement {
 
-            pub const ADMIRAL_POSITION: (f32, f32, f32) = (30.0, 10.0, 2.0);
-            pub const HUGO_POSITION: (f32, f32, f32) = (30.0, -20.0, 2.0);
-            pub const FABICURION_POSITION: (f32, f32, f32) = (70.0, 10.0, 2.0);
-            pub const OLF_POSITION: (f32, f32, f32) = (70.0, -20.0, 2.0);
+            pub const ADMIRAL_POSITION: (f32, f32, f32) = (-30., 10., 2.);
+            pub const HUGO_POSITION: (f32, f32, f32) = (-30., -20., 2.);
+            pub const FABICURION_POSITION: (f32, f32, f32) = (-80., 10., 2.);
+            pub const OLF_POSITION: (f32, f32, f32) = (-80., -20., 2.);
         }
     }
 }
@@ -63,8 +64,7 @@ pub mod combat {
         pub const BAM: i32 = 150;
     }
 
-    pub mod buff {
-    }
+    pub mod buff {}
 }
 
 pub mod ui {

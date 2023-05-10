@@ -7,7 +7,7 @@ pub struct FabienSheet(pub Handle<TextureAtlas>);
 
 impl Plugin for FabienPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system_to_stage(StartupStage::PreStartup, load_character_spritesheet);
+        app.add_startup_system(load_character_spritesheet.in_base_set(StartupSet::PreStartup));
     }
 }
 
