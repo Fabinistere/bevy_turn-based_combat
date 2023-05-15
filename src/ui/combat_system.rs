@@ -153,7 +153,7 @@ pub fn update_targeted_unit(
                         // Number of target = max targetable
                         if last_action.skill.target_number == 1 {
                             transition_phase_event
-                                .send(TransitionPhaseEvent(CombatState::SelectionCaster));
+                                .send(TransitionPhaseEvent(CombatState::default()));
                         }
                         Some(vec![character])
                     }
@@ -162,7 +162,7 @@ pub fn update_targeted_unit(
                             targets.push(character);
                             if targets.len() == last_action.skill.target_number {
                                 transition_phase_event
-                                    .send(TransitionPhaseEvent(CombatState::SelectionCaster));
+                                    .send(TransitionPhaseEvent(CombatState::default()));
                             }
                         } else if targets.len() > last_action.skill.target_number {
                             // absurd, should not happen
@@ -248,9 +248,6 @@ pub fn last_action_displayer(
                         }
                     }
                 }
-
-                // FIXME: Never show sorted action History
-                println!("{}", action.initiative);
 
                 let action_display = if action.initiative == -1 {
                     format!(

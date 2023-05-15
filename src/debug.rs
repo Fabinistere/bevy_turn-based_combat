@@ -3,7 +3,7 @@ use bevy::prelude::*;
 // RegisterInspectable, 
 use bevy_inspector_egui::quick::{
     // FilterQueryInspectorPlugin,
-    ResourceInspectorPlugin,
+    // ResourceInspectorPlugin,
     WorldInspectorPlugin,
 };
 // // use bevy_inspector_egui::prelude::*;
@@ -11,13 +11,16 @@ use bevy_inspector_egui::quick::{
 use crate::{
     combat::{
         // Alterations,
+        // Action,
         alterations::{Alteration, AlterationAction},
+        // CombatPanel,
+        CombatState,
         skills::{
             // Skill,
             SkillType,
             TargetSide,
         },
-        stats::{Hp, Mana, Shield, Initiative, Attack, AttackSpe, Defense, DefenseSpe}, CombatState,
+        stats::{Hp, Mana, Shield, Initiative, Attack, AttackSpe, Defense, DefenseSpe},
     },
     npc::NPC,
 };
@@ -29,14 +32,16 @@ impl Plugin for DebugPlugin {
         if cfg!(debug_assertions) {
             app.add_plugin(WorldInspectorPlugin::new())
                 // .add_plugin(FilterQueryInspectorPlugin::<With<TextureAtlasSprite>>::default())
-                .add_plugin(ResourceInspectorPlugin::<Time>::default())
+                // .add_plugin(ResourceInspectorPlugin::<Time>::default())
 
                 .register_type::<NPC>()
 
                 .register_type::<CombatState>()
+                // .register_type::<CombatPanel>()
+                // .register_type::<Action>()
 
-                .register_type::<Alteration>()
                 // .register_type::<Alterations>()
+                .register_type::<Alteration>()
                 .register_type::<AlterationAction>()
                 .register_type::<TargetSide>()
                 

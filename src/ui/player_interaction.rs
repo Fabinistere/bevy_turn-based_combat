@@ -180,6 +180,7 @@ pub struct EndOfTurnButton;
 
 /// # Note
 ///
+/// FIXME: End of turn in SelectionSkills: trigger a double press
 /// @see [`ui::player_interaction::confirm_action_button()`] to check: correct target number
 pub fn end_of_turn_button(
     mut interaction_query: Query<
@@ -201,20 +202,22 @@ pub fn end_of_turn_button(
                 // allow pass with no action in the history
                 if let Some(last_action) = combat_panel.history.pop() {
                     // TODO: Check correct target number
+                    // atm we can partially confirm an action by pressing "end_of_turn"
                     if last_action.targets != None {
                         // reput the last_action in the pool
                         combat_panel.history.push(last_action);
                     }
                 }
 
+                // Pressed
+                info!("End of Turn - Requested");
+
                 transition_phase_event.send(TransitionPhaseEvent(CombatState::RollInitiative));
 
-                text.sections[0].value = "CAN'T UNDO".to_string();
+                text.sections[0].value = "Next".to_string();
             }
             Interaction::Hovered => {
-                // TODO: feature - Hover Skill - Preview possible Target
-
-                text.sections[0].value = "End of Turn".to_string();
+                text.sections[0].value = "Can't Undo".to_string();
             }
             Interaction::None => {
                 text.sections[0].value = "End of Turn".to_string();
@@ -241,6 +244,7 @@ pub fn cancel_last_input(
         info!("Esc in {}", combat_panel.phase);
         match combat_panel.phase {
             CombatState::SelectionSkills => {
+                // FIXME: Smashing esc can skip a beat and crash here
                 let selected = selected_unit_query.single();
                 commands.entity(selected).remove::<Selected>();
                 transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionCaster));

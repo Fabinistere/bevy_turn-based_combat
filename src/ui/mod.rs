@@ -41,7 +41,6 @@ impl Plugin for UiPlugin {
                 player_interaction::mouse_scroll.in_set(UiLabel::Player),
                 player_interaction::select_unit_by_mouse.in_set(UiLabel::Player),
                 player_interaction::cancel_last_input.in_set(UiLabel::Player),
-                // combat_system::target_random_system,
             ))
             
             // --- Limited Phase ---
@@ -65,7 +64,7 @@ impl Plugin for UiPlugin {
                 (
                     combat_system::caster_selection,
                     combat_system::update_selected_unit.after(UiLabel::Player),
-                    player_interaction::end_of_turn_button
+                    player_interaction::end_of_turn_button,
                 )
                     .in_set(CombatState::SelectionCaster)
                     // .distributive_run_if(in_caster_phase)
@@ -76,11 +75,12 @@ impl Plugin for UiPlugin {
                     combat_system::caster_selection,
                     combat_system::update_selected_unit.after(UiLabel::Player),
                     character_sheet::select_skill,
+                    // FIXME: In SelectionSkill, the end_of_turn trigger twice
                     // cancel the current action if imcomplete -----vvv
-                    player_interaction::end_of_turn_button
+                    player_interaction::end_of_turn_button,
                 )
                     .in_set(CombatState::SelectionSkills)
-
+                    // .in_schedule(CoreSchedule::FixedUpdate)
             )
             .add_systems(
                 (
@@ -89,7 +89,6 @@ impl Plugin for UiPlugin {
                     // switch to a new action ----vvv
                     character_sheet::select_skill,
                     player_interaction::end_of_turn_button,
-                    // player_interaction::confirm_action_button
                 )
                     .in_set(CombatState::SelectionTarget)
             )

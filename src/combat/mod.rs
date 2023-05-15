@@ -161,7 +161,7 @@ pub struct Team(pub i32);
 pub struct Alterations(pub Vec<Alteration>);
 
 /// Basic/Natural skills own by the entity  
-#[derive(Component)]
+#[derive(Component, Deref, DerefMut)]
 pub struct Skills(pub Vec<Skill>);
 
 #[derive(Component)]
@@ -178,7 +178,7 @@ pub struct Recruted;
 // -- Combat Core Operation --
 
 /// REFACTOR: Resource ?
-#[derive(Component)]
+#[derive(Default, Component)]
 pub struct CombatPanel {
     pub phase: CombatState,
     pub history: Vec<Action>,

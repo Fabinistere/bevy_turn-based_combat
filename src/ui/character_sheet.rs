@@ -60,6 +60,7 @@ pub fn select_skill(
                     // if this system can run
                     // we are in SelectionSkill or SelectionTarget
                     // so there is a selected unit.
+                    // FIXME: Crash - Esc bug, after cancel an action but still in selectionSkill with no action left
                     let (caster, _caster_name, _) = unit_selected_query.single();
 
                     transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionTarget));
