@@ -8,6 +8,18 @@ use crate::combat::skills::{Skill, SkillType, TargetSide};
 use super::alterations::Alteration;
 
 impl Skill {
+    pub fn pass() -> Self {
+        Skill {
+            skill_type: SkillType::Pass,
+            target_side: TargetSide::OneSelf,
+            target_number: 1,
+            initiative: 0, // 50,
+            description: String::from("Do nothing"),
+            name: String::from("Pass"),
+            ..Default::default()
+        }
+    }
+
     pub fn bam() -> Self {
         Skill {
             skill_type: SkillType::Attack,
@@ -50,6 +62,7 @@ impl Skill {
         }
     }
 
+    /// `Deal 25dmg to 3targets` (example of multi-targets skills)
     pub fn implosion() -> Self {
         Skill {
             skill_type: SkillType::AttackSpe,

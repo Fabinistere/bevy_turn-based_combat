@@ -1,23 +1,27 @@
 //! Display the Character Sheet
 //! All Stats and Skills
 
+use bevy::prelude::*;
+
 use crate::{
     combat::{
         phases::TransitionPhaseEvent,
         skills::Skill,
         stats::{Hp, Mana},
-        Action, CombatPanel, CombatState, InCombat,
+        stuff::{Equipement, Equipements, SkillTiers},
+        Action, CombatPanel, CombatState, InCombat, Skills,
     },
     ui::{
-        combat_panel::{CasterMeter, TargetMeter},
+        combat_panel::{CasterMeter, SkillDisplayer, TargetMeter},
         combat_system::{HpMeter, MpMeter, Selected, Targeted},
     },
 };
-use bevy::prelude::*;
 
 /// Action for each Interaction of the skill button
 ///
 /// # Note
+///
+/// DOC: Move select_skill() in player_interaction
 pub fn select_skill(
     mut interaction_query: Query<
         (&Interaction, &Skill, &Children),
@@ -72,8 +76,7 @@ pub fn select_skill(
                     // info!("new action");
                 }
 
-                let mut display = skill.name.to_uppercase();
-                display = display.replace("A", "O");
+                let display = skill.name.replace("a", "o").replace("A", "O");
                 text.sections[0].value = display;
 
                 info!("Skill {} selected", skill.name);
@@ -81,12 +84,10 @@ pub fn select_skill(
             Interaction::Hovered => {
                 // TODO: feature - Hover Skill - Preview possible Target
 
-                let display = skill.name.to_uppercase();
-                text.sections[0].value = display;
+                text.sections[0].value = skill.name.clone();
             }
             Interaction::None => {
-                let display = skill.name.to_uppercase();
-                text.sections[0].value = display;
+                text.sections[0].value = skill.name.clone();
             }
         }
     }
@@ -177,5 +178,153 @@ pub fn update_target_stats_panel(
 
         let mp_display = String::from("Target mp: ??");
         mp_text.sections[0].value = mp_display;
+    }
+}
+
+/// Determine the visibility of the 6 skills
+///
+/// Update these values when the entity selected changed
+///
+/// # Note
+///
+/// REFACTOR: Maybe find some new ways to sequence these affectations better
+pub fn skill_visibility(
+    mut selection_removal_query: RemovedComponents<Selected>,
+    caster_query: Query<(&Equipements, &Skills), (With<Selected>, With<InCombat>, Added<Selected>)>,
+    weapon_query: Query<&SkillTiers, With<Equipement>>,
+
+    mut skill_displayer_query: Query<(&SkillDisplayer, &mut Skill, &mut Visibility, &Children)>,
+    mut text_query: Query<&mut Text>,
+) {
+    // If there was a transition, a changement in the one being Selected
+    // Reset all Skill
+    for _ in selection_removal_query.iter() {
+        for (skill_number, mut skill, mut visibility, children) in skill_displayer_query.iter_mut()
+        {
+            // --- Text ---
+            let mut text = text_query.get_mut(children[0]).unwrap();
+            text.sections[0].value = "Pass".to_string();
+            *skill = Skill::pass();
+
+            // --- Visibility ---
+            let old_visibility = visibility.clone();
+            *visibility = Visibility::Hidden;
+
+            // --- Logs ---
+            if old_visibility != *visibility {
+                // DEBUG: Skills' Visibility switcher
+                info!(
+                    "skill °{} visibility switch: {:?}",
+                    skill_number.0, *visibility
+                );
+            }
+        }
+    }
+
+    // Set the visibility w.r.t. the new caster (entity selected)
+    if let Ok((Equipements { weapon, armor: _ }, skills)) = caster_query.get_single() {
+        let mut caster_skill_count = skills.len();
+
+        for (skill_number, mut skill, mut visibility, children) in skill_displayer_query.iter_mut()
+        {
+            let old_visibility = visibility.clone();
+            // --- Text ---
+            let mut text = text_query.get_mut(children[0]).unwrap();
+
+            match weapon {
+                None => {}
+                Some(weapon_entity) => {
+                    if let Ok(SkillTiers {
+                        tier_2,
+                        tier_1,
+                        tier_0,
+                    }) = weapon_query.get(*weapon_entity)
+                    {
+                        // TODO: determine which tier is the caster % this weapon
+                        caster_skill_count += tier_2.len() + tier_1.len() + tier_0.len();
+                    }
+                }
+            }
+
+            *visibility = if skill_number.0 < caster_skill_count {
+                *skill = if skill_number.0 < skills.len() {
+                    text.sections[0].value = skills[skill_number.0].clone().name;
+
+                    skills[skill_number.0].clone()
+                }
+                // weapon's skills
+                else {
+                    // REFACTOR: Weapon tier displayer - Aled
+                    match weapon {
+                        None => Skill::pass(),
+                        Some(weapon_entity) => {
+                            if let Ok(SkillTiers {
+                                tier_2,
+                                tier_1,
+                                tier_0,
+                            }) = weapon_query.get(*weapon_entity)
+                            {
+                                // TODO: determine which tier is the caster % this weapon
+                                if skill_number.0 < skills.len() + tier_2.len() {
+                                    text.sections[0].value =
+                                        tier_2[skill_number.0 - skills.len()].clone().name;
+
+                                    tier_2[skill_number.0 - skills.len()].clone()
+                                } else if skill_number.0
+                                    < skills.len() + tier_2.len() + tier_1.len()
+                                {
+                                    text.sections[0].value = tier_2
+                                        [skill_number.0 - skills.len() - tier_2.len()]
+                                    .clone()
+                                    .name;
+
+                                    tier_1[skill_number.0 - skills.len() - tier_2.len()].clone()
+                                } else if skill_number.0
+                                    < skills.len() + tier_2.len() + tier_1.len() + tier_0.len()
+                                {
+                                    text.sections[0].value = tier_2[skill_number.0
+                                        - skills.len()
+                                        - tier_2.len()
+                                        - tier_1.len()]
+                                    .clone()
+                                    .name;
+
+                                    tier_0[skill_number.0
+                                        - skills.len()
+                                        - tier_2.len()
+                                        - tier_1.len()]
+                                    .clone()
+                                } else {
+                                    panic!("skill_number.0: {} >= caster_skill_count: {} AND skill_number.0 < caster_skill_count", skill_number.0, caster_skill_count);
+                                    // Skill::pass()
+                                }
+                            } else {
+                                warn!("No SkillTiers in the Weapon");
+                                Skill::pass()
+                            }
+                        }
+                    }
+                };
+
+                // --- Visibility ---
+                Visibility::Inherited
+            } else {
+                // vv-- "useless" --vv
+                text.sections[0].value = "Pass".to_string();
+                *skill = Skill::pass();
+
+                // --- Visibility ---
+                Visibility::Hidden
+            };
+
+            // --- Logs ---
+            if old_visibility != *visibility {
+                // DEBUG: Skills' Visibility switcher
+                info!(
+                    "skill °{} visibility switch: {:?}",
+                    skill_number.0, *visibility
+                );
+            }
+        }
     }
 }

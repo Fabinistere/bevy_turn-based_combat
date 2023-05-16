@@ -397,6 +397,8 @@ pub fn execute_skill(
                     SkillType::Pass => {
                         // force action: Pass to the target next turn
                         // IDEA: The next action of this entity is mute or the next time won't choose an action ?
+
+                        // atm: an blank action
                     }
                     _ => {}
                 }

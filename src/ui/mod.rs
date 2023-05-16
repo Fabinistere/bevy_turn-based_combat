@@ -11,6 +11,7 @@ use crate::combat::{
 pub mod character_sheet;
 pub mod combat_panel;
 pub mod combat_system;
+pub mod initiative_bar;
 pub mod player_interaction;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SystemSet)]
@@ -116,6 +117,13 @@ impl Plugin for UiPlugin {
                 character_sheet::update_target_stats_panel
                     .in_set(UiLabel::Display)
                     .after(UiLabel::Player),
+                initiative_bar::action_visibility
+                    .in_set(UiLabel::Display)
+                    .after(CombatState::SelectionSkills)
+                    .after(CombatState::SelectionTarget),
+                character_sheet::skill_visibility
+                    .in_set(UiLabel::Display)
+                    .after(CombatState::SelectionCaster),
             ))
 
             // --- COLOR ---
