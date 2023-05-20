@@ -5,6 +5,10 @@ use crate::combat::skills::TargetSide;
 use super::alterations::{Alteration, AlterationAction};
 
 impl Alteration {
+    // ------ Debuff ------
+
+    // --- IO / InflictSuffer ---
+
     pub fn honte() -> Self {
         Alteration {
             action: AlterationAction::StatsPercentage,
@@ -16,6 +20,10 @@ impl Alteration {
             ..Default::default()
         }
     }
+
+    // ------ Buff ------
+
+    // --- IO / InflictSuffer ---
 
     pub fn harmonize() -> Self {
         Alteration {
@@ -29,6 +37,8 @@ impl Alteration {
         }
     }
 
+    // --- Heal ---
+
     pub fn regenerate() -> Self {
         Alteration {
             action: AlterationAction::Dots,
@@ -37,6 +47,33 @@ impl Alteration {
             hp: 10,
             description: String::from("10hp per turn for 3turns"),
             name: String::from("Regenerate"),
+            ..Default::default()
+        }
+    }
+
+    // --- Stats ---
+
+    pub fn swiftness() -> Self {
+        Alteration {
+            action: AlterationAction::StatsFlat,
+            duration: 3,
+            target_option: (TargetSide::Ally, 1),
+            initiative: 30,
+            description: "Grant +30initiative for 3turns".to_string(),
+            name: "Swiftness".to_string(),
+            ..Default::default()
+        }
+    }
+
+    pub fn hardness() -> Self {
+        Alteration {
+            action: AlterationAction::StatsFlat,
+            duration: 3,
+            target_option: (TargetSide::Ally, 1),
+            initiative: 30,
+            defense: 15,
+            description: "Grant +15defense for 3turns".to_string(),
+            name: "Hardness".to_string(),
             ..Default::default()
         }
     }

@@ -28,12 +28,15 @@ pub enum AlterationAction {
     StatsPercentage,
     /// ??
     PercentageAsDots,
+    // TODO: Mute, ForcePass, as StatsFlat but for `duration` turn
 }
 
 /// Alteration will last for exactly `duration` turn,
 /// can be cured/removed by some clean skills.
 ///
 /// # Note
+///
+/// IDEA: Alteration can 'control' stats (threshold, limit?)
 ///
 /// - Curse or Benediction
 /// - Debuff or Buff
@@ -55,6 +58,11 @@ pub struct Alteration {
     ///
     /// - target all ally party: (Ally, 6)
     /// - self-target: (Ally, 0)
+    ///
+    /// # Note
+    ///
+    /// REFACTOR: Target Option should onyl be managed by the skill calling the alteration
+    /// TODO: Remove target_option
     pub target_option: (TargetSide, usize),
 
     /// hp dealt or healed each time the target plays
@@ -69,6 +77,8 @@ pub struct Alteration {
     ///
     /// shield: reduce/addition to the target
     pub shield: i32,
+    // initiative: lose/gain
+    pub initiative: i32,
     /// att: lose/gain
     pub attack: i32,
     /// att spe: lose/gain
@@ -80,6 +90,8 @@ pub struct Alteration {
 
     /// 0 = no change;
     /// x = + x%
+    ///
+    /// TODO: StatsPercentage doesn't affect dmg_infl dmg_suff
     pub damage_inflicted: i32,
     /// 0 = no change;
     /// x = + x%
@@ -109,6 +121,7 @@ impl Default for Alteration {
             hp: 0,
             mana: 0,
             shield: 0,
+            initiative: 0,
             attack: 0,
             attack_spe: 0,
             defense: 0,

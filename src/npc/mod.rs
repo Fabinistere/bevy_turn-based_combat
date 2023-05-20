@@ -4,8 +4,9 @@ use bevy::prelude::*;
 
 use crate::{
     combat::{
-        skills::Skill, stats::*, stuff::Equipements, Alterations, CombatBundle, InCombat, Karma,
-        Recruted, Skills, Team,
+        skills::Skill,
+        stuff::{Equipements, Job, SkillTiers, WeaponBundle, WeaponType},
+        CombatBundle, InCombat, Karma, Recruted, Skills, Team,
     },
     constants::{
         character::npc::{
@@ -35,6 +36,26 @@ impl Plugin for NPCPlugin {
 // the npc_z_position
 
 fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
+    // ---- Equipements ----
+    // TODO: Equip Stuff from Inventory (+ spawn this weapon in the team's inventory)
+
+    let bass = commands
+        .spawn(WeaponBundle {
+            name: Name::new("Bass"),
+            weapon_type: WeaponType::Instrument,
+            skill_tiers: SkillTiers {
+                tier_2: vec![Skill::swing(), Skill::solo()],
+                tier_1: vec![Skill::melody()],
+                tier_0: vec![],
+            },
+            // TODO: ownership
+            // equipement: Equipement(None),
+            ..Default::default()
+        })
+        .id();
+
+    // ---- Characters ----
+
     // ADMIRAL
     commands.spawn((
         SpriteSheetBundle {
@@ -61,16 +82,15 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
         InCombat,
         Recruted,
         CombatBundle {
-            team: Team(TEAM_MC),
+            team: Team(Some(TEAM_MC)),
             karma: Karma(100),
+            skills: Skills(vec![Skill::bam(), Skill::gifle(), Skill::pass()]),
             equipements: Equipements {
-                weapon: None,
+                weapon: Some(bass),
                 armor: None,
             },
-            skills: Skills(vec![Skill::bam(), Skill::gifle(), Skill::pass()]),
-            alterations: Alterations(vec![]),
-            stats: StatBundle::default(),
-            // action_count: ActionCount{ current: 1, max: 1},
+            job: Job::Musician,
+            ..Default::default()
         },
         // -- UI Related Components --
         Hoverable,
@@ -103,15 +123,10 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
         InCombat,
         Recruted,
         CombatBundle {
-            team: Team(TEAM_MC),
+            team: Team(Some(TEAM_MC)),
             karma: Karma(100),
-            equipements: Equipements {
-                weapon: None,
-                armor: None,
-            },
             skills: Skills(vec![Skill::bam(), Skill::implosion(), Skill::pass()]),
-            alterations: Alterations(vec![]),
-            stats: StatBundle::default(),
+            ..Default::default()
         },
         // -- UI Related Components --
         Hoverable,
@@ -141,15 +156,14 @@ fn spawn_aggresives_characters(mut commands: Commands, fabien: Res<FabienSheet>)
         // -- Combat Components --
         InCombat,
         CombatBundle {
-            team: Team(TEAM_OLF),
+            team: Team(Some(TEAM_OLF)),
             karma: Karma(-100),
+            skills: Skills(vec![Skill::implosion(), Skill::bam(), Skill::pass()]),
             equipements: Equipements {
                 weapon: None,
                 armor: None,
             },
-            skills: Skills(vec![Skill::implosion(), Skill::bam(), Skill::pass()]),
-            alterations: Alterations(vec![]),
-            stats: StatBundle::default(),
+            ..Default::default()
         },
         // -- UI Related Components --
         Hoverable,
@@ -184,15 +198,14 @@ fn spawn_aggresives_characters(mut commands: Commands, fabien: Res<FabienSheet>)
             // -- Combat Components --
             InCombat,
             CombatBundle {
-                team: Team(TEAM_OLF),
+                team: Team(Some(TEAM_OLF)),
                 karma: Karma(-100),
+                skills: Skills(vec![Skill::bam(), Skill::pass()]),
                 equipements: Equipements {
                     weapon: None,
                     armor: None,
                 },
-                skills: Skills(vec![Skill::bam(), Skill::pass()]),
-                alterations: Alterations(vec![]),
-                stats: StatBundle::default(),
+                ..Default::default()
             },
             // -- UI Related Components --
             Hoverable,

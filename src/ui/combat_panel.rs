@@ -29,6 +29,16 @@ pub struct ActionDisplayer(pub usize);
 #[derive(Default, Component, Reflect, Deref, DerefMut)]
 pub struct SkillDisplayer(pub usize);
 
+// REFACTOR: SkillBar Structure
+
+#[derive(Component, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect)]
+pub enum SkillBar {
+    Base,
+    Tier2,
+    Tier1,
+    Tier0,
+}
+
 pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     // Scene
     commands
@@ -323,11 +333,13 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ))
                 .with_children(|parent| {
                     // Skill Menu
+
                     parent
                         .spawn((
                             NodeBundle {
                                 style: Style {
                                     size: Size::height(Val::Percent(42.)),
+                                    flex_direction: FlexDirection::Column,
                                     ..default()
                                 },
                                 background_color: Color::AZURE.into(),
@@ -336,45 +348,248 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                             Name::new("Skill Menu"),
                         ))
                         .with_children(|parent| {
-                            // atm: 6 skill max
+                            // A catalogue, one row for basic skill, a row for tier2 ,etc (simplify a lot skill_visibility)
+                            // TODO: Scrolling list of all the catalogue
 
-                            for skill_count in 0..6 {
-                                parent
-                                    .spawn((
-                                        ButtonBundle {
-                                            style: Style {
-                                                size: Size::new(Val::Px(150.0), Val::Px(65.0)),
-                                                // center button
-                                                margin: UiRect::all(Val::Auto),
-                                                // horizontally center child text
-                                                justify_content: JustifyContent::Center,
-                                                // vertically center child text
-                                                align_items: AlignItems::Center,
-                                                position: UiRect::default(),
-                                                ..default()
-                                            },
-                                            background_color: NORMAL_BUTTON.into(),
-                                            visibility: Visibility::Hidden,
+                            parent
+                                .spawn((
+                                    NodeBundle {
+                                        style: Style {
+                                            // size: Size::height(Val::Percent(42.)),
+                                            flex_direction: FlexDirection::Row,
                                             ..default()
                                         },
-                                        Name::new(format!("Skill {}", skill_count)),
-                                        Skill::pass(),
-                                        // --- UI ---
-                                        SkillDisplayer(skill_count),
-                                        // Draggable,
-                                        // Clickable,
-                                    ))
-                                    .with_children(|parent| {
-                                        parent.spawn(TextBundle::from_section(
-                                            format!("Skill {}", skill_count),
-                                            TextStyle {
-                                                font: asset_server.load("fonts/dpcomic.ttf"),
-                                                font_size: 40.0,
-                                                color: Color::rgb(0.9, 0.9, 0.9),
-                                            },
-                                        ));
-                                    });
-                            }
+                                        ..default()
+                                    },
+                                    Name::new("Base Skills"),
+                                    // A component to differenciation ? or just children[0]
+                                    // BaseSkillBar,
+                                ))
+                                .with_children(|parent| {
+                                    // 6 Base skill max
+
+                                    for skill_count in 0..6 {
+                                        parent
+                                            .spawn((
+                                                ButtonBundle {
+                                                    style: Style {
+                                                        size: Size::new(
+                                                            Val::Px(150.0),
+                                                            Val::Px(65.0),
+                                                        ),
+                                                        // center button
+                                                        margin: UiRect::all(Val::Auto),
+                                                        // horizontally center child text
+                                                        justify_content: JustifyContent::Center,
+                                                        // vertically center child text
+                                                        align_items: AlignItems::Center,
+                                                        position: UiRect::default(),
+                                                        ..default()
+                                                    },
+                                                    background_color: NORMAL_BUTTON.into(),
+                                                    visibility: Visibility::Hidden,
+                                                    ..default()
+                                                },
+                                                Name::new(format!("Skill {}", skill_count)),
+                                                Skill::pass(),
+                                                // --- UI ---
+                                                SkillDisplayer(skill_count),
+                                                SkillBar::Base,
+                                                // Draggable,
+                                            ))
+                                            .with_children(|parent| {
+                                                parent.spawn(TextBundle::from_section(
+                                                    format!("Skill {}", skill_count),
+                                                    TextStyle {
+                                                        font: asset_server
+                                                            .load("fonts/dpcomic.ttf"),
+                                                        font_size: 40.0,
+                                                        color: Color::rgb(0.9, 0.9, 0.9),
+                                                    },
+                                                ));
+                                            });
+                                    }
+                                });
+
+                            parent
+                                .spawn((
+                                    NodeBundle {
+                                        style: Style {
+                                            // size: Size::height(Val::Percent(42.)),
+                                            flex_direction: FlexDirection::Row,
+                                            ..default()
+                                        },
+                                        ..default()
+                                    },
+                                    Name::new("Tier2 Skills"),
+                                    // A component to differenciation ? or just children[1]
+                                    // Tier2SkillBar,
+                                ))
+                                .with_children(|parent| {
+                                    // 3 Tier2 skill max
+
+                                    for skill_count in 0..3 {
+                                        parent
+                                            .spawn((
+                                                ButtonBundle {
+                                                    style: Style {
+                                                        size: Size::new(
+                                                            Val::Px(150.0),
+                                                            Val::Px(65.0),
+                                                        ),
+                                                        // center button
+                                                        margin: UiRect::all(Val::Auto),
+                                                        // horizontally center child text
+                                                        justify_content: JustifyContent::Center,
+                                                        // vertically center child text
+                                                        align_items: AlignItems::Center,
+                                                        position: UiRect::default(),
+                                                        ..default()
+                                                    },
+                                                    background_color: NORMAL_BUTTON.into(),
+                                                    visibility: Visibility::Hidden,
+                                                    ..default()
+                                                },
+                                                Name::new(format!("Skill {}", skill_count)),
+                                                Skill::pass(),
+                                                // --- UI ---
+                                                SkillDisplayer(skill_count),
+                                                SkillBar::Tier2,
+                                                // Draggable,
+                                            ))
+                                            .with_children(|parent| {
+                                                parent.spawn(TextBundle::from_section(
+                                                    format!("Skill {}", skill_count),
+                                                    TextStyle {
+                                                        font: asset_server
+                                                            .load("fonts/dpcomic.ttf"),
+                                                        font_size: 40.0,
+                                                        color: Color::rgb(0.9, 0.9, 0.9),
+                                                    },
+                                                ));
+                                            });
+                                    }
+                                });
+
+                            parent
+                                .spawn((
+                                    NodeBundle {
+                                        style: Style {
+                                            // size: Size::height(Val::Percent(42.)),
+                                            flex_direction: FlexDirection::Row,
+                                            ..default()
+                                        },
+                                        ..default()
+                                    },
+                                    Name::new("Tier1 Skills"),
+                                    // A component to differenciation ? or just children[2]
+                                    // Tier1SkillBar,
+                                ))
+                                .with_children(|parent| {
+                                    // 3 Tier1 skill max
+
+                                    for skill_count in 0..3 {
+                                        parent
+                                            .spawn((
+                                                ButtonBundle {
+                                                    style: Style {
+                                                        size: Size::new(
+                                                            Val::Px(150.0),
+                                                            Val::Px(65.0),
+                                                        ),
+                                                        // center button
+                                                        margin: UiRect::all(Val::Auto),
+                                                        // horizontally center child text
+                                                        justify_content: JustifyContent::Center,
+                                                        // vertically center child text
+                                                        align_items: AlignItems::Center,
+                                                        position: UiRect::default(),
+                                                        ..default()
+                                                    },
+                                                    background_color: NORMAL_BUTTON.into(),
+                                                    visibility: Visibility::Hidden,
+                                                    ..default()
+                                                },
+                                                Name::new(format!("Skill {}", skill_count)),
+                                                Skill::pass(),
+                                                // --- UI ---
+                                                SkillDisplayer(skill_count),
+                                                SkillBar::Tier1,
+                                                // Draggable,
+                                            ))
+                                            .with_children(|parent| {
+                                                parent.spawn(TextBundle::from_section(
+                                                    format!("Skill {}", skill_count),
+                                                    TextStyle {
+                                                        font: asset_server
+                                                            .load("fonts/dpcomic.ttf"),
+                                                        font_size: 40.0,
+                                                        color: Color::rgb(0.9, 0.9, 0.9),
+                                                    },
+                                                ));
+                                            });
+                                    }
+                                });
+
+                            parent
+                                .spawn((
+                                    NodeBundle {
+                                        style: Style {
+                                            // size: Size::height(Val::Percent(42.)),
+                                            flex_direction: FlexDirection::Row,
+                                            ..default()
+                                        },
+                                        ..default()
+                                    },
+                                    Name::new("Tier0 Skills"),
+                                    // A component to differenciation ? or just children[3]
+                                    // Tier0SkillBar,
+                                ))
+                                .with_children(|parent| {
+                                    // 3 Tier0 skill max
+
+                                    for skill_count in 0..3 {
+                                        parent
+                                            .spawn((
+                                                ButtonBundle {
+                                                    style: Style {
+                                                        size: Size::new(
+                                                            Val::Px(150.0),
+                                                            Val::Px(65.0),
+                                                        ),
+                                                        // center button
+                                                        margin: UiRect::all(Val::Auto),
+                                                        // horizontally center child text
+                                                        justify_content: JustifyContent::Center,
+                                                        // vertically center child text
+                                                        align_items: AlignItems::Center,
+                                                        position: UiRect::default(),
+                                                        ..default()
+                                                    },
+                                                    background_color: NORMAL_BUTTON.into(),
+                                                    visibility: Visibility::Hidden,
+                                                    ..default()
+                                                },
+                                                Name::new(format!("Skill {}", skill_count)),
+                                                Skill::pass(),
+                                                // --- UI ---
+                                                SkillDisplayer(skill_count),
+                                                SkillBar::Tier0,
+                                                // Draggable,
+                                            ))
+                                            .with_children(|parent| {
+                                                parent.spawn(TextBundle::from_section(
+                                                    format!("Skill {}", skill_count),
+                                                    TextStyle {
+                                                        font: asset_server
+                                                            .load("fonts/dpcomic.ttf"),
+                                                        font_size: 40.0,
+                                                        color: Color::rgb(0.9, 0.9, 0.9),
+                                                    },
+                                                ));
+                                            });
+                                    }
+                                });
                         });
 
                     // Logs - List with hidden overflow

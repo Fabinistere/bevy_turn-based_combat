@@ -36,7 +36,7 @@ use bevy::prelude::*;
 
 use self::{
     alterations::Alteration, phases::observation, skills::Skill, stats::StatBundle,
-    stuff::Equipements,
+    stuff::{Equipements, JobsMasteries, Job},
 };
 
 pub mod alteration_list;
@@ -102,6 +102,10 @@ impl Plugin for CombatPlugin {
             .add_event::<phases::TransitionPhaseEvent>()
             .add_event::<skills::ExecuteSkillEvent>()
             // .add_event::<alterations::ExecuteAlterationEvent>()
+
+            .init_resource::<JobsMasteries>()
+
+            .add_startup_system(stuff::spawn_stuff)
             
             .add_system(
                 observation
@@ -141,20 +145,52 @@ impl Plugin for CombatPlugin {
 pub struct CombatBundle {
     pub karma: Karma,
     pub team: Team,
+    pub job: Job,
     pub alterations: Alterations,
     pub skills: Skills,
     pub equipements: Equipements,
+    pub action_count: ActionCount,
 
     #[bundle]
     pub stats: StatBundle,
 }
 
+impl Default for CombatBundle {
+    fn default() -> Self {
+        CombatBundle {
+            karma: Karma(0),
+            team: Team(None),
+            job: Job::default(),
+            alterations: Alterations(Vec::new()),
+            skills: Skills(Vec::new()),
+            equipements: Equipements { weapon: None, armor: None },
+            action_count: ActionCount::default(),
+            stats: StatBundle::default()
+        }
+    }
+}
+
 #[derive(Component, Default)]
 pub struct Karma(pub i32);
 
+#[derive(Component, Default)]
+pub struct ActionCount {
+    pub current: usize,
+    /// Number of action given each new turn
+    pub base: usize,
+}
+
+impl ActionCount {
+    pub fn new(base: usize) -> Self {
+        ActionCount { current: base, base }
+    }
+}
+
 /// The team an entity is assigned to.
+/// 
+/// `None` being Neutral
 #[derive(Copy, Clone, PartialEq, Eq, Component, Deref, DerefMut)]
-pub struct Team(pub i32);
+pub struct Team(pub Option<i32>);
 
 /// Ongoing alterations, Debuff or Buff
 #[derive(Default, Component, Deref, DerefMut)]
