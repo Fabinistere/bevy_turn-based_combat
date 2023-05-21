@@ -38,6 +38,7 @@ pub mod character {
         pub const NPC_Z_FRONT: f32 = 8.;
 
         pub const ADMIRAL_STARTING_ANIM: usize = 0;
+        pub const FABIEN_STARTING_ANIM: usize = 8;
         pub const OLF_STARTING_ANIM: usize = 16;
         pub const HUGO_STARTING_ANIM: usize = 36;
         pub const FABICURION_STARTING_ANIM: usize = 40;

@@ -1,23 +1,27 @@
 //! Display the Character Sheet
 //! All Stats and Skills
 
+use bevy::prelude::*;
+
 use crate::{
     combat::{
         phases::TransitionPhaseEvent,
         skills::Skill,
         stats::{Hp, Mana},
-        Action, CombatPanel, CombatState, InCombat,
+        stuff::{Equipement, Equipements, Job, JobsMasteries, MasteryTier, SkillTiers, WeaponType},
+        Action, CombatPanel, CombatState, InCombat, Skills,
     },
     ui::{
-        combat_panel::{CasterMeter, TargetMeter},
+        combat_panel::{CasterMeter, SkillBar, SkillDisplayer, TargetMeter},
         combat_system::{HpMeter, MpMeter, Selected, Targeted},
     },
 };
-use bevy::prelude::*;
 
 /// Action for each Interaction of the skill button
 ///
 /// # Note
+///
+/// DOC: Move select_skill() in player_interaction
 pub fn select_skill(
     mut interaction_query: Query<
         (&Interaction, &Skill, &Children),
@@ -60,6 +64,7 @@ pub fn select_skill(
                     // if this system can run
                     // we are in SelectionSkill or SelectionTarget
                     // so there is a selected unit.
+                    // FIXME: Crash - Esc bug, after cancel an action but still in selectionSkill with no action left
                     let (caster, _caster_name, _) = unit_selected_query.single();
 
                     transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionTarget));
@@ -71,8 +76,7 @@ pub fn select_skill(
                     // info!("new action");
                 }
 
-                let mut display = skill.name.to_uppercase();
-                display = display.replace("A", "O");
+                let display = skill.name.replace("a", "o").replace("A", "O");
                 text.sections[0].value = display;
 
                 info!("Skill {} selected", skill.name);
@@ -80,12 +84,10 @@ pub fn select_skill(
             Interaction::Hovered => {
                 // TODO: feature - Hover Skill - Preview possible Target
 
-                let display = skill.name.to_uppercase();
-                text.sections[0].value = display;
+                text.sections[0].value = skill.name.clone();
             }
             Interaction::None => {
-                let display = skill.name.to_uppercase();
-                text.sections[0].value = display;
+                text.sections[0].value = skill.name.clone();
             }
         }
     }
@@ -176,5 +178,227 @@ pub fn update_target_stats_panel(
 
         let mp_display = String::from("Target mp: ??");
         mp_text.sections[0].value = mp_display;
+    }
+}
+
+/// Determine the visibility of the 6 skills
+///
+/// Update these values when the entity selected changed
+///
+/// # Note
+///
+/// REFACTOR: Maybe find some new ways to sequence these affectations better
+pub fn skill_visibility(
+    mut selection_removal_query: RemovedComponents<Selected>,
+    caster_query: Query<
+        (&Equipements, &Skills, &Job),
+        (With<Selected>, With<InCombat>, Added<Selected>),
+    >,
+    weapon_query: Query<(&WeaponType, &SkillTiers), With<Equipement>>,
+
+    jobs_masteries_resource: Res<JobsMasteries>,
+
+    mut skill_bar_query: Query<(
+        Entity,
+        &SkillDisplayer,
+        &SkillBar,
+        &mut Skill,
+        &mut Visibility,
+        &Children,
+    )>,
+    mut text_query: Query<&mut Text>,
+) {
+    // If there was a transition, a changement in the one being Selected
+    // Reset all Skill
+    for _ in selection_removal_query.iter() {
+        for (_, skill_number, skill_bar_type, mut skill, mut visibility, children) in
+            skill_bar_query.iter_mut()
+        {
+            // --- Text ---
+            let mut text = text_query.get_mut(children[0]).unwrap();
+            text.sections[0].value = "Pass".to_string();
+            *skill = Skill::pass();
+
+            // --- Visibility ---
+            let old_visibility = visibility.clone();
+            *visibility = Visibility::Hidden;
+
+            // --- Logs ---
+            if old_visibility != *visibility {
+                // DEBUG: Skills' Visibility switcher
+                info!(
+                    "{:?} °{} visibility switch: {:?}",
+                    skill_bar_type, skill_number.0, *visibility
+                );
+            }
+        }
+    }
+
+    // Set the visibility w.r.t. the newly selected caster
+    if let Ok((Equipements { weapon, armor: _ }, skills, job)) = caster_query.get_single() {
+        // OPTIMIZE: Iterate over all skilldisplayer one time and for each non base_skill_displayer get the weapon_skills?
+        // ----- Base Skill Bar -----
+        for (_, skill_number, skill_bar_type, mut skill, mut visibility, children) in
+            skill_bar_query.iter_mut()
+        {
+            if SkillBar::Base == *skill_bar_type {
+                let old_visibility = visibility.clone();
+                // --- Text ---
+                let mut text = text_query.get_mut(children[0]).unwrap();
+
+                if skill_number.0 < skills.len() {
+                    // --- Visibility ---
+                    *visibility = Visibility::Inherited;
+
+                    text.sections[0].value = skills[skill_number.0].clone().name;
+                    *skill = skills[skill_number.0].clone();
+                } else {
+                    // --- Visibility ---
+                    *visibility = Visibility::Hidden;
+
+                    // vv-- "useless" --vv
+                    text.sections[0].value = "Pass".to_string();
+                    *skill = Skill::pass();
+                };
+
+                // --- Logs ---
+                if old_visibility != *visibility {
+                    // DEBUG: Skills' Visibility switcher
+                    info!(
+                        "{:?} °{} visibility switch: {:?}",
+                        *skill_bar_type, skill_number.0, *visibility
+                    );
+                }
+            }
+        }
+
+        match weapon {
+            None => {
+                info!("No weapon on the entity")
+            }
+            Some(weapon_entity) => {
+                if let Ok((
+                    weapon_type,
+                    SkillTiers {
+                        tier_2,
+                        tier_1,
+                        tier_0,
+                    },
+                )) = weapon_query.get(*weapon_entity)
+                {
+                    for (
+                        _skill_displayer_entity,
+                        skill_number,
+                        skill_bar_type,
+                        mut skill,
+                        mut visibility,
+                        children,
+                    ) in skill_bar_query.iter_mut()
+                    {
+                        if SkillBar::Base != *skill_bar_type {
+                            // info!("skill displayer: {:?}", *skill_bar_type);
+
+                            let old_visibility = visibility.clone();
+                            // --- Text ---
+                            let mut text = text_query.get_mut(children[0]).unwrap();
+
+                            // match jobs_masteries_resource.get(&(*job, *weapon_type)) {
+                            //     None => warn!("There is no combinaison between {:?} and {:?}", job, weapon_type),
+                            //     Some(MasteryTier::Two) => {}
+                            //     Some(MasteryTier::One) => {}
+                            //     Some(MasteryTier::Zero) => {}
+                            // }
+
+                            let mastery_tier: Option<&MasteryTier> =
+                                jobs_masteries_resource.get(&(*job, *weapon_type));
+
+                            info!(
+                                "Job {:?} is {:?} with {:?}",
+                                *job, mastery_tier, *weapon_type
+                            );
+
+                            if Some(MasteryTier::Two) == mastery_tier.copied() {
+                                // ----- Tier2 Skill Bar -----
+                                if SkillBar::Tier2 == *skill_bar_type {
+                                    if skill_number.0 < tier_2.len() {
+                                        // --- Visibility ---
+                                        *visibility = Visibility::Inherited;
+
+                                        text.sections[0].value =
+                                            tier_2[skill_number.0].clone().name;
+                                        *skill = tier_2[skill_number.0].clone();
+                                    } else {
+                                        // --- Visibility ---
+                                        *visibility = Visibility::Hidden;
+
+                                        // vv-- "useless" --vv
+                                        text.sections[0].value = "Pass".to_string();
+                                        *skill = Skill::pass();
+                                    };
+                                }
+                            }
+
+                            // if and not else if cause MasteryTier::Two = all tier2 and tier1 and tier0 (resp with MasteryTier::One except tier2)
+                            if Some(MasteryTier::Two) == mastery_tier.copied()
+                                || Some(MasteryTier::One) == mastery_tier.copied()
+                            {
+                                // ----- Tier1 Skill Bar -----
+                                if SkillBar::Tier1 == *skill_bar_type {
+                                    if skill_number.0 < tier_1.len() {
+                                        // --- Visibility ---
+                                        *visibility = Visibility::Inherited;
+
+                                        text.sections[0].value =
+                                            tier_1[skill_number.0].clone().name;
+                                        *skill = tier_1[skill_number.0].clone();
+                                    } else {
+                                        // --- Visibility ---
+                                        *visibility = Visibility::Hidden;
+
+                                        // vv-- "useless" --vv
+                                        text.sections[0].value = "Pass".to_string();
+                                        *skill = Skill::pass();
+                                    };
+                                }
+                            }
+
+                            // Two, One, Zero or None
+                            // None => warn!("There is no combinaison between {:?} and {:?}", job, weapon_type),
+                            // if _ == mastery_tier {
+                            // ----- Tier0 Skill Bar -----
+                            if SkillBar::Tier0 == *skill_bar_type {
+                                if skill_number.0 < tier_0.len() {
+                                    // --- Visibility ---
+                                    *visibility = Visibility::Inherited;
+
+                                    text.sections[0].value = tier_0[skill_number.0].clone().name;
+                                    *skill = tier_0[skill_number.0].clone();
+                                } else {
+                                    // --- Visibility ---
+                                    *visibility = Visibility::Hidden;
+
+                                    // vv-- "useless" --vv
+                                    text.sections[0].value = "Pass".to_string();
+                                    *skill = Skill::pass();
+                                };
+                            }
+                            // }
+                            if None == mastery_tier {
+                                info!("Job {:?} is not associated with {:?}", *job, *weapon_type);
+                            }
+
+                            // --- Logs ---
+                            if old_visibility != *visibility {
+                                // DEBUG: Skills' Visibility switcher
+                                info!(
+                                    "{:?} °{} visibility switch: {:?}",
+                                    *skill_bar_type, skill_number.0, *visibility
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }

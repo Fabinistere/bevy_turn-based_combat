@@ -2,18 +2,16 @@ use bevy::prelude::*;
 use rand::Rng;
 
 use crate::{
-    combat::{stats::Initiative, Action, CombatPanel, CombatState},
+    combat::{
+        alterations::{Alteration, AlterationAction},
+        skills::{ExecuteSkillEvent, TargetSide},
+        stats::{Attack, AttackSpe, Defense, DefenseSpe, Hp, Initiative, Mana, Shield},
+        Action, Alterations, CombatPanel, CombatState,
+    },
     npc::NPC,
     ui::combat_system::{
-        ActionHistoryDisplayer, ActionsLogs, LastActionHistoryDisplayer, Targeted,
+        ActionHistoryDisplayer, ActionsLogs, LastActionHistoryDisplayer, Selected, Targeted,
     },
-};
-
-use super::{
-    alterations::{Alteration, AlterationAction},
-    skills::ExecuteSkillEvent,
-    stats::{Attack, AttackSpe, Defense, DefenseSpe, Hp, Mana, Shield},
-    Alterations,
 };
 
 // ----- Transitions Between Phase -----
@@ -28,26 +26,61 @@ pub fn phase_transition(
     mut commands: Commands,
     mut combat_panel_query: Query<&mut CombatPanel>,
 
+    selected_unit_query: Query<Entity, With<Selected>>,
     targeted_unit_query: Query<(Entity, &Name), With<Targeted>>,
 ) {
     // TODO: event Handler to change phase
-    for TransitionPhaseEvent(next_phase) in transition_phase_event.iter() {
+    for TransitionPhaseEvent(phase_requested) in transition_phase_event.iter() {
         let mut combat_panel = combat_panel_query.single_mut();
+        let mut next_phase = phase_requested;
 
-        match (combat_panel.phase.clone(), next_phase) {
+        match (combat_panel.phase.clone(), phase_requested) {
             (CombatState::SelectionCaster, CombatState::SelectionSkills) => {}
             (CombatState::SelectionSkills, CombatState::SelectionTarget) => {
-                // TODO: Skill to Target => remove all previously Targeted
-                // ^^^^---- if only self just bypass SelectionTarget
                 // remove from previous entity the targeted component
                 for (targeted, _) in targeted_unit_query.iter() {
                     commands.entity(targeted).remove::<Targeted>();
                 }
 
-                // if the skill is a selfcast => put the self into the target, change the phase to SelectionCaster and `continue;` -> skip the phase chnage
+                // if the skill is a selfcast => put the self into the target,
+                // IDEA: change the phase to SelectionCaster and `continue;` -> skip the phase chnage
+                let mut last_action = combat_panel.history.pop().unwrap();
+                if last_action.skill.target_side == TargetSide::OneSelf {
+                    last_action.targets = Some(vec![last_action.caster]);
+                    // skip SelectionTarget
+                    // TODO: if there is still some action left for the current caster,
+                    next_phase = &CombatState::SelectionSkills;
+                }
+                // update in the history
+                combat_panel.history.push(last_action);
             }
-            (CombatState::SelectionTarget, CombatState::SelectionCaster) => {}
-            (_, CombatState::RollInitiative) => {}
+            (CombatState::SelectionTarget, CombatState::SelectionCaster) => {
+                // TODO: if there is still some action left for the current caster,
+                // skip SelectionCaster (The previous will still have the comp `Selected`)
+                next_phase = &CombatState::SelectionSkills;
+                // in SelectionSkill we can click another caster to switch
+            }
+            // end of turn
+            (_, CombatState::RollInitiative) => {
+                info!("S.Target to S.Caster bypass to S.Skills");
+
+                // TODO: Warning if there is still action left
+                // FIXME: this is a safeguard preventing from double click the `end_of_turn` (wasn't a pb back there)
+                if combat_panel.history.len() == 0 {
+                    info!("End of Turn - Refused (no action)");
+                    continue;
+                }
+                // remove `Selected` from the last potential selected
+                // DOC: will trigger all RemovedComponent queries
+                if let Ok(selected) = selected_unit_query.get_single() {
+                    commands.entity(selected).remove::<Selected>();
+                }
+                // remove all `Targeted`
+                for (targeted, _) in targeted_unit_query.iter() {
+                    commands.entity(targeted).remove::<Targeted>();
+                }
+                info!("End of Turn - Accepted");
+            }
             _ => {}
         }
 
@@ -147,6 +180,9 @@ pub fn execute_alteration(
                     if alteration.shield != 0 {
                         shield.0 *= alteration.shield;
                     }
+                    // if alteration.initiative != 0 {
+                    //     initiative.0 *= alteration.initiative;
+                    // }
                     if alteration.turn_count != 0 {
                         // At each turn, we increment/decrement the alteration's stats
                         // ----- EX: +10% attack/turn -----
@@ -188,7 +224,7 @@ pub fn observation() {
 /// Sort the result in a nice table
 /// In case of egality: pick the higher initiative boyo to be on top
 pub fn roll_initiative(
-    npc_query: Query<&Initiative, With<NPC>>,
+    npc_query: Query<(&Initiative, &Alterations), With<NPC>>,
     mut combat_panel_query: Query<&mut CombatPanel>,
 ) {
     let mut combat_panel = combat_panel_query.single_mut();
@@ -202,15 +238,28 @@ pub fn roll_initiative(
 
         match npc_query.get(caster) {
             Err(e) => warn!("Invalid Caster are in the History: {}", e),
-            Ok(npc_init) => {
-                let npc_number = if npc_init.0 - 20 <= 0 {
-                    rand::thread_rng().gen_range(0..npc_init.0 + 20)
-                } else if npc_init.0 == 100 {
+            Ok((npc_init, alterations)) => {
+                let mut current_init = npc_init.0;
+
+                // ---- Alterations Rules ----
+                for alteration in alterations.iter() {
+                    match alteration.action {
+                        AlterationAction::StatsFlat => {
+                            current_init += alteration.initiative;
+                        }
+                        _ => {}
+                    }
+                }
+                // ---- Calculus ----
+
+                let npc_number = if current_init - 20 <= 0 {
+                    rand::thread_rng().gen_range(0..current_init + 20)
+                } else if current_init == 100 {
                     100
-                } else if npc_init.0 + 20 >= 100 {
-                    rand::thread_rng().gen_range(npc_init.0 - 20..100)
+                } else if current_init + 20 >= 100 {
+                    rand::thread_rng().gen_range(current_init - 20..100)
                 } else {
-                    rand::thread_rng().gen_range(npc_init.0 - 20..npc_init.0 + 20)
+                    rand::thread_rng().gen_range(current_init - 20..npc_init.0 + 20)
                 };
 
                 let skill_number = if skill_init - 20 <= 0 {
