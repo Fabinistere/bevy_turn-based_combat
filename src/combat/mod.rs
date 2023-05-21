@@ -31,29 +31,36 @@
 
 use std::{cmp::Ordering, fmt};
 
-use bevy::{
-    ecs::schedule::ShouldRun,
-    prelude::*,
-    // ecs::schedule::ShouldRun,
-    time::FixedTimestep,
+use bevy::prelude::*;
+// use bevy_inspector_egui::prelude::*;
+
+use self::{
+    alterations::Alteration, phases::observation, skills::Skill, stats::StatBundle,
+    stuff::{Equipements, JobsMasteries, Job},
 };
 
-use crate::constants::FIXED_TIME_STEP;
-
-use self::skills::Skill;
-
+pub mod alteration_list;
 pub mod alterations;
+pub mod item_list;
 pub mod phases;
 pub mod skill_list;
 pub mod skills;
 pub mod stats;
+pub mod stuff;
 
 /// Just help to create a ordered system in the app builder
-#[derive(PartialEq, Clone, Hash, Debug, Eq, SystemLabel)]
+#[derive(Default, SystemSet, PartialEq, Eq, Hash, Clone, Debug, Reflect)]
 pub enum CombatState {
+    /// DOC: what the freak is this phase
     Initiation,
+    AlterationsExecution,
+    /// Observation:
+    /// 
+    /// - ManageStuff
+    /// - Watch Knows infos/techs from enemies
+    /// - Watch yours
     Observation,
-    // ManageStuff,
+    #[default]
     SelectionCaster,
     SelectionSkills,
     SelectionTarget,
@@ -68,6 +75,7 @@ impl fmt::Display for CombatState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             CombatState::Initiation => write!(f, "Initiation"),
+            CombatState::AlterationsExecution => write!(f, "AlterationsExecution"),
             CombatState::Observation => write!(f, "Observation"),
             CombatState::SelectionCaster => write!(f, "SelectionCaster"),
             CombatState::SelectionSkills => write!(f, "SelectionSkills"),
@@ -90,106 +98,123 @@ impl Plugin for CombatPlugin {
             //         history: vec![],
             //     }
             // )
-            .add_system_to_stage(
-                CoreStage::Update,
+            
+            .add_event::<phases::TransitionPhaseEvent>()
+            .add_event::<skills::ExecuteSkillEvent>()
+            // .add_event::<alterations::ExecuteAlterationEvent>()
+
+            .init_resource::<JobsMasteries>()
+
+            .add_startup_system(stuff::spawn_stuff)
+            
+            .add_system(
                 observation
-                    .with_run_criteria(FixedTimestep::step(FIXED_TIME_STEP as f64))
-                    .label(CombatState::Observation)
+                    // .run_if(in_observation_phase)
+                    .in_set(CombatState::Observation)
+            )
+            .add_system(
+                phases::execute_alteration
+                    .run_if(in_alteration_phase)
+                    .in_set(CombatState::AlterationsExecution)
+            )
+            .add_system(
+                phases::roll_initiative
+                // FixedTimestep::step(FIXED_TIME_STEP as f64)
+                .run_if(in_initiative_phase)
+                .in_set(CombatState::RollInitiative)
+            )
+            .add_system(
+                phases::execution_phase
+                .run_if(in_executive_phase)
+                .in_set(CombatState::ExecuteSkills)
             )
             .add_system(skills::execute_skill)
-            .add_system_to_stage(
-                CoreStage::Update,
-                phases::roll_initiative
-                    // FixedTimestep::step(FIXED_TIME_STEP as f64)
-                    .with_run_criteria(run_if_in_initiative_phase)
-                    .label(CombatState::RollInitiative)
-            )
-            .add_system_to_stage(
-                CoreStage::Update,
-                phases::execution_phase
-                    .with_run_criteria(run_if_in_executive_phase)
-                    .label(CombatState::ExecuteSkills)
-            )
-            // .add_system_set_to_stage(
-            //     CoreStage::PostUpdate,
-            //     SystemSet::new()
-            //         .with_run_criteria(run_if_pressed_h)
-            //         .with_system(show_hp)
-            //         .with_system(show_mana)
+            .add_system(phases::phase_transition)
+            // .add_systems(
+            //     (show_hp, show_mana)
+            //         .run_if(pressed_h)
+            //         .in_base_set(CoreSet::PostUpdate)
             // )
             ;
     }
 }
 
-fn observation() {
-    // println!("Now it's your turn...")
+// -- Combat Components --
+
+#[derive(Bundle)]
+pub struct CombatBundle {
+    pub karma: Karma,
+    pub team: Team,
+    pub job: Job,
+    pub alterations: Alterations,
+    pub skills: Skills,
+    pub equipements: Equipements,
+    pub action_count: ActionCount,
+
+    #[bundle]
+    pub stats: StatBundle,
 }
 
-pub fn run_if_in_initiation_phase(combat_panel_query: Query<&CombatPanel>) -> ShouldRun {
-    let combat_panel = combat_panel_query.single();
-    if combat_panel.phase == CombatState::Initiation {
-        ShouldRun::Yes
-    } else {
-        ShouldRun::No
+impl Default for CombatBundle {
+    fn default() -> Self {
+        CombatBundle {
+            karma: Karma(0),
+            team: Team(None),
+            job: Job::default(),
+            alterations: Alterations(Vec::new()),
+            skills: Skills(Vec::new()),
+            equipements: Equipements { weapon: None, armor: None },
+            action_count: ActionCount::default(),
+            stats: StatBundle::default()
+        }
     }
 }
 
-pub fn run_if_in_caster_phase(combat_panel_query: Query<&CombatPanel>) -> ShouldRun {
-    let combat_panel = combat_panel_query.single();
-    if combat_panel.phase == CombatState::SelectionCaster {
-        ShouldRun::Yes
-    } else {
-        ShouldRun::No
+#[derive(Component, Default)]
+pub struct Karma(pub i32);
+
+#[derive(Component, Default)]
+pub struct ActionCount {
+    pub current: usize,
+    /// Number of action given each new turn
+    pub base: usize,
+}
+
+impl ActionCount {
+    pub fn new(base: usize) -> Self {
+        ActionCount { current: base, base }
     }
 }
 
-pub fn run_if_in_skill_phase(combat_panel_query: Query<&CombatPanel>) -> ShouldRun {
-    let combat_panel = combat_panel_query.single();
-    if combat_panel.phase == CombatState::SelectionSkills {
-        ShouldRun::Yes
-    } else {
-        ShouldRun::No
-    }
-}
+/// The team an entity is assigned to.
+/// 
+/// `None` being Neutral
+#[derive(Copy, Clone, PartialEq, Eq, Component, Deref, DerefMut)]
+pub struct Team(pub Option<i32>);
 
-pub fn run_if_in_target_phase(combat_panel_query: Query<&CombatPanel>) -> ShouldRun {
-    let combat_panel = combat_panel_query.single();
-    if combat_panel.phase == CombatState::SelectionTarget {
-        ShouldRun::Yes
-    } else {
-        ShouldRun::No
-    }
-}
+/// Ongoing alterations, Debuff or Buff
+#[derive(Default, Component, Deref, DerefMut)]
+pub struct Alterations(pub Vec<Alteration>);
 
-pub fn run_if_in_initiative_phase(combat_panel_query: Query<&CombatPanel>) -> ShouldRun {
-    let combat_panel = combat_panel_query.single();
-    if combat_panel.phase == CombatState::RollInitiative {
-        ShouldRun::Yes
-    } else {
-        ShouldRun::No
-    }
-}
+/// Basic/Natural skills own by the entity  
+#[derive(Component, Deref, DerefMut)]
+pub struct Skills(pub Vec<Skill>);
 
-pub fn run_if_in_executive_phase(combat_panel_query: Query<&CombatPanel>) -> ShouldRun {
-    let combat_panel = combat_panel_query.single();
-    if combat_panel.phase == CombatState::ExecuteSkills {
-        ShouldRun::Yes
-    } else {
-        ShouldRun::No
-    }
-}
+#[derive(Component)]
+pub struct InCombat;
 
-pub fn run_if_in_evasive_phase(combat_panel_query: Query<&CombatPanel>) -> ShouldRun {
-    let combat_panel = combat_panel_query.single();
-    if combat_panel.phase == CombatState::Evasion {
-        ShouldRun::Yes
-    } else {
-        ShouldRun::No
-    }
-}
+#[derive(Clone, Copy, Component)]
+pub struct Leader;
+
+/// The player can recruted some friendly npc
+/// Can be called, TeamPlayer
+#[derive(Copy, Clone, PartialEq, Eq, Component)]
+pub struct Recruted;
+
+// -- Combat Core Operation --
 
 /// REFACTOR: Resource ?
-#[derive(Component)]
+#[derive(Default, Component)]
 pub struct CombatPanel {
     pub phase: CombatState,
     pub history: Vec<Action>,
@@ -200,7 +225,7 @@ pub struct Action {
     pub caster: Entity,
     pub skill: Skill,
     /// Optional only to allow selecting skill before the target
-    pub target: Option<Entity>,
+    pub targets: Option<Vec<Entity>>,
     /// From caster + skill calculus
     ///
     /// Default: -1
@@ -223,11 +248,11 @@ pub struct Action {
 // }
 
 impl Action {
-    pub fn new(caster: Entity, skill: Skill, target: Option<Entity>) -> Action {
+    pub fn new(caster: Entity, skill: Skill, targets: Option<Vec<Entity>>) -> Action {
         Action {
             caster,
             skill,
-            target,
+            targets,
             initiative: -1,
         }
     }
@@ -254,27 +279,44 @@ impl PartialEq for Action {
 
 impl Eq for Action {}
 
-#[derive(Component)]
-pub struct Karma(pub i32);
+// -- Run Criteria --
 
-#[derive(Component)]
-pub struct InCombat;
+pub fn in_initiation_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
+    let combat_panel = combat_panel_query.single();
+    combat_panel.phase == CombatState::Initiation
+}
 
-#[derive(Clone, Copy, Component)]
-pub struct Leader;
+pub fn in_alteration_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
+    let combat_panel = combat_panel_query.single();
+    combat_panel.phase == CombatState::AlterationsExecution
+}
 
-/// The team an entity is assigned to.
-#[derive(Copy, Clone, PartialEq, Eq, Component, Deref, DerefMut)]
-pub struct Team(pub i32);
+pub fn in_caster_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
+    let combat_panel = combat_panel_query.single();
+    combat_panel.phase == CombatState::SelectionCaster
+}
 
-/// The player can recruted some friendly npc
-/// Can be called, TeamPlayer
-#[derive(Copy, Clone, PartialEq, Eq, Component)]
-pub struct Recruted;
+pub fn in_skill_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
+    let combat_panel = combat_panel_query.single();
+    combat_panel.phase == CombatState::SelectionSkills
+}
 
-#[derive(Component)]
-pub struct FairPlayTimer {
-    /// (non-repeating timer)
-    /// Let the enemy go when reached/left behind
-    pub timer: Timer,
+pub fn in_target_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
+    let combat_panel = combat_panel_query.single();
+    combat_panel.phase == CombatState::SelectionTarget
+}
+
+pub fn in_initiative_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
+    let combat_panel = combat_panel_query.single();
+    combat_panel.phase == CombatState::RollInitiative
+}
+
+pub fn in_executive_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
+    let combat_panel = combat_panel_query.single();
+    combat_panel.phase == CombatState::ExecuteSkills
+}
+
+pub fn in_evasive_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
+    let combat_panel = combat_panel_query.single();
+    combat_panel.phase == CombatState::Evasion
 }

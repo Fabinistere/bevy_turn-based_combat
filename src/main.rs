@@ -1,7 +1,11 @@
-use bevy::{prelude::*, render::camera::ScalingMode};
+#![feature(trivial_bounds)]
+// ^^--- allow reflect on Vec<T>
+
+use bevy::{prelude::*, window::WindowResolution};
+// use bevy_ecs::schedule::{LogLevel, ScheduleBuildSettings};
 use bevy_tweening::TweeningPlugin;
 use combat::CombatPlugin;
-use constants::{CLEAR, RESOLUTION, TILE_SIZE};
+use constants::{CLEAR, HEIGHT, RESOLUTION};
 
 pub mod combat;
 pub mod constants;
@@ -17,21 +21,24 @@ use ui::UiPlugin;
 
 #[rustfmt::skip]
 fn main() {
-    let height = 720.0;
+    // let height = 720.0;
 
     let mut app = App::new();
     app.insert_resource(ClearColor(CLEAR))
-        .insert_resource(Msaa { samples: 1 })
+        .insert_resource(Msaa::Off)
         .add_plugins(
             DefaultPlugins
                 .set(WindowPlugin {
-                    window: WindowDescriptor {
-                        width: height * RESOLUTION,
-                        height: height,
+                    primary_window: Some(Window {
+                        resolution: WindowResolution::new(
+                            HEIGHT * RESOLUTION,
+                            HEIGHT
+                        ),
                         title: "Turn-Based Combat".to_string(),
-                        resizable: true,
+                        // TODO: feature - resizable
+                        resizable: false,
                         ..default()
-                    },
+                    }),
                     ..default()
                 })
                 .set(ImagePlugin::default_nearest()),
@@ -42,21 +49,24 @@ fn main() {
         .add_plugin(UiPlugin)
         .add_plugin(DebugPlugin)
         .add_plugin(FabienPlugin)
+        // .edit_schedule(CoreSchedule::Main, |schedule| {
+        //     schedule.set_build_settings(ScheduleBuildSettings {
+        //         ambiguity_detection: LogLevel::Warn,
+        //         ..default()
+        //     });
+        // })
         .add_startup_system(spawn_camera);
 
     app.run();
+
+    // TODO: update the assets folder in the cloud
+    // TODO: publish the demo on the web
 }
 
 fn spawn_camera(mut commands: Commands) {
     let mut camera = Camera2dBundle::default();
 
-    camera.projection.top = 50. * TILE_SIZE;
-    camera.projection.bottom = -50. * TILE_SIZE;
-
-    camera.projection.left = 50. * TILE_SIZE * RESOLUTION;
-    camera.projection.right = -50. * TILE_SIZE * RESOLUTION;
-
-    camera.projection.scaling_mode = ScalingMode::None;
+    camera.projection.scale = 0.1;
 
     commands.spawn(camera);
 }

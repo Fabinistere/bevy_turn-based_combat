@@ -1,17 +1,20 @@
 use bevy::{prelude::*, winit::WinitSettings};
 
 use crate::combat::{
-    run_if_in_caster_phase, run_if_in_evasive_phase, run_if_in_executive_phase,
-    run_if_in_initiation_phase, run_if_in_initiative_phase, run_if_in_skill_phase,
-    run_if_in_target_phase,
+    in_caster_phase,
+    in_skill_phase, 
+    in_target_phase, 
+    // in_evasive_phase, in_executive_phase, in_initiation_phase, in_initiative_phase,
+    CombatState,
 };
 
 pub mod character_sheet;
 pub mod combat_panel;
 pub mod combat_system;
+pub mod initiative_bar;
 pub mod player_interaction;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SystemLabel)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SystemSet)]
 enum UiLabel {
     /// everything that handles textures
     Textures,
@@ -29,78 +32,102 @@ impl Plugin for UiPlugin {
             // OPTIMIZE: Only run the app when there is user input. This will significantly reduce CPU/GPU use.
             .insert_resource(WinitSettings::game())
 
-            .add_event::<player_interaction::ExecuteSkillEvent>()
             .add_event::<combat_system::UpdateUnitSelectedEvent>()
             .add_event::<combat_system::UpdateUnitTargetedEvent>()
 
-            .add_startup_system(combat_panel::setup.label(UiLabel::Textures))
+            .add_startup_system(combat_panel::setup.in_set(UiLabel::Textures))
 
             // --- Player Input Global ---
-            .add_system(player_interaction::mouse_scroll.label(UiLabel::Player))
-            .add_system(player_interaction::select_unit_by_mouse.label(UiLabel::Player))
-            .add_system(combat_system::target_random_system)
-
+            .add_systems((
+                player_interaction::mouse_scroll.in_set(UiLabel::Player),
+                player_interaction::select_unit_by_mouse.in_set(UiLabel::Player),
+                player_interaction::cancel_last_input.in_set(UiLabel::Player),
+            ))
+            
             // --- Limited Phase ---
-            .add_system_set(
-                SystemSet::new()
-                    .with_run_criteria(run_if_in_initiation_phase)
+            .configure_set(
+                CombatState::SelectionCaster
+                    .run_if(in_caster_phase)
             )
-            .add_system_set(
-                SystemSet::new()
-                    .with_run_criteria(run_if_in_caster_phase)
-                    .with_system(combat_system::caster_selection)
-                    .with_system(player_interaction::end_of_turn_button)
+            .configure_set(
+                CombatState::SelectionSkills
+                    .run_if(in_skill_phase)
             )
-            .add_system_set(
-                SystemSet::new()
-                    .with_run_criteria(run_if_in_skill_phase)
-                    .with_system(combat_system::caster_selection)
-                    .with_system(character_sheet::select_skill)
-                    .with_system(player_interaction::end_of_turn_button)
+            .configure_set(
+                CombatState::SelectionTarget
+                    .run_if(in_target_phase)
             )
-            .add_system_set(
-                SystemSet::new()
-                    .with_run_criteria(run_if_in_target_phase)
-                    .with_system(combat_system::target_selection)
-                    .with_system(character_sheet::select_skill)
-                    .with_system(player_interaction::end_of_turn_button)
+            
+            // .add_systems(
+            //     ().run_if(in_initiation_phase)
+            // )
+            .add_systems(
+                (
+                    combat_system::caster_selection,
+                    combat_system::update_selected_unit.after(UiLabel::Player),
+                    player_interaction::end_of_turn_button,
+                )
+                    .in_set(CombatState::SelectionCaster)
+                    // .distributive_run_if(in_caster_phase)
             )
-            .add_system_set(
-                SystemSet::new()
-                    .with_run_criteria(run_if_in_initiative_phase)
+            // in SkillPhase: There is one selected
+            .add_systems(
+                (
+                    combat_system::caster_selection,
+                    combat_system::update_selected_unit.after(UiLabel::Player),
+                    character_sheet::select_skill,
+                    // FIXME: In SelectionSkill, the end_of_turn trigger twice
+                    // cancel the current action if imcomplete -----vvv
+                    player_interaction::end_of_turn_button,
+                )
+                    .in_set(CombatState::SelectionSkills)
+                    // .in_schedule(CoreSchedule::FixedUpdate)
             )
-            .add_system_set(
-                SystemSet::new()
-                    .with_run_criteria(run_if_in_executive_phase)
+            .add_systems(
+                (
+                    combat_system::target_selection,
+                    combat_system::update_targeted_unit.after(UiLabel::Player),
+                    // switch to a new action ----vvv
+                    character_sheet::select_skill,
+                    player_interaction::end_of_turn_button,
+                )
+                    .in_set(CombatState::SelectionTarget)
             )
-            .add_system_set(
-                SystemSet::new()
-                    .with_run_criteria(run_if_in_evasive_phase)
-            )
-            // DONE: Display Actions
-            // DONE: Confirm Actions
-            // DONE: Roll Initiative
-            // DONE: Execute in order Actions
+            // .add_systems(
+            //     ().run_if(in_initiative_phase)
+            // )
+            // .add_systems(
+            //     ().run_if(in_executive_phase)
+            // )
+            // .add_systems(
+            //     ().run_if(in_evasive_phase)
+            // )
+            
+            // DEBUG -- DISPLAYER --
+            .add_systems((
+                combat_system::update_combat_phase_displayer
+                    .in_set(UiLabel::Display),
+                combat_system::last_action_displayer
+                    .in_set(UiLabel::Display)
+                    .after(CombatState::RollInitiative)
+                    .before(CombatState::ExecuteSkills),
+                character_sheet::update_caster_stats_panel
+                    .in_set(UiLabel::Display)
+                    .after(UiLabel::Player),
+                character_sheet::update_target_stats_panel
+                    .in_set(UiLabel::Display)
+                    .after(UiLabel::Player),
+                initiative_bar::action_visibility
+                    .in_set(UiLabel::Display)
+                    .after(CombatState::SelectionSkills)
+                    .after(CombatState::SelectionTarget),
+                character_sheet::skill_visibility
+                    .in_set(UiLabel::Display)
+                    .after(CombatState::SelectionCaster),
+            ))
 
             // --- COLOR ---
             .add_system(player_interaction::button_system)
-
-            // DEBUG -- DISPLAYER --
-            .add_system(combat_system::update_selected_unit.after(UiLabel::Player))
-            .add_system(combat_system::update_targeted_unit.after(UiLabel::Player))
-            .add_system(combat_system::update_combat_phase_displayer)
-            .add_system(combat_system::last_action_displayer)
-
-            .add_system(
-                character_sheet::update_caster_stats_panel
-                    .label(UiLabel::Display)
-                    .after(UiLabel::Player)
-            )
-            .add_system(
-                character_sheet::update_target_stats_panel
-                    .label(UiLabel::Display)
-                    .after(UiLabel::Player)
-            )
             ;
     }
 }
