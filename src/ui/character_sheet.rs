@@ -5,93 +5,16 @@ use bevy::prelude::*;
 
 use crate::{
     combat::{
-        phases::TransitionPhaseEvent,
         skills::Skill,
         stats::{Hp, Mana},
         stuff::{Equipement, Equipements, Job, JobsMasteries, MasteryTier, SkillTiers, WeaponType},
-        Action, CombatPanel, CombatState, InCombat, Skills,
+        InCombat, Skills,
     },
     ui::{
         combat_panel::{CasterMeter, SkillBar, SkillDisplayer, TargetMeter},
         combat_system::{HpMeter, MpMeter, Selected, Targeted},
     },
 };
-
-/// Action for each Interaction of the skill button
-///
-/// # Note
-///
-/// DOC: Move select_skill() in player_interaction
-pub fn select_skill(
-    mut interaction_query: Query<
-        (&Interaction, &Skill, &Children),
-        (
-            Changed<Interaction>,
-            With<Button>,
-            // Without<ButtonTargeting>,
-        ),
-    >,
-
-    mut text_query: Query<&mut Text>,
-
-    mut combat_panel_query: Query<(Entity, &mut CombatPanel)>,
-
-    unit_selected_query: Query<(Entity, &Name, &Selected)>,
-    mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
-) {
-    for (interaction, skill, children) in &mut interaction_query {
-        let mut text = text_query.get_mut(children[0]).unwrap();
-        match *interaction {
-            Interaction::Clicked => {
-                let (_, mut combat_panel) = combat_panel_query.single_mut();
-
-                // Change last action saved to the new skill selected
-                if combat_panel.phase == CombatState::SelectionTarget {
-                    // we already wrote the waiting skill in the actions history
-                    // cause we're in the TargetSelection phase
-
-                    let mut last_action = combat_panel.history.pop().unwrap();
-                    last_action.skill = skill.clone();
-                    combat_panel.history.push(last_action);
-
-                    // let (_, caster_name, _) = unit_selected_query.single();
-                    // info!("DEBUG: action = {} do {} to None", caster_name, skill.name);
-
-                    // info!("rewrite last action");
-
-                    // and we're still in TargetSelection phase
-                } else {
-                    // if this system can run
-                    // we are in SelectionSkill or SelectionTarget
-                    // so there is a selected unit.
-                    // FIXME: Crash - Esc bug, after cancel an action but still in selectionSkill with no action left
-                    let (caster, _caster_name, _) = unit_selected_query.single();
-
-                    transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionTarget));
-
-                    let action = Action::new(caster, skill.clone(), None);
-                    combat_panel.history.push(action);
-
-                    // info!("DEBUG: action = {} do {} to None", _caster_name, skill.name);
-                    // info!("new action");
-                }
-
-                let display = skill.name.replace("a", "o").replace("A", "O");
-                text.sections[0].value = display;
-
-                info!("Skill {} selected", skill.name);
-            }
-            Interaction::Hovered => {
-                // TODO: feature - Hover Skill - Preview possible Target
-
-                text.sections[0].value = skill.name.clone();
-            }
-            Interaction::None => {
-                text.sections[0].value = skill.name.clone();
-            }
-        }
-    }
-}
 
 /// # Note
 ///
@@ -286,6 +209,14 @@ pub fn skill_visibility(
                     },
                 )) = weapon_query.get(*weapon_entity)
                 {
+                    let mastery_tier: Option<&MasteryTier> =
+                        jobs_masteries_resource.get(&(*job, *weapon_type));
+
+                    info!(
+                        "Job {:?} is {:?} with {:?}",
+                        *job, mastery_tier, *weapon_type
+                    );
+                    
                     for (
                         _skill_displayer_entity,
                         skill_number,
@@ -308,14 +239,6 @@ pub fn skill_visibility(
                             //     Some(MasteryTier::One) => {}
                             //     Some(MasteryTier::Zero) => {}
                             // }
-
-                            let mastery_tier: Option<&MasteryTier> =
-                                jobs_masteries_resource.get(&(*job, *weapon_type));
-
-                            info!(
-                                "Job {:?} is {:?} with {:?}",
-                                *job, mastery_tier, *weapon_type
-                            );
 
                             if Some(MasteryTier::Two) == mastery_tier.copied() {
                                 // ----- Tier2 Skill Bar -----

@@ -34,6 +34,8 @@ use std::{cmp::Ordering, fmt};
 use bevy::prelude::*;
 // use bevy_inspector_egui::prelude::*;
 
+use crate::constants::combat::BASE_ACTION_COUNT;
+
 use self::{
     alterations::Alteration, phases::observation, skills::Skill, stats::StatBundle,
     stuff::{Equipements, JobsMasteries, Job},
@@ -164,7 +166,7 @@ impl Default for CombatBundle {
             alterations: Alterations(Vec::new()),
             skills: Skills(Vec::new()),
             equipements: Equipements { weapon: None, armor: None },
-            action_count: ActionCount::default(),
+            action_count: ActionCount::new(BASE_ACTION_COUNT),
             stats: StatBundle::default()
         }
     }
@@ -173,7 +175,7 @@ impl Default for CombatBundle {
 #[derive(Component, Default)]
 pub struct Karma(pub i32);
 
-#[derive(Component, Default)]
+#[derive(Component, Default, Reflect)]
 pub struct ActionCount {
     pub current: usize,
     /// Number of action given each new turn

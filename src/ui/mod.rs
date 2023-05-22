@@ -75,7 +75,7 @@ impl Plugin for UiPlugin {
                 (
                     combat_system::caster_selection,
                     combat_system::update_selected_unit.after(UiLabel::Player),
-                    character_sheet::select_skill,
+                    player_interaction::select_skill,
                     // FIXME: In SelectionSkill, the end_of_turn trigger twice
                     // cancel the current action if imcomplete -----vvv
                     player_interaction::end_of_turn_button,
@@ -88,7 +88,7 @@ impl Plugin for UiPlugin {
                     combat_system::target_selection,
                     combat_system::update_targeted_unit.after(UiLabel::Player),
                     // switch to a new action ----vvv
-                    character_sheet::select_skill,
+                    player_interaction::select_skill,
                     player_interaction::end_of_turn_button,
                 )
                     .in_set(CombatState::SelectionTarget)

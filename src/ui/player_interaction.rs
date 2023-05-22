@@ -7,11 +7,12 @@ use bevy::{
 };
 
 use crate::{
-    combat::{phases::TransitionPhaseEvent, CombatPanel, CombatState},
+    combat::{
+        phases::TransitionPhaseEvent, skills::Skill, Action, ActionCount, CombatPanel, CombatState,
+    },
     constants::ui::dialogs::*,
+    ui::combat_system::{Selected, Targeted},
 };
-
-use super::combat_system::{Selected, Targeted};
 
 // ----- UI Components -----
 
@@ -56,13 +57,12 @@ pub struct SpriteSize {
 
 /// Change color depending of Interaction
 ///
-/// # Note
-///
-/// REFACTOR: seperate color management button from specific command button system
+/// Does not affect Skill Button
+/// (color management is different: if no action no color.)
 pub fn button_system(
     mut interaction_query: Query<
         (&Interaction, &mut BackgroundColor, &Children),
-        (Changed<Interaction>, With<Button>),
+        (Changed<Interaction>, With<Button>, Without<Skill>),
     >,
 ) {
     for (interaction, mut color, _children) in &mut interaction_query {
@@ -172,6 +172,95 @@ pub fn select_unit_by_mouse(
         }
     } else {
         // cursor is not inside the window
+    }
+}
+
+/// Action for each Interaction of the skill button
+pub fn select_skill(
+    mut interaction_query: Query<
+        (&Interaction, &Skill, &mut BackgroundColor, &Children),
+        (
+            Changed<Interaction>,
+            With<Button>,
+            // Without<ButtonTargeting>,
+        ),
+    >,
+
+    mut text_query: Query<&mut Text>,
+
+    mut combat_panel_query: Query<(Entity, &mut CombatPanel)>,
+
+    unit_selected_query: Query<(Entity, &Name, &ActionCount), With<Selected>>,
+    mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
+) {
+    for (interaction, skill, mut color, children) in &mut interaction_query {
+        let mut text = text_query.get_mut(children[0]).unwrap();
+
+        // if this system can run
+        // we are in SelectionSkill or SelectionTarget
+        // so there is a selected unit.
+        // FIXME: Crash - Esc bug, after cancel an action but still in selectionSkill with no action left
+        let (caster, _caster_name, action_count) = unit_selected_query.single();
+
+        match *interaction {
+            Interaction::Clicked => {
+                // <=
+                if action_count.current == 0 {
+                    text.sections[0].value = String::from("No Action Left");
+                    *color = INACTIVE_BUTTON.into();
+                    continue;
+                }
+
+                let (_, mut combat_panel) = combat_panel_query.single_mut();
+
+                *color = PRESSED_BUTTON.into();
+
+                // Change last action saved to the new skill selected
+                if combat_panel.phase == CombatState::SelectionTarget {
+                    // we already wrote the waiting skill in the actions history
+                    // cause we're in the TargetSelection phase
+
+                    let mut last_action = combat_panel.history.pop().unwrap();
+                    last_action.skill = skill.clone();
+                    last_action.targets = None;
+                    combat_panel.history.push(last_action);
+
+                    // info!("DEBUG: action = {} do {} to None", caster_name, skill.name);
+
+                    // info!("rewrite last action");
+
+                    // and we're still in TargetSelection phase
+                } else {
+                    transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionTarget));
+
+                    let action = Action::new(caster, skill.clone(), None);
+                    combat_panel.history.push(action);
+
+                    // info!("DEBUG: action = {} do {} to None", _caster_name, skill.name);
+                    // info!("new action");
+                }
+
+                let display = skill.name.replace("a", "o").replace("A", "O");
+                text.sections[0].value = display;
+
+                info!("Skill {} selected", skill.name);
+            }
+            Interaction::Hovered => {
+                // TODO: feature - Hover Skill - Preview possible Target
+
+                text.sections[0].value = skill.name.clone();
+                *color = HOVERED_BUTTON.into();
+            }
+            Interaction::None => {
+                text.sections[0].value = skill.name.clone();
+
+                *color = if action_count.current == 0 {
+                    INACTIVE_BUTTON.into()
+                } else {
+                    NORMAL_BUTTON.into()
+                };
+            }
+        }
     }
 }
 

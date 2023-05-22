@@ -14,6 +14,8 @@ use crate::{
     },
 };
 
+use super::ActionCount;
+
 // ----- Transitions Between Phase -----
 
 pub struct TransitionPhaseEvent(pub CombatState);
@@ -26,13 +28,15 @@ pub fn phase_transition(
     mut commands: Commands,
     mut combat_panel_query: Query<&mut CombatPanel>,
 
-    selected_unit_query: Query<Entity, With<Selected>>,
+    mut selected_unit_query: Query<(Entity, &mut ActionCount), With<Selected>>,
     targeted_unit_query: Query<(Entity, &Name), With<Targeted>>,
 ) {
     // TODO: event Handler to change phase
     for TransitionPhaseEvent(phase_requested) in transition_phase_event.iter() {
         let mut combat_panel = combat_panel_query.single_mut();
         let mut next_phase = phase_requested;
+
+        let default_state = CombatState::default();
 
         match (combat_panel.phase.clone(), phase_requested) {
             (CombatState::SelectionCaster, CombatState::SelectionSkills) => {}
@@ -43,21 +47,41 @@ pub fn phase_transition(
                 }
 
                 // if the skill is a selfcast => put the self into the target,
-                // IDEA: change the phase to SelectionCaster and `continue;` -> skip the phase chnage
-                let mut last_action = combat_panel.history.pop().unwrap();
+                // IDEA: change the phase to SelectionCaster and `continue;` -> skip the phase change
+                let last_action = combat_panel.history.last_mut().unwrap();
                 if last_action.skill.target_side == TargetSide::OneSelf {
                     last_action.targets = Some(vec![last_action.caster]);
+                    // If there is still some action left for the current caster,
                     // skip SelectionTarget
-                    // TODO: if there is still some action left for the current caster,
-                    next_phase = &CombatState::SelectionSkills;
+                    let mut action_count = selected_unit_query
+                        .get_component_mut::<ActionCount>(last_action.caster)
+                        .unwrap();
+
+                    action_count.current -= 1;
+
+                    next_phase = if action_count.current > 0 {
+                        &CombatState::SelectionSkills
+                    } else {
+                        &default_state
+                    };
                 }
-                // update in the history
-                combat_panel.history.push(last_action);
             }
+            // (CombatState::SelectionTarget, CombatState::default())
             (CombatState::SelectionTarget, CombatState::SelectionCaster) => {
-                // TODO: if there is still some action left for the current caster,
+                // If there is still some action left for the current caster,
                 // skip SelectionCaster (The previous will still have the comp `Selected`)
-                next_phase = &CombatState::SelectionSkills;
+                let last_action = combat_panel.history.last().unwrap();
+                let mut action_count = selected_unit_query
+                    .get_component_mut::<ActionCount>(last_action.caster)
+                    .unwrap();
+
+                action_count.current -= 1;
+
+                next_phase = if action_count.current > 0 {
+                    &CombatState::SelectionSkills
+                } else {
+                    &default_state
+                };
                 // in SelectionSkill we can click another caster to switch
             }
             // end of turn
@@ -72,8 +96,9 @@ pub fn phase_transition(
                 }
                 // remove `Selected` from the last potential selected
                 // DOC: will trigger all RemovedComponent queries
-                if let Ok(selected) = selected_unit_query.get_single() {
+                if let Ok((selected, mut action_count)) = selected_unit_query.get_single_mut() {
                     commands.entity(selected).remove::<Selected>();
+                    action_count.current = action_count.base;
                 }
                 // remove all `Targeted`
                 for (targeted, _) in targeted_unit_query.iter() {
