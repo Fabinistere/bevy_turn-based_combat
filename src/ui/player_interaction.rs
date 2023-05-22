@@ -176,6 +176,10 @@ pub fn select_unit_by_mouse(
 }
 
 /// Action for each Interaction of the skill button
+///
+/// # Note
+///
+/// FIXME: Skill color don't update at caster/action_count change
 pub fn select_skill(
     mut interaction_query: Query<
         (&Interaction, &Skill, &mut BackgroundColor, &Children),
@@ -269,6 +273,7 @@ pub struct EndOfTurnButton;
 
 /// # Note
 ///
+/// TODO: Check ActionCount ?
 /// FIXME: End of turn in SelectionSkills: trigger a double press
 /// @see [`ui::player_interaction::confirm_action_button()`] to check: correct target number
 pub fn end_of_turn_button(
