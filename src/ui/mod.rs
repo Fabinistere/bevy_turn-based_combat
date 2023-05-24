@@ -50,7 +50,7 @@ impl Plugin for UiPlugin {
                     .run_if(in_caster_phase)
             )
             .configure_set(
-                CombatState::SelectionSkills
+                CombatState::SelectionSkill
                     .run_if(in_skill_phase)
             )
             .configure_set(
@@ -80,7 +80,7 @@ impl Plugin for UiPlugin {
                     // cancel the current action if imcomplete -----vvv
                     player_interaction::end_of_turn_button,
                 )
-                    .in_set(CombatState::SelectionSkills)
+                    .in_set(CombatState::SelectionSkill)
                     // .in_schedule(CoreSchedule::FixedUpdate)
             )
             .add_systems(
@@ -119,11 +119,13 @@ impl Plugin for UiPlugin {
                     .after(UiLabel::Player),
                 initiative_bar::action_visibility
                     .in_set(UiLabel::Display)
-                    .after(CombatState::SelectionSkills)
+                    .after(CombatState::SelectionSkill)
                     .after(CombatState::SelectionTarget),
                 character_sheet::skill_visibility
                     .in_set(UiLabel::Display)
                     .after(CombatState::SelectionCaster),
+                character_sheet::skill_color
+                    .after(UiLabel::Display),
             ))
 
             // --- COLOR ---

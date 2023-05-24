@@ -8,8 +8,9 @@ use crate::{
         skills::Skill,
         stats::{Hp, Mana},
         stuff::{Equipement, Equipements, Job, JobsMasteries, MasteryTier, SkillTiers, WeaponType},
-        InCombat, Skills,
+        ActionCount, InCombat, Skills,
     },
+    constants::ui::dialogs::*,
     ui::{
         combat_panel::{CasterMeter, SkillBar, SkillDisplayer, TargetMeter},
         combat_system::{HpMeter, MpMeter, Selected, Targeted},
@@ -132,9 +133,9 @@ pub fn skill_visibility(
     mut text_query: Query<&mut Text>,
 ) {
     // If there was a transition, a changement in the one being Selected
-    // Reset all Skill
+    // ------ Reset all Skill ------
     for _ in selection_removal_query.iter() {
-        for (_, skill_number, skill_bar_type, mut skill, mut visibility, children) in
+        for (_, _, _, mut skill, mut visibility, children) in
             skill_bar_query.iter_mut()
         {
             // --- Text ---
@@ -149,15 +150,15 @@ pub fn skill_visibility(
             // --- Logs ---
             if old_visibility != *visibility {
                 // DEBUG: Skills' Visibility switcher
-                info!(
-                    "{:?} °{} visibility switch: {:?}",
-                    skill_bar_type, skill_number.0, *visibility
-                );
+                // info!(
+                //     "{:?} °{} visibility switch: {:?}",
+                //     skill_bar_type, skill_number.0, *visibility
+                // );
             }
         }
     }
 
-    // Set the visibility w.r.t. the newly selected caster
+    // ------ Set the visibility w.r.t. the newly selected caster ------
     if let Ok((Equipements { weapon, armor: _ }, skills, job)) = caster_query.get_single() {
         // OPTIMIZE: Iterate over all skilldisplayer one time and for each non base_skill_displayer get the weapon_skills?
         // ----- Base Skill Bar -----
@@ -187,10 +188,10 @@ pub fn skill_visibility(
                 // --- Logs ---
                 if old_visibility != *visibility {
                     // DEBUG: Skills' Visibility switcher
-                    info!(
-                        "{:?} °{} visibility switch: {:?}",
-                        *skill_bar_type, skill_number.0, *visibility
-                    );
+                    // info!(
+                    //     "{:?} °{} visibility switch: {:?}",
+                    //     *skill_bar_type, skill_number.0, *visibility
+                    // );
                 }
             }
         }
@@ -216,7 +217,7 @@ pub fn skill_visibility(
                         "Job {:?} is {:?} with {:?}",
                         *job, mastery_tier, *weapon_type
                     );
-                    
+
                     for (
                         _skill_displayer_entity,
                         skill_number,
@@ -313,13 +314,55 @@ pub fn skill_visibility(
                             // --- Logs ---
                             if old_visibility != *visibility {
                                 // DEBUG: Skills' Visibility switcher
-                                info!(
-                                    "{:?} °{} visibility switch: {:?}",
-                                    *skill_bar_type, skill_number.0, *visibility
-                                );
+                                // info!(
+                                //     "{:?} °{} visibility switch: {:?}",
+                                //     *skill_bar_type, skill_number.0, *visibility
+                                // );
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+/// Updates the color of the skill,
+/// whenever the Selected entity changed or their ActionCount change
+pub fn skill_color(
+    mut interaction_query: Query<
+        (&Interaction, &mut BackgroundColor),
+        (With<Interaction>, With<Button>, With<SkillDisplayer>),
+    >,
+
+    changed_selected_query: Query<
+        (Entity, &Name, &ActionCount),
+        (With<Selected>, Or<(Added<Selected>, Changed<ActionCount>)>),
+    >,
+) {
+    if let Ok((_, _, action_count)) = changed_selected_query.get_single() {
+        for (interaction, mut color) in &mut interaction_query {
+            match *interaction {
+                Interaction::Clicked => {
+                    *color = if action_count.current == 0 {
+                        INACTIVE_BUTTON.into()
+                    } else {
+                        PRESSED_BUTTON.into()
+                    };
+                }
+                Interaction::Hovered => {
+                    *color = if action_count.current == 0 {
+                        INACTIVE_HOVERED_BUTTON.into()
+                    } else {
+                        HOVERED_BUTTON.into()
+                    };
+                }
+                Interaction::None => {
+                    *color = if action_count.current == 0 {
+                        INACTIVE_BUTTON.into()
+                    } else {
+                        NORMAL_BUTTON.into()
+                    };
                 }
             }
         }

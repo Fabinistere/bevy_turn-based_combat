@@ -268,7 +268,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                                     style: Style {
                                                         size: Size::new(
                                                             // TODO: Convert these Px into Percent
-                                                            Val::Px(103.),
+                                                            Val::Percent(100.), // Val::Px(103.),
                                                             Val::Px(103.),
                                                         ),
                                                         margin: UiRect::all(Val::Auto),

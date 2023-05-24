@@ -75,7 +75,10 @@ pub mod ui {
     pub mod dialogs {
         use bevy::prelude::Color;
 
-        pub const INACTIVE_BUTTON: Color = Color::rgb(0.55, 0.55, 0.55);
+        // #3c3e40
+        pub const INACTIVE_BUTTON: Color = Color::rgb(0.23, 0.24, 0.25);
+        // #60666a
+        pub const INACTIVE_HOVERED_BUTTON: Color = Color::rgb(0.37, 0.40, 0.41);
 
         pub const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
         pub const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);

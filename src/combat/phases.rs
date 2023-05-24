@@ -39,8 +39,11 @@ pub fn phase_transition(
         let default_state = CombatState::default();
 
         match (combat_panel.phase.clone(), phase_requested) {
-            (CombatState::SelectionCaster, CombatState::SelectionSkills) => {}
-            (CombatState::SelectionSkills, CombatState::SelectionTarget) => {
+            (CombatState::SelectionCaster, CombatState::SelectionSkill) => {}
+            (CombatState::SelectionSkill, CombatState::SelectionCaster) => {
+                // FIXME: there is still some Targeted - While switching Caster to caster after the creation of a action
+            }
+            (CombatState::SelectionSkill, CombatState::SelectionTarget) => {
                 // remove from previous entity the targeted component
                 for (targeted, _) in targeted_unit_query.iter() {
                     commands.entity(targeted).remove::<Targeted>();
@@ -58,9 +61,10 @@ pub fn phase_transition(
                         .unwrap();
 
                     action_count.current -= 1;
+                    info!("action left: {}", action_count.current);
 
                     next_phase = if action_count.current > 0 {
-                        &CombatState::SelectionSkills
+                        &CombatState::SelectionSkill
                     } else {
                         &default_state
                     };
@@ -76,18 +80,18 @@ pub fn phase_transition(
                     .unwrap();
 
                 action_count.current -= 1;
+                info!("action left: {}", action_count.current);
 
                 next_phase = if action_count.current > 0 {
-                    &CombatState::SelectionSkills
+                    info!("S.Target to S.Caster bypass to S.Skills");
+                    &CombatState::SelectionSkill
                 } else {
                     &default_state
                 };
                 // in SelectionSkill we can click another caster to switch
             }
-            // end of turn
+            // --- End of Turn ---
             (_, CombatState::RollInitiative) => {
-                info!("S.Target to S.Caster bypass to S.Skills");
-
                 // TODO: Warning if there is still action left
                 // FIXME: this is a safeguard preventing from double click the `end_of_turn` (wasn't a pb back there)
                 if combat_panel.history.len() == 0 {
@@ -109,6 +113,11 @@ pub fn phase_transition(
             _ => {}
         }
 
+        info!(
+            "Phase: {:?} to {:?}",
+            combat_panel.phase.clone(),
+            next_phase.clone()
+        );
         combat_panel.phase = next_phase.clone();
     }
 }
