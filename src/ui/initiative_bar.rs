@@ -39,10 +39,10 @@ pub fn action_visibility(
             // --- Logs ---
             if old_visibility != *visibility {
                 // DEBUG: Actions' Visibility switcher
-                info!(
-                    "action °{} visibility switch: {:?}",
-                    action_number.0, *visibility
-                );
+                // info!(
+                //     "action °{} visibility switch: {:?}",
+                //     action_number.0, *visibility
+                // );
             }
         }
     }

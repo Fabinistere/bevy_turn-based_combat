@@ -6,7 +6,7 @@ use crate::{
         alterations::{Alteration, AlterationAction},
         skills::{ExecuteSkillEvent, TargetSide},
         stats::{Attack, AttackSpe, Defense, DefenseSpe, Hp, Initiative, Mana, Shield},
-        Action, Alterations, CombatPanel, CombatState,
+        Action, ActionCount, Alterations, CombatPanel, CombatState, InCombat,
     },
     npc::NPC,
     ui::combat_system::{
@@ -16,6 +16,14 @@ use crate::{
 
 // ----- Transitions Between Phase -----
 
+/// Whenever:
+/// - A system ask for a phase transition/change
+///
+/// Read by:
+/// - combat::phases::phase_transition()
+///   - Determine which action to be taken,
+///   accordingly with (/w.r.t.) to the phase we're currently in,
+///   and the phase we want to transit.
 pub struct TransitionPhaseEvent(pub CombatState);
 
 /// Action manager, about phase transition.
@@ -26,44 +34,91 @@ pub fn phase_transition(
     mut commands: Commands,
     mut combat_panel_query: Query<&mut CombatPanel>,
 
-    selected_unit_query: Query<Entity, With<Selected>>,
+    mut selected_unit_query: Query<(Entity, &mut ActionCount), With<Selected>>,
     targeted_unit_query: Query<(Entity, &Name), With<Targeted>>,
+
+    // REFACTOR: --- Abstraction Needed ---
+    mut unselected_unit_query: Query<&mut ActionCount, (Without<Selected>, With<InCombat>)>,
+    // BUG: This query, by its very existence, is crashing the .single() of query<With<Selected>> (in select_skill())
+    // mut actions_logs_query: Query<
+    //     &mut Text,
+    //     (
+    //         With<ActionsLogs>,
+    //         Without<LastActionHistoryDisplayer>,
+    //         Without<ActionHistoryDisplayer>,
+    //     ),
+    // >,
+    action_displayer_query: Query<&Text, With<ActionHistoryDisplayer>>,
+    mut last_action_displayer_query: Query<
+        &mut Text,
+        (
+            With<LastActionHistoryDisplayer>,
+            Without<ActionsLogs>,
+            Without<ActionHistoryDisplayer>,
+        ),
+    >,
 ) {
     // TODO: event Handler to change phase
     for TransitionPhaseEvent(phase_requested) in transition_phase_event.iter() {
         let mut combat_panel = combat_panel_query.single_mut();
         let mut next_phase = phase_requested;
 
+        let default_state = CombatState::default();
+
         match (combat_panel.phase.clone(), phase_requested) {
-            (CombatState::SelectionCaster, CombatState::SelectionSkills) => {}
-            (CombatState::SelectionSkills, CombatState::SelectionTarget) => {
+            (CombatState::SelectionCaster, CombatState::SelectionSkill) => {}
+            (CombatState::SelectionSkill, CombatState::SelectionCaster) => {
+                // FIXME: there is still some Targeted - While switching Caster to caster after the creation of a action
+            }
+            (CombatState::SelectionSkill, CombatState::SelectionTarget) => {
                 // remove from previous entity the targeted component
                 for (targeted, _) in targeted_unit_query.iter() {
                     commands.entity(targeted).remove::<Targeted>();
                 }
 
                 // if the skill is a selfcast => put the self into the target,
-                // IDEA: change the phase to SelectionCaster and `continue;` -> skip the phase chnage
-                let mut last_action = combat_panel.history.pop().unwrap();
+                // IDEA: change the phase to SelectionCaster and `continue;` -> skip the phase change
+                let last_action = combat_panel.history.last_mut().unwrap();
                 if last_action.skill.target_side == TargetSide::OneSelf {
                     last_action.targets = Some(vec![last_action.caster]);
+                    // If there is still some action left for the current caster,
                     // skip SelectionTarget
-                    // TODO: if there is still some action left for the current caster,
-                    next_phase = &CombatState::SelectionSkills;
+                    let mut action_count = selected_unit_query
+                        .get_component_mut::<ActionCount>(last_action.caster)
+                        .unwrap();
+
+                    action_count.current -= 1;
+                    info!("action left: {}", action_count.current);
+
+                    next_phase = if action_count.current > 0 {
+                        &CombatState::SelectionSkill
+                    } else {
+                        &default_state
+                    };
                 }
-                // update in the history
-                combat_panel.history.push(last_action);
             }
+            // (CombatState::SelectionTarget, CombatState::default())
             (CombatState::SelectionTarget, CombatState::SelectionCaster) => {
-                // TODO: if there is still some action left for the current caster,
+                // If there is still some action left for the current caster,
                 // skip SelectionCaster (The previous will still have the comp `Selected`)
-                next_phase = &CombatState::SelectionSkills;
+                let last_action = combat_panel.history.last().unwrap();
+                let mut action_count = selected_unit_query
+                    .get_component_mut::<ActionCount>(last_action.caster)
+                    .unwrap();
+
+                action_count.current -= 1;
+                info!("action left: {}", action_count.current);
+
+                next_phase = if action_count.current > 0 {
+                    info!("S.Target to S.Caster bypass to S.Skills");
+                    &CombatState::SelectionSkill
+                } else {
+                    &default_state
+                };
                 // in SelectionSkill we can click another caster to switch
             }
-            // end of turn
+            // --- End of Turn ---
             (_, CombatState::RollInitiative) => {
-                info!("S.Target to S.Caster bypass to S.Skills");
-
                 // TODO: Warning if there is still action left
                 // FIXME: this is a safeguard preventing from double click the `end_of_turn` (wasn't a pb back there)
                 if combat_panel.history.len() == 0 {
@@ -72,8 +127,9 @@ pub fn phase_transition(
                 }
                 // remove `Selected` from the last potential selected
                 // DOC: will trigger all RemovedComponent queries
-                if let Ok(selected) = selected_unit_query.get_single() {
+                if let Ok((selected, mut action_count)) = selected_unit_query.get_single_mut() {
                     commands.entity(selected).remove::<Selected>();
+                    action_count.current = action_count.base;
                 }
                 // remove all `Targeted`
                 for (targeted, _) in targeted_unit_query.iter() {
@@ -81,9 +137,54 @@ pub fn phase_transition(
                 }
                 info!("End of Turn - Accepted");
             }
+            (CombatState::RollInitiative, CombatState::ExecuteSkills) => {
+                // // -----------------------------------------------
+                // // REFACTOR: Move these ui lines somewhere else -> [[combat::phases::phase_transition()]]
+                // // IDEA: Reset or just push infinitly ?
+                // let mut actions_logs_text = actions_logs_query.single_mut();
+
+                // actions_logs_text.sections[0].value =
+                //     String::from("---------------\nActions Logs:");
+                // // -----------------------------------------------
+            }
+            // --- New Turn ---
+            // replace SelectionCaster by the default()
+            (CombatState::ExecuteSkills, CombatState::SelectionCaster) => {
+                // IDEA: add this history into a full-log to permit the player to see it.
+
+                // -----------------------------------------------
+                // REFACTOR: Move these ui related lines somewhere else
+                // REFACTOR: Abstraction Needed
+                // Save the Sorted Initiative Action Historic
+                let action_displayer_text = action_displayer_query.single();
+                let mut last_action_displayer_text = last_action_displayer_query.single_mut();
+
+                last_action_displayer_text.sections[0].value = action_displayer_text.sections[0]
+                    .value
+                    .replace("Actions:", "Last Turn Actions:");
+
+                // -----------------------------------------------
+
+                // Reset the action history
+                combat_panel.history = Vec::new();
+
+                // Reset all ActionCounter/Limit
+                if let Ok((_, mut action_count)) = selected_unit_query.get_single_mut() {
+                    action_count.current = action_count.base;
+                }
+                for mut action_count in unselected_unit_query.iter_mut() {
+                    action_count.current = action_count.base;
+                }
+            }
             _ => {}
         }
 
+        info!(
+            "Phase: {:?} to {:?} (was requested: {:?})",
+            combat_panel.phase.clone(),
+            next_phase.clone(),
+            phase_requested.clone(),
+        );
         combat_panel.phase = next_phase.clone();
     }
 }
@@ -121,7 +222,6 @@ pub fn phase_transition(
 /// DOC
 pub fn execute_alteration(
     // mut execute_alteration_event: EventReader<ExecuteAlterationEvent>,
-    mut combat_panel_query: Query<&mut CombatPanel>,
     mut character_query: Query<(
         Entity,
         &mut Hp,
@@ -134,6 +234,8 @@ pub fn execute_alteration(
         &mut Alterations,
         &Name,
     )>,
+
+    mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
     // for ExecuteAlterationEvent { target, alteration } in execute_alteration_event.iter() {
     for (
@@ -210,8 +312,8 @@ pub fn execute_alteration(
         // update the set of alteration
         alterations.0 = new_alterations_vector;
     }
-    let mut combat_panel = combat_panel_query.single_mut();
-    combat_panel.phase = CombatState::SelectionCaster;
+
+    transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionCaster));
 }
 
 pub fn observation() {
@@ -219,13 +321,15 @@ pub fn observation() {
 }
 
 /// Roll for each entity a d100 ranged into +-20 initiative
-/// ALso Display the final score
+/// Also Display the final score
 ///
 /// Sort the result in a nice table
 /// In case of egality: pick the higher initiative boyo to be on top
 pub fn roll_initiative(
     npc_query: Query<(&Initiative, &Alterations), With<NPC>>,
     mut combat_panel_query: Query<&mut CombatPanel>,
+
+    mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
     let mut combat_panel = combat_panel_query.single_mut();
 
@@ -291,22 +395,23 @@ pub fn roll_initiative(
 
     // info!("DEBUG: history: {:?}", combat_panel.history);
 
-    combat_panel.phase = CombatState::ExecuteSkills;
+    transition_phase_event.send(TransitionPhaseEvent(CombatState::ExecuteSkills));
 }
 
 pub fn execution_phase(
-    mut combat_panel_query: Query<&mut CombatPanel>,
+    combat_panel_query: Query<&CombatPanel>,
 
     mut execute_skill_event: EventWriter<ExecuteSkillEvent>,
 
-    action_displayer_query: Query<&Text, With<ActionHistoryDisplayer>>,
-    mut last_action_displayer_query: Query<
-        &mut Text,
-        (
-            With<LastActionHistoryDisplayer>,
-            Without<ActionHistoryDisplayer>,
-        ),
-    >,
+    // --- DEBUG ---
+    // action_displayer_query: Query<&Text, With<ActionHistoryDisplayer>>,
+    // mut last_action_displayer_query: Query<
+    //     &mut Text,
+    //     (
+    //         With<LastActionHistoryDisplayer>,
+    //         Without<ActionHistoryDisplayer>,
+    //     ),
+    // >,
     mut actions_logs_query: Query<
         &mut Text,
         (
@@ -315,16 +420,18 @@ pub fn execution_phase(
             Without<ActionHistoryDisplayer>,
         ),
     >,
+    // --- DEBUG END ---
+    mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
-    let mut combat_panel = combat_panel_query.single_mut();
+    let combat_panel = combat_panel_query.single();
 
-    // -----------------------------------------------
+    // --------------------- DEBUG --------------------------
     // REFACTOR: Move these ui lines somewhere else -> [[combat::phases::phase_transition()]]
     // IDEA: Reset or just push infinitly ?
     let mut actions_logs_text = actions_logs_query.single_mut();
 
     actions_logs_text.sections[0].value = String::from("---------------\nActions Logs:");
-    // -----------------------------------------------
+    // --------------------- DEBUG --------------------------
 
     for Action {
         caster,
@@ -363,23 +470,17 @@ pub fn execution_phase(
         }
     }
 
-    // IDEA: add this history into a log to permit the player to see it.
+    // // --------------------- DEBUG --------------------------
+    // let action_displayer_text = action_displayer_query.single();
+    // let mut last_action_displayer_text = last_action_displayer_query.single_mut();
 
-    // -----------------------------------------------
-    // REFACTOR: Move these ui related lines somewhere else
-    // Save the Sorted Initiative Action Historic
-    let action_displayer_text = action_displayer_query.single();
-    let mut last_action_displayer_text = last_action_displayer_query.single_mut();
+    // last_action_displayer_text.sections[0].value = action_displayer_text.sections[0]
+    //     .value
+    //     .replace("Actions:", "Last Turn Actions:");
 
-    last_action_displayer_text.sections[0].value = action_displayer_text.sections[0]
-        .value
-        .replace("Actions:", "Last Turn Actions:");
+    // // Reset the action history
+    // combat_panel.history = Vec::new();
+    // // --------------------- DEBUG --------------------------
 
-    // -----------------------------------------------
-
-    // Reset the action history
-    combat_panel.history = Vec::new();
-
-    // TODO: Go to Observation
-    combat_panel.phase = CombatState::SelectionCaster;
+    transition_phase_event.send(TransitionPhaseEvent(CombatState::default()));
 }

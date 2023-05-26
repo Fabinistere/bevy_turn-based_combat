@@ -21,10 +21,16 @@ Assets are deported on a different cloud to stop wasting git use which is very c
 - DONE: Execute in order Actions
 - DONE: Nice, Smooth and intuitive ui inputs
 - DONE: Scrolling Logs
-- TODO: Display all skill per entity (when selected)
-- TODO: Display all action in the Initiative Vertical Bar
+- DONE: Display all skill per entity (when selected)
+- DONE: Display all action in the Initiative Vertical Bar
 - TODO: Display all basic stats on the Fighting Hall (Hp/Mp under all entities)
 
 ## Example
 
 // DOC
+
+## Fun Facts
+
+Dans ce projet, il existe une erreur que je connais:
+
+$\exists e E(e) \wedge SelfAck(e)$

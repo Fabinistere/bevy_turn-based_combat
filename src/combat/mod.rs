@@ -34,6 +34,8 @@ use std::{cmp::Ordering, fmt};
 use bevy::prelude::*;
 // use bevy_inspector_egui::prelude::*;
 
+use crate::constants::combat::BASE_ACTION_COUNT;
+
 use self::{
     alterations::Alteration, phases::observation, skills::Skill, stats::StatBundle,
     stuff::{Equipements, JobsMasteries, Job},
@@ -62,7 +64,7 @@ pub enum CombatState {
     Observation,
     #[default]
     SelectionCaster,
-    SelectionSkills,
+    SelectionSkill,
     SelectionTarget,
     RollInitiative,
     ExecuteSkills,
@@ -78,7 +80,7 @@ impl fmt::Display for CombatState {
             CombatState::AlterationsExecution => write!(f, "AlterationsExecution"),
             CombatState::Observation => write!(f, "Observation"),
             CombatState::SelectionCaster => write!(f, "SelectionCaster"),
-            CombatState::SelectionSkills => write!(f, "SelectionSkills"),
+            CombatState::SelectionSkill => write!(f, "SelectionSkill"),
             CombatState::SelectionTarget => write!(f, "SelectionTarget"),
             CombatState::RollInitiative => write!(f, "RollInitiative"),
             CombatState::ExecuteSkills => write!(f, "ExecuteSkills"),
@@ -164,7 +166,7 @@ impl Default for CombatBundle {
             alterations: Alterations(Vec::new()),
             skills: Skills(Vec::new()),
             equipements: Equipements { weapon: None, armor: None },
-            action_count: ActionCount::default(),
+            action_count: ActionCount::new(BASE_ACTION_COUNT), // ActionCount::default()
             stats: StatBundle::default()
         }
     }
@@ -173,7 +175,7 @@ impl Default for CombatBundle {
 #[derive(Component, Default)]
 pub struct Karma(pub i32);
 
-#[derive(Component, Default)]
+#[derive(Component, Reflect)]
 pub struct ActionCount {
     pub current: usize,
     /// Number of action given each new turn
@@ -183,6 +185,12 @@ pub struct ActionCount {
 impl ActionCount {
     pub fn new(base: usize) -> Self {
         ActionCount { current: base, base }
+    }
+}
+
+impl Default for ActionCount {
+    fn default() -> Self {
+        ActionCount { current: BASE_ACTION_COUNT, base: BASE_ACTION_COUNT }
     }
 }
 
@@ -298,7 +306,7 @@ pub fn in_caster_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
 
 pub fn in_skill_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
     let combat_panel = combat_panel_query.single();
-    combat_panel.phase == CombatState::SelectionSkills
+    combat_panel.phase == CombatState::SelectionSkill
 }
 
 pub fn in_target_phase(combat_panel_query: Query<&CombatPanel>) -> bool {

@@ -50,7 +50,7 @@ impl Plugin for UiPlugin {
                     .run_if(in_caster_phase)
             )
             .configure_set(
-                CombatState::SelectionSkills
+                CombatState::SelectionSkill
                     .run_if(in_skill_phase)
             )
             .configure_set(
@@ -75,12 +75,12 @@ impl Plugin for UiPlugin {
                 (
                     combat_system::caster_selection,
                     combat_system::update_selected_unit.after(UiLabel::Player),
-                    character_sheet::select_skill,
+                    player_interaction::select_skill,
                     // FIXME: In SelectionSkill, the end_of_turn trigger twice
                     // cancel the current action if imcomplete -----vvv
                     player_interaction::end_of_turn_button,
                 )
-                    .in_set(CombatState::SelectionSkills)
+                    .in_set(CombatState::SelectionSkill)
                     // .in_schedule(CoreSchedule::FixedUpdate)
             )
             .add_systems(
@@ -88,7 +88,7 @@ impl Plugin for UiPlugin {
                     combat_system::target_selection,
                     combat_system::update_targeted_unit.after(UiLabel::Player),
                     // switch to a new action ----vvv
-                    character_sheet::select_skill,
+                    player_interaction::select_skill,
                     player_interaction::end_of_turn_button,
                 )
                     .in_set(CombatState::SelectionTarget)
@@ -119,11 +119,13 @@ impl Plugin for UiPlugin {
                     .after(UiLabel::Player),
                 initiative_bar::action_visibility
                     .in_set(UiLabel::Display)
-                    .after(CombatState::SelectionSkills)
+                    .after(CombatState::SelectionSkill)
                     .after(CombatState::SelectionTarget),
                 character_sheet::skill_visibility
                     .in_set(UiLabel::Display)
                     .after(CombatState::SelectionCaster),
+                character_sheet::skill_color
+                    .after(UiLabel::Display),
             ))
 
             // --- COLOR ---

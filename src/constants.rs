@@ -18,7 +18,7 @@ pub const FIXED_TIME_STEP: f32 = 1.0 / 60.0;
 
 pub const RESOLUTION: f32 = 16.0 / 9.0;
 // TODO: feature - dynamic scale height (or option)
-pub const HEIGHT: f32 = 1080.; // 720.;
+pub const HEIGHT: f32 = 1080.; // 720.; //
 pub const TILE_SIZE: f32 = 1.;
 
 pub mod character {
@@ -54,6 +54,9 @@ pub mod character {
 }
 
 pub mod combat {
+
+    pub const BASE_ACTION_COUNT: usize = 1;
+
     pub mod team {
         pub const TEAM_MC: i32 = 0;
         pub const TEAM_OLF: i32 = 1;
@@ -71,6 +74,11 @@ pub mod combat {
 pub mod ui {
     pub mod dialogs {
         use bevy::prelude::Color;
+
+        // #3c3e40
+        pub const INACTIVE_BUTTON: Color = Color::rgb(0.23, 0.24, 0.25);
+        // #60666a
+        pub const INACTIVE_HOVERED_BUTTON: Color = Color::rgb(0.37, 0.40, 0.41);
 
         pub const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
         pub const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
