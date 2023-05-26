@@ -13,6 +13,7 @@ use crate::{
         // Alterations,
         // Action,
         alterations::{Alteration, AlterationAction},
+        ActionCount,
         // CombatPanel,
         CombatState,
         skills::{
@@ -35,12 +36,14 @@ impl Plugin for DebugPlugin {
                 // .add_plugin(ResourceInspectorPlugin::<Time>::default())
 
                 .register_type::<NPC>()
-
+                
                 // --- Global Structure ---
-
+                
                 .register_type::<CombatState>()
                 // .register_type::<CombatPanel>()
                 // .register_type::<Action>()
+                
+                .register_type::<ActionCount>()
 
                 // --- Skills and Alterations ---
 

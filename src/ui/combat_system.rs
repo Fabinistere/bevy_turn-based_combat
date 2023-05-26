@@ -97,7 +97,7 @@ pub fn update_selected_unit(
                 // Don't change the entity selected
                 // TOTEST: This case only happens when the player reselect a entity by his.her will
                 Ok(_) => {
-                    transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionSkills));
+                    transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionSkill));
                 }
             },
             // Wasn't already selected
@@ -110,7 +110,7 @@ pub fn update_selected_unit(
                     commands.entity(selected).remove::<Selected>();
                 }
 
-                transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionSkills));
+                transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionSkill));
             }
         }
     }
@@ -144,11 +144,11 @@ pub fn update_targeted_unit(
                 info!("{} targeted", target_name);
 
                 let (_, mut combat_panel) = combat_panel_query.single_mut();
-                let mut last_action = combat_panel.history.pop().unwrap();
+                let mut last_action = combat_panel.history.last_mut().unwrap();
 
-                // TODO: impl change target/skill in the Vec<Action>
+                // TODO: ?? - impl change target/skill in the Vec<Action>
                 // Possibility to target multiple depending to the skill selected
-                last_action.targets = match last_action.targets {
+                last_action.targets = match last_action.targets.clone() {
                     None => {
                         // Number of target = max targetable
                         if last_action.skill.target_number == 1 {
@@ -176,21 +176,9 @@ pub fn update_targeted_unit(
                                 commands.entity(targets.pop().unwrap()).remove::<Targeted>();
                             }
                         }
-                        // else {
-                        //     // vv-- these modifications will happen when pressing 'esc' --vv
-
-                        //     // // 'replace' the first one by the newly targeted
-                        //     // // ^^^^^^^^^---- Remove the first and push the new one
-                        //     // if let Some((first_target, rem_targets)) = targets.split_first_mut() {
-                        //     //     commands.entity(*first_target).remove::<Targeted>();
-                        //     //     targets = rem_targets.to_vec();
-                        //     //     targets.push(character);
-                        //     // }
-                        // }
                         Some(targets)
                     }
                 };
-                combat_panel.history.push(last_action.clone());
             }
         }
     }
