@@ -38,21 +38,22 @@ pub fn phase_transition(
     targeted_unit_query: Query<(Entity, &Name), With<Targeted>>,
 
     // REFACTOR: --- Abstraction Needed ---
-    mut combat_unit: Query<&mut ActionCount, With<InCombat>>,
-
+    mut unselected_unit_query: Query<&mut ActionCount, (Without<Selected>, With<InCombat>)>,
+    // BUG: This query, by its very existence, is crashing the .single() of query<With<Selected>> (in select_skill())
+    // mut actions_logs_query: Query<
+    //     &mut Text,
+    //     (
+    //         With<ActionsLogs>,
+    //         Without<LastActionHistoryDisplayer>,
+    //         Without<ActionHistoryDisplayer>,
+    //     ),
+    // >,
     action_displayer_query: Query<&Text, With<ActionHistoryDisplayer>>,
     mut last_action_displayer_query: Query<
         &mut Text,
         (
             With<LastActionHistoryDisplayer>,
-            Without<ActionHistoryDisplayer>,
-        ),
-    >,
-    mut actions_logs_query: Query<
-        &mut Text,
-        (
-            With<ActionsLogs>,
-            Without<LastActionHistoryDisplayer>,
+            Without<ActionsLogs>,
             Without<ActionHistoryDisplayer>,
         ),
     >,
@@ -137,14 +138,14 @@ pub fn phase_transition(
                 info!("End of Turn - Accepted");
             }
             (CombatState::RollInitiative, CombatState::ExecuteSkills) => {
-                // -----------------------------------------------
-                // REFACTOR: Move these ui lines somewhere else -> [[combat::phases::phase_transition()]]
-                // IDEA: Reset or just push infinitly ?
-                let mut actions_logs_text = actions_logs_query.single_mut();
+                // // -----------------------------------------------
+                // // REFACTOR: Move these ui lines somewhere else -> [[combat::phases::phase_transition()]]
+                // // IDEA: Reset or just push infinitly ?
+                // let mut actions_logs_text = actions_logs_query.single_mut();
 
-                actions_logs_text.sections[0].value =
-                    String::from("---------------\nActions Logs:");
-                // -----------------------------------------------
+                // actions_logs_text.sections[0].value =
+                //     String::from("---------------\nActions Logs:");
+                // // -----------------------------------------------
             }
             // --- New Turn ---
             // replace SelectionCaster by the default()
@@ -168,7 +169,10 @@ pub fn phase_transition(
                 combat_panel.history = Vec::new();
 
                 // Reset all ActionCounter/Limit
-                for mut action_count in combat_unit.iter_mut() {
+                if let Ok((_, mut action_count)) = selected_unit_query.get_single_mut() {
+                    action_count.current = action_count.base;
+                }
+                for mut action_count in unselected_unit_query.iter_mut() {
                     action_count.current = action_count.base;
                 }
             }
@@ -395,12 +399,39 @@ pub fn roll_initiative(
 }
 
 pub fn execution_phase(
-    mut combat_panel_query: Query<&mut CombatPanel>,
+    combat_panel_query: Query<&CombatPanel>,
 
     mut execute_skill_event: EventWriter<ExecuteSkillEvent>,
+
+    // --- DEBUG ---
+    // action_displayer_query: Query<&Text, With<ActionHistoryDisplayer>>,
+    // mut last_action_displayer_query: Query<
+    //     &mut Text,
+    //     (
+    //         With<LastActionHistoryDisplayer>,
+    //         Without<ActionHistoryDisplayer>,
+    //     ),
+    // >,
+    mut actions_logs_query: Query<
+        &mut Text,
+        (
+            With<ActionsLogs>,
+            Without<LastActionHistoryDisplayer>,
+            Without<ActionHistoryDisplayer>,
+        ),
+    >,
+    // --- DEBUG END ---
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
-    let mut combat_panel = combat_panel_query.single_mut();
+    let combat_panel = combat_panel_query.single();
+
+    // --------------------- DEBUG --------------------------
+    // REFACTOR: Move these ui lines somewhere else -> [[combat::phases::phase_transition()]]
+    // IDEA: Reset or just push infinitly ?
+    let mut actions_logs_text = actions_logs_query.single_mut();
+
+    actions_logs_text.sections[0].value = String::from("---------------\nActions Logs:");
+    // --------------------- DEBUG --------------------------
 
     for Action {
         caster,
@@ -438,6 +469,18 @@ pub fn execution_phase(
             }
         }
     }
+
+    // // --------------------- DEBUG --------------------------
+    // let action_displayer_text = action_displayer_query.single();
+    // let mut last_action_displayer_text = last_action_displayer_query.single_mut();
+
+    // last_action_displayer_text.sections[0].value = action_displayer_text.sections[0]
+    //     .value
+    //     .replace("Actions:", "Last Turn Actions:");
+
+    // // Reset the action history
+    // combat_panel.history = Vec::new();
+    // // --------------------- DEBUG --------------------------
 
     transition_phase_event.send(TransitionPhaseEvent(CombatState::default()));
 }
