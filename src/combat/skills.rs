@@ -45,7 +45,7 @@ pub enum TargetSide {
 ///
 /// - Negative = MALUS
 /// - Positive = BONUS
-#[derive(Debug, Component, Clone)]
+#[derive(Debug, Component, Clone, PartialEq)]
 pub struct Skill {
     pub skill_type: SkillType,
     /// Which side the skill is allow to target
