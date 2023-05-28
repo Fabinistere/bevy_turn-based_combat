@@ -135,8 +135,6 @@ pub fn update_targeted_unit(
     // unit_selected_query: Query<(Entity, &Name, &Selected)>,
 ) {
     for event in event_query.iter() {
-        // REFACTOR: ? does this match is mandatory ? can just add Targeted to the unit. XXX
-        // same in update_seleted_unit
         match combat_unit_query.get(event.0) {
             Err(e) => warn!("The entity targeted is invalid: {:?}", e),
             Ok((character, target_name)) => {

@@ -135,26 +135,24 @@ pub fn skill_visibility(
     // If there was a transition, a changement in the one being Selected
     // ------ Reset all Skill ------
     for _ in selection_removal_query.iter() {
-        for (_, _, _, mut skill, mut visibility, children) in
-            skill_bar_query.iter_mut()
-        {
+        for (_, _, _, mut skill, mut visibility, children) in skill_bar_query.iter_mut() {
             // --- Text ---
             let mut text = text_query.get_mut(children[0]).unwrap();
             text.sections[0].value = "Pass".to_string();
             *skill = Skill::pass();
 
             // --- Visibility ---
-            let old_visibility = visibility.clone();
+            // let old_visibility = visibility.clone();
             *visibility = Visibility::Hidden;
 
-            // --- Logs ---
-            if old_visibility != *visibility {
-                // DEBUG: Skills' Visibility switcher
-                // info!(
-                //     "{:?} °{} visibility switch: {:?}",
-                //     skill_bar_type, skill_number.0, *visibility
-                // );
-            }
+            // // --- Logs ---
+            // if old_visibility != *visibility {
+            //     // DEBUG: Skills' Visibility switcher
+            //     info!(
+            //         "{:?} °{} visibility switch: {:?}",
+            //         skill_bar_type, skill_number.0, *visibility
+            //     );
+            // }
         }
     }
 
@@ -166,7 +164,7 @@ pub fn skill_visibility(
             skill_bar_query.iter_mut()
         {
             if SkillBar::Base == *skill_bar_type {
-                let old_visibility = visibility.clone();
+                // let old_visibility = visibility.clone();
                 // --- Text ---
                 let mut text = text_query.get_mut(children[0]).unwrap();
 
@@ -185,14 +183,14 @@ pub fn skill_visibility(
                     *skill = Skill::pass();
                 };
 
-                // --- Logs ---
-                if old_visibility != *visibility {
-                    // DEBUG: Skills' Visibility switcher
-                    // info!(
-                    //     "{:?} °{} visibility switch: {:?}",
-                    //     *skill_bar_type, skill_number.0, *visibility
-                    // );
-                }
+                // // --- Logs ---
+                // if old_visibility != *visibility {
+                //     // DEBUG: Skills' Visibility switcher
+                //     info!(
+                //         "{:?} °{} visibility switch: {:?}",
+                //         *skill_bar_type, skill_number.0, *visibility
+                //     );
+                // }
             }
         }
 
@@ -230,7 +228,7 @@ pub fn skill_visibility(
                         if SkillBar::Base != *skill_bar_type {
                             // info!("skill displayer: {:?}", *skill_bar_type);
 
-                            let old_visibility = visibility.clone();
+                            // let old_visibility = visibility.clone();
                             // --- Text ---
                             let mut text = text_query.get_mut(children[0]).unwrap();
 
@@ -311,14 +309,14 @@ pub fn skill_visibility(
                                 info!("Job {:?} is not associated with {:?}", *job, *weapon_type);
                             }
 
-                            // --- Logs ---
-                            if old_visibility != *visibility {
-                                // DEBUG: Skills' Visibility switcher
-                                // info!(
-                                //     "{:?} °{} visibility switch: {:?}",
-                                //     *skill_bar_type, skill_number.0, *visibility
-                                // );
-                            }
+                            // // --- Logs ---
+                            // if old_visibility != *visibility {
+                            //     // DEBUG: Skills' Visibility switcher
+                            //     info!(
+                            //         "{:?} °{} visibility switch: {:?}",
+                            //         *skill_bar_type, skill_number.0, *visibility
+                            //     );
+                            // }
                         }
                     }
                 }

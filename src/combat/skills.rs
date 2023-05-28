@@ -249,7 +249,7 @@ pub fn execute_skill(
                             .push_str(&format!("\n  - Caster is already dead: {}", caster_name));
                     } else {
                         actions_logs_text.sections[0].value.push_str(&format!(
-                            "\n  - Caster killed him.herself: {}, from {} to {}",
+                            "\n  - Caster killed him·herself: {}, from {} to {}",
                             caster_name,
                             caster_hp.current + skill_executed.hp_cost,
                             skill_executed.hp_cost

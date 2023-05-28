@@ -41,7 +41,7 @@ pub fn phase_transition(
 
     // REFACTOR: --- Abstraction Needed ---
     mut unselected_unit_query: Query<&mut ActionCount, (Without<Selected>, With<InCombat>)>,
-    // BUG: This query, by its very existence, is crashing the .single() of query<With<Selected>> (in select_skill())
+    // BUG: This query, by its very existence, is crashing the .single() of query<With<Selected>> (in select_skill()) w.t.f.
     // mut actions_logs_query: Query<
     //     &mut Text,
     //     (
@@ -133,7 +133,7 @@ pub fn phase_transition(
             // --- End of Turn ---
             (_, CombatState::RollInitiative) => {
                 // TODO: Warning if there is still action left
-                // FIXME: this is a safeguard preventing from double click the `end_of_turn` (wasn't a pb back there)
+                // XXX: this is a safeguard preventing from double click the `end_of_turn` (wasn't a pb back there)
                 if combat_panel.history.len() == 0 {
                     info!("End of Turn - Refused (no action)");
                     continue;
