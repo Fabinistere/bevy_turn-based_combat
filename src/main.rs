@@ -1,4 +1,4 @@
-// #![feature(trivial_bounds)]
+#![feature(trivial_bounds)]
 // ^^--- allow reflect on Vec<T>
 
 use bevy::{prelude::*, window::WindowResolution};

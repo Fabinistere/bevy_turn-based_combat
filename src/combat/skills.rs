@@ -45,7 +45,7 @@ pub enum TargetSide {
 ///
 /// - Negative = MALUS
 /// - Positive = BONUS
-#[derive(Debug, Component, Clone)]
+#[derive(Debug, Component, Clone, PartialEq)]
 pub struct Skill {
     pub skill_type: SkillType,
     /// Which side the skill is allow to target
@@ -249,7 +249,7 @@ pub fn execute_skill(
                             .push_str(&format!("\n  - Caster is already dead: {}", caster_name));
                     } else {
                         actions_logs_text.sections[0].value.push_str(&format!(
-                            "\n  - Caster killed him.herself: {}, from {} to {}",
+                            "\n  - Caster killed him·herself: {}, from {} to {}",
                             caster_name,
                             caster_hp.current + skill_executed.hp_cost,
                             skill_executed.hp_cost
@@ -397,6 +397,8 @@ pub fn execute_skill(
                     SkillType::Pass => {
                         // force action: Pass to the target next turn
                         // IDEA: The next action of this entity is mute or the next time won't choose an action ?
+
+                        // atm: an blank action
                     }
                     _ => {}
                 }
