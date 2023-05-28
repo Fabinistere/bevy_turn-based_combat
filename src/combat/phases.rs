@@ -14,7 +14,9 @@ use crate::{
     },
 };
 
-// ----- Transitions Between Phase -----
+/* -------------------------------------------------------------------------- */
+/*                    ----- Transitions Between Phase -----                   */
+/* -------------------------------------------------------------------------- */
 
 /// Whenever:
 /// - A system ask for a phase transition/change
@@ -39,7 +41,7 @@ pub fn phase_transition(
 
     // REFACTOR: --- Abstraction Needed ---
     mut unselected_unit_query: Query<&mut ActionCount, (Without<Selected>, With<InCombat>)>,
-    // BUG: This query, by its very existence, is crashing the .single() of query<With<Selected>> (in select_skill())
+    // BUG: This query, by its very existence, is crashing the .single() of query<With<Selected>> (in select_skill()) w.t.f.
     // mut actions_logs_query: Query<
     //     &mut Text,
     //     (
@@ -58,7 +60,6 @@ pub fn phase_transition(
         ),
     >,
 ) {
-    // TODO: event Handler to change phase
     for TransitionPhaseEvent(phase_requested) in transition_phase_event.iter() {
         let mut combat_panel = combat_panel_query.single_mut();
         let mut next_phase = phase_requested;
@@ -66,8 +67,10 @@ pub fn phase_transition(
         let default_state = CombatState::default();
 
         match (combat_panel.phase.clone(), phase_requested) {
-            (CombatState::SelectionCaster, CombatState::SelectionSkill) => {}
-            (CombatState::SelectionSkill, CombatState::SelectionCaster) => {
+            (CombatState::SelectionCaster, CombatState::SelectionSkill) => {
+                // Might be a cancel action or just a caster being selected
+            }
+            (CombatState::SelectionSkill, CombatState::SelectionSkill) => {
                 // FIXME: there is still some Targeted - While switching Caster to caster after the creation of a action
             }
             (CombatState::SelectionSkill, CombatState::SelectionTarget) => {
@@ -117,10 +120,20 @@ pub fn phase_transition(
                 };
                 // in SelectionSkill we can click another caster to switch
             }
+            // --- Cancel Transition ---
+            (CombatState::SelectionCaster, CombatState::SelectionTarget) => {
+                /* -------------------------------------------------------------------------- */
+                /*                                  Behavior                                  */
+                /* -------------------------------------------------------------------------- */
+
+                // - If the action.targets == None: bypass to SelectionSkill
+                // - ElseIf the action was a selfcast: bypass to SelectionSkill
+                // - Else: no bypass - SelectionTarget (rm the last one, still the last action IN)
+            }
             // --- End of Turn ---
             (_, CombatState::RollInitiative) => {
                 // TODO: Warning if there is still action left
-                // FIXME: this is a safeguard preventing from double click the `end_of_turn` (wasn't a pb back there)
+                // XXX: this is a safeguard preventing from double click the `end_of_turn` (wasn't a pb back there)
                 if combat_panel.history.len() == 0 {
                     info!("End of Turn - Refused (no action)");
                     continue;
@@ -138,22 +151,21 @@ pub fn phase_transition(
                 info!("End of Turn - Accepted");
             }
             (CombatState::RollInitiative, CombatState::ExecuteSkills) => {
-                // // -----------------------------------------------
+                // // --------------------- DEBUG --------------------------
                 // // REFACTOR: Move these ui lines somewhere else -> [[combat::phases::phase_transition()]]
                 // // IDEA: Reset or just push infinitly ?
                 // let mut actions_logs_text = actions_logs_query.single_mut();
 
                 // actions_logs_text.sections[0].value =
                 //     String::from("---------------\nActions Logs:");
-                // // -----------------------------------------------
+                // // --------------------- DEBUG --------------------------
             }
             // --- New Turn ---
-            // replace SelectionCaster by the default()
+            // replace SelectionCaster by CombatState::default()
             (CombatState::ExecuteSkills, CombatState::SelectionCaster) => {
                 // IDEA: add this history into a full-log to permit the player to see it.
 
-                // -----------------------------------------------
-                // REFACTOR: Move these ui related lines somewhere else
+                // --------------------- DEBUG --------------------------
                 // REFACTOR: Abstraction Needed
                 // Save the Sorted Initiative Action Historic
                 let action_displayer_text = action_displayer_query.single();
@@ -162,8 +174,7 @@ pub fn phase_transition(
                 last_action_displayer_text.sections[0].value = action_displayer_text.sections[0]
                     .value
                     .replace("Actions:", "Last Turn Actions:");
-
-                // -----------------------------------------------
+                // --------------------- DEBUG --------------------------
 
                 // Reset the action history
                 combat_panel.history = Vec::new();
@@ -189,31 +200,9 @@ pub fn phase_transition(
     }
 }
 
-// ----------- Phase Actions -----------
-
-// /// Inflict Dots and lower of 1turn all alterations duration
-// ///
-// /// # Notes
-// ///
-// /// REFACTOR: Not sure that this abstraction is usefull (not need of execution order)
-// pub fn alteration_phase(
-//     mut character_query: Query<(Entity, &Alterations), With<InCombat>>,
-//     mut combat_panel_query: Query<&mut CombatPanel>,
-
-//     mut execute_alteration_event: EventWriter<ExecuteAlterationEvent>,
-// ) {
-//     for (character, alterations) in character_query.iter_mut() {
-//         for alteration in alterations.iter() {
-//             execute_alteration_event.send(ExecuteAlterationEvent {
-//                 target: character,
-//                 alteration: alteration.clone(),
-//             });
-//         }
-//     }
-
-//     let mut combat_panel = combat_panel_query.single_mut();
-//     combat_panel.phase = CombatState::SelectionCaster;
-// }
+/* -------------------------------------------------------------------------- */
+/*                                Phase Actions                               */
+/* -------------------------------------------------------------------------- */
 
 // TODO: ShouldHave - Display mutable change (dmg, heal) (on the field)
 
@@ -221,7 +210,6 @@ pub fn phase_transition(
 ///
 /// DOC
 pub fn execute_alteration(
-    // mut execute_alteration_event: EventReader<ExecuteAlterationEvent>,
     mut character_query: Query<(
         Entity,
         &mut Hp,
@@ -237,7 +225,6 @@ pub fn execute_alteration(
 
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
-    // for ExecuteAlterationEvent { target, alteration } in execute_alteration_event.iter() {
     for (
         _character,
         mut hp,

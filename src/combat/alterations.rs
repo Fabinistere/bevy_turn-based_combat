@@ -19,7 +19,7 @@ use super::skills::*;
 
 // TODO: CouldHave - Display alteration's icon
 
-#[derive(Default, Debug, Clone, Reflect)]
+#[derive(Default, Debug, Clone, Reflect, PartialEq)]
 pub enum AlterationAction {
     #[default]
     Dots,
@@ -41,7 +41,7 @@ pub enum AlterationAction {
 /// - Curse or Benediction
 /// - Debuff or Buff
 /// - Detract or Enhance
-#[derive(Debug, Component, Clone, Reflect)]
+#[derive(Debug, Component, Clone, Reflect, PartialEq)]
 pub struct Alteration {
     /// Alteration's type
     pub action: AlterationAction,

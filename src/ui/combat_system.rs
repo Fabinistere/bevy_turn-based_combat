@@ -135,8 +135,6 @@ pub fn update_targeted_unit(
     // unit_selected_query: Query<(Entity, &Name, &Selected)>,
 ) {
     for event in event_query.iter() {
-        // REFACTOR: ? does this match is mandatory ? can just add Targeted to the unit. XXX
-        // same in update_seleted_unit
         match combat_unit_query.get(event.0) {
             Err(e) => warn!("The entity targeted is invalid: {:?}", e),
             Ok((character, target_name)) => {
@@ -144,7 +142,7 @@ pub fn update_targeted_unit(
                 info!("{} targeted", target_name);
 
                 let (_, mut combat_panel) = combat_panel_query.single_mut();
-                let mut last_action = combat_panel.history.last_mut().unwrap();
+                let last_action = combat_panel.history.last_mut().unwrap();
 
                 // TODO: ?? - impl change target/skill in the Vec<Action>
                 // Possibility to target multiple depending to the skill selected
@@ -165,10 +163,8 @@ pub fn update_targeted_unit(
                                     .send(TransitionPhaseEvent(CombatState::default()));
                             }
                         } else if targets.len() > last_action.skill.target_number {
-                            // absurd, should not happen
-                            // FIXME: error Handling -> back to a length acceptable
                             warn!(
-                                "The number of target is exceeded {}/{}",
+                                "Error! The number of target is exceeded {}/{}",
                                 targets.len(),
                                 last_action.skill.target_number
                             );

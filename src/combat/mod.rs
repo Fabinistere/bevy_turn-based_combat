@@ -166,7 +166,7 @@ impl Default for CombatBundle {
             alterations: Alterations(Vec::new()),
             skills: Skills(Vec::new()),
             equipements: Equipements { weapon: None, armor: None },
-            action_count: ActionCount::new(BASE_ACTION_COUNT), // ActionCount::default()
+            action_count: ActionCount::default(),
             stats: StatBundle::default()
         }
     }
