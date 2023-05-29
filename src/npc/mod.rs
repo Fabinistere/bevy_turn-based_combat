@@ -6,7 +6,7 @@ use crate::{
     combat::{
         skills::Skill,
         stuff::{Equipements, Job, SkillTiers, WeaponBundle, WeaponType},
-        CombatBundle, InCombat, Karma, Recruted, Skills, Team,
+        ActionCount, CombatBundle, InCombat, Karma, Recruted, Skills, Team,
     },
     constants::{
         character::npc::{
@@ -90,6 +90,7 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
                 armor: None,
             },
             job: Job::Musician,
+            action_count: ActionCount::new(20),
             ..Default::default()
         },
         // -- UI Related Components --

@@ -8,6 +8,8 @@ use crate::combat::{
     CombatState,
 };
 
+use self::initiative_bar::SpriteNames;
+
 pub mod character_sheet;
 pub mod combat_panel;
 pub mod combat_system;
@@ -34,6 +36,8 @@ impl Plugin for UiPlugin {
 
             .add_event::<combat_system::UpdateUnitSelectedEvent>()
             .add_event::<combat_system::UpdateUnitTargetedEvent>()
+
+            .init_resource::<SpriteNames>()
 
             .add_startup_system(combat_panel::setup.in_set(UiLabel::Textures))
 

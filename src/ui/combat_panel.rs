@@ -8,7 +8,7 @@ use bevy::{
 
 use crate::{
     combat::{skills::Skill, CombatPanel, CombatState},
-    constants::ui::dialogs::*,
+    constants::ui::{dialogs::*, style::*},
     ui::combat_system::{
         ActionHistoryDisplayer, ActionsLogs, HpMeter, LastActionHistoryDisplayer, MpMeter,
     },
@@ -77,6 +77,10 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                 style: Style {
                                     size: Size::new(Val::Px(200.0), Val::Px(65.0)),
                                     margin: UiRect::all(Val::Auto),
+                                    position: UiRect {
+                                        top: Val::Percent(5.),
+                                        ..default()
+                                    },
                                     justify_content: JustifyContent::Center,
                                     align_items: AlignItems::Center,
                                     ..default()
@@ -103,6 +107,10 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                         .spawn((
                             NodeBundle {
                                 style: Style {
+                                    position: UiRect {
+                                        top: Val::Percent(5.),
+                                        ..default()
+                                    },
                                     flex_direction: FlexDirection::Column,
                                     flex_grow: 1.0,
                                     max_size: Size::UNDEFINED,
@@ -231,26 +239,16 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     parent
                         .spawn((
                             NodeBundle {
-                                style: Style {
-                                    flex_direction: FlexDirection::Column,
-                                    align_self: AlignSelf::FlexStart,
-                                    overflow: Overflow::Hidden,
-                                    ..default()
-                                },
+                                style: LIST_HIDDEN_OVERFLOW_STYLE,
                                 ..default()
                             },
-                            Name::new("List with hidden overflow"),
+                            Name::new("List of Actions"),
                         ))
                         .with_children(|parent| {
                             parent
                                 .spawn((
                                     NodeBundle {
-                                        style: Style {
-                                            flex_direction: FlexDirection::Column,
-                                            max_size: Size::UNDEFINED,
-                                            align_items: AlignItems::FlexStart,
-                                            ..default()
-                                        },
+                                        style: MOVING_PANEL_STYLE,
                                         ..default()
                                     },
                                     Name::new("Moving Panel"),
@@ -262,21 +260,11 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                     // 36 max actions (12entities playing thrice)
 
                                     for action_count in 0..36 {
+                                        // each Button contains, as child, text and its sprite (caster's head)
                                         parent
                                             .spawn((
                                                 ButtonBundle {
-                                                    style: Style {
-                                                        size: Size::new(
-                                                            // TODO: Convert these Px into Percent
-                                                            Val::Percent(100.), // Val::Px(103.),
-                                                            Val::Px(103.),
-                                                        ),
-                                                        margin: UiRect::all(Val::Auto),
-                                                        justify_content: JustifyContent::Center,
-                                                        align_items: AlignItems::Center,
-                                                        position: UiRect::default(),
-                                                        ..default()
-                                                    },
+                                                    style: ACTION_BUTTON_STYLE,
                                                     background_color: NORMAL_BUTTON.into(),
                                                     visibility: Visibility::Hidden,
                                                     ..default()
@@ -290,27 +278,45 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                             .with_children(|parent| {
                                                 parent.spawn(TextBundle::from_section(
                                                     format!("Action {}", action_count),
-                                                    TextStyle {
-                                                        font: asset_server
-                                                            .load("fonts/dpcomic.ttf"),
-                                                        font_size: 20.,
-                                                        color: Color::rgb(0.9, 0.9, 0.9),
-                                                    },
+                                                    get_text_style(&asset_server, 20.),
                                                 ));
 
-                                                // parent.spawn((SpriteSheetBundle {
-                                                //     sprite: TextureAtlasSprite {
-                                                //         index: FABIEN_STARTING_ANIM,
-                                                //         flip_x: true,
+                                                // TODO: Upgrade when Available - use Spritesheet
+                                                parent.spawn((
+                                                    ImageBundle {
+                                                        image: UiImage {
+                                                            texture: asset_server.load(
+                                                                "textures/character/idle/idle_Fabien_Loyal.png",
+                                                            ),
+                                                            flip_x: true,
+                                                            ..default()
+                                                        },
+                                                        ..default()
+                                                    } ,
+                                                    Name::new(format!("Sprite {}", action_count)),
+                                                ));
+
+                                                // REFACTOR: Not IN - SpriteSheet doesn't work with UIElement
+                                                // parent.spawn((
+                                                //     SpriteSheetBundle {
+                                                //         sprite: TextureAtlasSprite {
+                                                //             index: FABIEN_STARTING_ANIM,
+                                                //             flip_x: true,
+                                                //             ..default()
+                                                //         },
+                                                //         texture_atlas: fabien.0.clone(),
+                                                //         transform: Transform {
+                                                //             scale: Vec3::splat(NPC_SCALE),
+                                                //             ..default()
+                                                //         },
                                                 //         ..default()
                                                 //     },
-                                                //     texture_atlas: fabien.0.clone(),
-                                                //     transform: Transform {
-                                                //         scale: Vec3::splat(NPC_SCALE),
-                                                //         ..default()
-                                                //     },
-                                                //     ..default()
-                                                // },));
+                                                //     Name::new(format!("Sprite {}", action_count)),
+                                                //     // --- Fake the UI ---
+                                                //     Style::default(),
+                                                //     CalculatedSize::default(),
+                                                //     Node::default(),
+                                                // ));
                                             });
                                     }
                                 });
@@ -340,6 +346,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                 style: Style {
                                     size: Size::height(Val::Percent(42.)),
                                     flex_direction: FlexDirection::Column,
+                                    // align_items: AlignItems::Center,
                                     ..default()
                                 },
                                 background_color: Color::AZURE.into(),
@@ -349,8 +356,6 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                         ))
                         .with_children(|parent| {
                             // A catalogue, one row for basic skill, a row for tier2 ,etc (simplify a lot skill_visibility)
-                            // TODO: Scrolling list of all the catalogue
-
                             parent
                                 .spawn((
                                     NodeBundle {
@@ -372,20 +377,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                         parent
                                             .spawn((
                                                 ButtonBundle {
-                                                    style: Style {
-                                                        size: Size::new(
-                                                            Val::Px(150.0),
-                                                            Val::Px(65.0),
-                                                        ),
-                                                        // center button
-                                                        margin: UiRect::all(Val::Auto),
-                                                        // horizontally center child text
-                                                        justify_content: JustifyContent::Center,
-                                                        // vertically center child text
-                                                        align_items: AlignItems::Center,
-                                                        position: UiRect::default(),
-                                                        ..default()
-                                                    },
+                                                    style: SKILL_BUTTON_STYLE,
                                                     background_color: NORMAL_BUTTON.into(),
                                                     visibility: Visibility::Hidden,
                                                     ..default()
@@ -400,12 +392,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                             .with_children(|parent| {
                                                 parent.spawn(TextBundle::from_section(
                                                     format!("Skill {}", skill_count),
-                                                    TextStyle {
-                                                        font: asset_server
-                                                            .load("fonts/dpcomic.ttf"),
-                                                        font_size: 40.0,
-                                                        color: Color::rgb(0.9, 0.9, 0.9),
-                                                    },
+                                                    get_text_style(&asset_server, 40.),
                                                 ));
                                             });
                                     }
@@ -613,12 +600,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                             parent
                                 .spawn((
                                     NodeBundle {
-                                        style: Style {
-                                            flex_direction: FlexDirection::Column,
-                                            max_size: Size::UNDEFINED,
-                                            align_items: AlignItems::Center,
-                                            ..default()
-                                        },
+                                        style: MOVING_PANEL_STYLE,
                                         ..default()
                                     },
                                     ScrollingList::default(),
@@ -631,11 +613,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                     parent.spawn((
                                         TextBundle::from_section(
                                             format!("Combat Phase: ???"),
-                                            TextStyle {
-                                                font: asset_server.load("fonts/dpcomic.ttf"),
-                                                font_size: 20.,
-                                                color: Color::WHITE,
-                                            },
+                                            get_text_style(&asset_server, 20.),
                                         )
                                         .with_style(
                                             Style {
@@ -667,11 +645,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                     parent.spawn((
                                         TextBundle::from_section(
                                             format!("---------------\nActions:"),
-                                            TextStyle {
-                                                font: asset_server.load("fonts/dpcomic.ttf"),
-                                                font_size: 20.,
-                                                color: Color::WHITE,
-                                            },
+                                            get_text_style(&asset_server, 20.),
                                         )
                                         .with_style(
                                             Style {
@@ -696,11 +670,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                     parent.spawn((
                                         TextBundle::from_section(
                                             format!("---------------\nLast Actions:"),
-                                            TextStyle {
-                                                font: asset_server.load("fonts/dpcomic.ttf"),
-                                                font_size: 20.,
-                                                color: Color::WHITE,
-                                            },
+                                            get_text_style(&asset_server, 20.),
                                         )
                                         .with_style(
                                             Style {
@@ -725,11 +695,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                     parent.spawn((
                                         TextBundle::from_section(
                                             format!("---------------\nActions Logs:"),
-                                            TextStyle {
-                                                font: asset_server.load("fonts/dpcomic.ttf"),
-                                                font_size: 20.,
-                                                color: Color::WHITE,
-                                            },
+                                            get_text_style(&asset_server, 20.),
                                         )
                                         .with_style(
                                             Style {
@@ -754,11 +720,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                     parent.spawn((
                                         TextBundle::from_section(
                                             format!("---------------"),
-                                            TextStyle {
-                                                font: asset_server.load("fonts/dpcomic.ttf"),
-                                                font_size: 20.,
-                                                color: Color::WHITE,
-                                            },
+                                            get_text_style(&asset_server, 20.),
                                         )
                                         .with_style(
                                             Style {

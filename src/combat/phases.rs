@@ -190,12 +190,12 @@ pub fn phase_transition(
             _ => {}
         }
 
-        info!(
-            "Phase: {:?} to {:?} (was requested: {:?})",
-            combat_panel.phase.clone(),
-            next_phase.clone(),
-            phase_requested.clone(),
-        );
+        // info!(
+        //     "Phase: {:?} to {:?} (was requested: {:?})",
+        //     combat_panel.phase.clone(),
+        //     next_phase.clone(),
+        //     phase_requested.clone(),
+        // );
         combat_panel.phase = next_phase.clone();
     }
 }

@@ -72,6 +72,9 @@ pub mod combat {
 }
 
 pub mod ui {
+
+    pub const DRAGGED_ENTITY_Z: f32 = 100.0;
+
     pub mod dialogs {
         use bevy::prelude::Color;
 
@@ -85,5 +88,56 @@ pub mod ui {
         pub const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
     }
 
-    pub const DRAGGED_ENTITY_Z: f32 = 100.0;
+    pub mod style {
+        //, text::TextStyle, ui::*
+        use bevy::prelude::*;
+
+        pub fn get_text_style(asset_server: &Res<AssetServer>, font_size: f32) -> TextStyle {
+            TextStyle {
+                font: asset_server.load("fonts/dpcomic.ttf"),
+                font_size,
+                color: Color::rgb(0.9, 0.9, 0.9),
+            }
+        }
+
+        pub const LIST_HIDDEN_OVERFLOW_STYLE: Style = Style {
+            flex_direction: FlexDirection::Column,
+            align_self: AlignSelf::Stretch,
+            overflow: Overflow::Hidden,
+            ..Style::DEFAULT
+        };
+
+        pub const MOVING_PANEL_STYLE: Style = Style {
+            flex_direction: FlexDirection::Column,
+            flex_wrap: FlexWrap::NoWrap,
+            max_size: Size::UNDEFINED,
+            align_items: AlignItems::FlexStart,
+            ..Style::DEFAULT
+        };
+
+        pub const SKILL_BUTTON_STYLE: Style = Style {
+            size: Size::new(Val::Px(150.0), Val::Px(65.0)),
+            // center button
+            margin: UiRect::all(Val::Auto),
+            // horizontally center child text
+            justify_content: JustifyContent::Center,
+            // vertically center child text
+            align_items: AlignItems::Center,
+            position: UiRect::DEFAULT,
+            ..Style::DEFAULT
+        };
+
+        pub const ACTION_BUTTON_STYLE: Style = Style {
+            size: Size::new(
+                Val::Px(154.), // Val::Percent(100.),
+                Val::Px(103.),
+            ),
+            justify_content: JustifyContent::Center,
+            flex_direction: FlexDirection::ColumnReverse,
+            flex_wrap: FlexWrap::NoWrap,
+            align_items: AlignItems::Center,
+            position: UiRect::DEFAULT,
+            ..Style::DEFAULT
+        };
+    }
 }
