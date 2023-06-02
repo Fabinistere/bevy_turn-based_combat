@@ -51,6 +51,7 @@ impl Plugin for UiPlugin {
                     player_interaction::cancel_last_input,
                 ).in_set(UiLabel::Player)
             )
+            .add_system(player_interaction::action_button.after(initiative_bar::action_visibility))
             
             /* -------------------------------------------------------------------------- */
             /*                            --- Limited Phase ---                           */

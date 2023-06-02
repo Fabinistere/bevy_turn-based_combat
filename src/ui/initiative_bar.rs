@@ -86,7 +86,7 @@ impl FromWorld for SpriteNames {
 ///
 /// Prevents checking a index in the action list.
 pub fn action_visibility(
-    combat_panel_query: Query<&CombatPanel, Changed<CombatPanel>>,
+    combat_panel: Res<CombatPanel>,
     mut action_button_query: Query<(&ActionDisplayer, &mut Visibility, &Children), With<Button>>,
     // mut action_sprite_query: Query<&mut TextureAtlasSprite, Without<InCombat>>,
     mut action_image_query: Query<&mut UiImage, Without<InCombat>>,
@@ -96,7 +96,7 @@ pub fn action_visibility(
     asset_server: Res<AssetServer>,
     sprite_names: Res<SpriteNames>,
 ) {
-    if let Ok(combat_panel) = combat_panel_query.get_single() {
+    if combat_panel.is_changed() {
         for (action_number, mut visibility, action_children) in action_button_query.iter_mut() {
             // let mut action_sprite = action_sprite_query.get_mut(action_children[1]).unwrap();
             let mut action_image = action_image_query.get_mut(action_children[1]).unwrap();

@@ -25,6 +25,9 @@ pub struct HpMeter;
 pub struct MpMeter;
 
 #[derive(Component)]
+pub struct CombatStateDisplayer;
+
+#[derive(Component)]
 pub struct ActionHistoryDisplayer;
 
 #[derive(Component)]
@@ -140,7 +143,7 @@ pub fn update_targeted_unit(
 
     combat_unit_query: Query<(Entity, &Name), With<InCombat>>,
 
-    mut combat_panel_query: Query<(Entity, &mut CombatPanel)>,
+    mut combat_panel: ResMut<CombatPanel>,
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
     // DEBUG DISPLAYER
     // unit_selected_query: Query<(Entity, &Name, &Selected)>,
@@ -152,7 +155,6 @@ pub fn update_targeted_unit(
                 commands.entity(character).insert(Targeted);
                 info!("{} targeted", target_name);
 
-                let (_, mut combat_panel) = combat_panel_query.single_mut();
                 let last_action = combat_panel.history.last_mut().unwrap();
 
                 // TODO: ?? - impl change target/skill in the Vec<Action>
@@ -220,14 +222,12 @@ pub fn update_targeted_unit(
 ///
 /// DEBUG
 pub fn update_combat_phase_displayer(
-    mut combat_panel_query: Query<
-        (Entity, &CombatPanel, &mut Text),
-        Or<(Added<CombatPanel>, Changed<CombatPanel>)>,
-    >,
+    combat_panel: Res<CombatPanel>,
+    mut combat_state_displayer_query: Query<&mut Text, With<CombatStateDisplayer>>,
 ) {
-    if let Ok((_, combat_panel, mut text)) = combat_panel_query.get_single_mut() {
-        let phase_display = format!("Combat Phase: {}", combat_panel.phase);
-        text.sections[0].value = phase_display;
+    if combat_panel.is_changed() {
+        let mut text = combat_state_displayer_query.single_mut();
+        text.sections[0].value = format!("Combat Phase: {}", combat_panel.phase);
     }
 }
 
@@ -237,11 +237,11 @@ pub fn update_combat_phase_displayer(
 ///
 /// DEBUG
 pub fn last_action_displayer(
-    mut combat_panel_query: Query<(Entity, &CombatPanel), Changed<CombatPanel>>,
+    combat_panel: Res<CombatPanel>,
     unit_combat_query: Query<(Entity, &Name), With<InCombat>>,
     mut action_displayer_query: Query<&mut Text, With<ActionHistoryDisplayer>>,
 ) {
-    if let Ok((_, combat_panel)) = combat_panel_query.get_single_mut() {
+    if combat_panel.is_changed() {
         let mut action_displayer_text = action_displayer_query.single_mut();
 
         let mut history = String::from("---------------\nActions:");

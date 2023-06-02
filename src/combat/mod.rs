@@ -37,7 +37,7 @@ use bevy::prelude::*;
 use crate::constants::combat::BASE_ACTION_COUNT;
 
 use self::{
-    alterations::Alteration, phases::observation, skills::Skill, stats::StatBundle,
+    alterations::Alteration, phases::observation, skills::{Skill, TargetOption}, stats::StatBundle,
     stuff::{Equipements, JobsMasteries, Job},
 };
 
@@ -95,19 +95,13 @@ pub struct CombatPlugin;
 impl Plugin for CombatPlugin {
     fn build(&self, app: &mut App) {
         app
-            // .insert_resource(
-            //     CombatPanel {
-            //         phase: CombatState::SelectionCaster,
-            //         history: vec![],
-            //     }
-            // )
+            .init_resource::<CombatPanel>()
+            .init_resource::<JobsMasteries>()
             
             .add_event::<phases::TransitionPhaseEvent>()
             .add_event::<skills::ExecuteSkillEvent>()
-            // .add_event::<alterations::ExecuteAlterationEvent>()
             .add_event::<tactical_position::UpdateCharacterPositionEvent>()
 
-            .init_resource::<JobsMasteries>()
 
             .add_startup_system(stuff::spawn_stuff)
             
@@ -144,7 +138,7 @@ impl Plugin for CombatPlugin {
             .add_system(tactical_position::detect_window_tactical_pos_change)
             .add_system(
                 tactical_position::update_character_position
-                // .after(tactical_position::detect_window_tactical_pos_change)
+                .after(tactical_position::detect_window_tactical_pos_change)
             )
             // .add_systems(
             //     (show_hp, show_mana)
@@ -269,11 +263,47 @@ impl Default for TacticalPosition {
 /*                         -- Combat Core Operation --                        */
 /* -------------------------------------------------------------------------- */
 
-/// REFACTOR: Resource ?
-#[derive(Default, Component)]
+#[derive(Resource, Reflect, Debug)]
 pub struct CombatPanel {
     pub phase: CombatState,
     pub history: Vec<Action>,
+    pub number_of_fighters: GlobalFighterStats,
+}
+
+impl FromWorld for CombatPanel {
+    fn from_world(
+        world: &mut World,
+    ) -> Self {
+        let mut allies_query = world.query_filtered::<Entity, (With<Recruted>, With<InCombat>)>();
+        let allies = allies_query.iter(&world).collect::<Vec<Entity>>();
+
+        let mut enemies_query = world.query_filtered::<Entity, (Without<Recruted>, With<InCombat>)>();
+        let enemies = enemies_query.iter(&world).collect::<Vec<Entity>>();
+
+        CombatPanel {
+            phase: CombatState::default(),
+            history: Vec::new(),
+            number_of_fighters: GlobalFighterStats::new(allies.len(), enemies.len())
+        }
+    }
+}
+
+/// TODO: Count down knockout people
+#[derive(Default, Reflect, Debug, Clone)]
+pub struct GlobalFighterStats {
+    /// (alive, knockout)
+    pub ally: (usize, usize),
+    /// (alive, knockout)
+    pub enemy: (usize, usize),
+}
+
+impl GlobalFighterStats {
+    pub fn new(number_of_allies: usize, number_of_enemies: usize) -> Self {
+        GlobalFighterStats {
+            ally: (number_of_allies, number_of_allies),
+            enemy: (number_of_enemies, number_of_enemies),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -312,6 +342,46 @@ impl Action {
             initiative: -1,
         }
     }
+
+    /// Verify if the action has the good number of target depending its skill
+    /// 
+    /// # Note
+    ///
+    /// is finished/complete/full
+    pub fn is_correct(&self, number_of_fighters: GlobalFighterStats) -> bool {
+        match self.skill.target_option {
+            TargetOption::All => {
+                match &self.targets {
+                    Some(targets) => targets.len() == (number_of_fighters.enemy.0 + number_of_fighters.ally.0),
+                    None => false
+                }
+            }
+            TargetOption::AllEnemy => {
+                match &self.targets {
+                    Some(targets) => targets.len() == number_of_fighters.enemy.0,
+                    None => false
+                }
+            }
+            TargetOption::AllAlly => {
+                match &self.targets {
+                    Some(targets) => targets.len() == number_of_fighters.ally.0,
+                    None => false
+                }
+            }
+            TargetOption::AllyButSelf(number) | TargetOption::Ally(number) | TargetOption::Enemy(number) => {
+                match &self.targets {
+                    Some(targets) => targets.len() == number,
+                    None => false
+                }
+            }
+            TargetOption::OneSelf => {
+                match &self.targets {
+                    Some(targets) => targets.len() == 1,
+                    None => false
+                }
+            }
+        }
+    }
 }
 
 impl Ord for Action {
@@ -339,42 +409,36 @@ impl Eq for Action {}
 /*                             -- Run Criteria --                             */
 /* -------------------------------------------------------------------------- */
 
-pub fn in_initiation_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
-    let combat_panel = combat_panel_query.single();
+// REFACTOR: Change CombatState to be GlobalState (in the world)
+
+pub fn in_initiation_phase(combat_panel: Res<CombatPanel>) -> bool {
     combat_panel.phase == CombatState::Initiation
 }
 
-pub fn in_alteration_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
-    let combat_panel = combat_panel_query.single();
+pub fn in_alteration_phase(combat_panel: Res<CombatPanel>) -> bool {
     combat_panel.phase == CombatState::AlterationsExecution
 }
 
-pub fn in_caster_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
-    let combat_panel = combat_panel_query.single();
+pub fn in_caster_phase(combat_panel: Res<CombatPanel>) -> bool {
     combat_panel.phase == CombatState::SelectionCaster
 }
 
-pub fn in_skill_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
-    let combat_panel = combat_panel_query.single();
+pub fn in_skill_phase(combat_panel: Res<CombatPanel>) -> bool {
     combat_panel.phase == CombatState::SelectionSkill
 }
 
-pub fn in_target_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
-    let combat_panel = combat_panel_query.single();
+pub fn in_target_phase(combat_panel: Res<CombatPanel>) -> bool {
     combat_panel.phase == CombatState::SelectionTarget
 }
 
-pub fn in_initiative_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
-    let combat_panel = combat_panel_query.single();
+pub fn in_initiative_phase(combat_panel: Res<CombatPanel>) -> bool {
     combat_panel.phase == CombatState::RollInitiative
 }
 
-pub fn in_executive_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
-    let combat_panel = combat_panel_query.single();
+pub fn in_executive_phase(combat_panel: Res<CombatPanel>) -> bool {
     combat_panel.phase == CombatState::ExecuteSkills
 }
 
-pub fn in_evasive_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
-    let combat_panel = combat_panel_query.single();
+pub fn in_evasive_phase(combat_panel: Res<CombatPanel>) -> bool {
     combat_panel.phase == CombatState::Evasion
 }

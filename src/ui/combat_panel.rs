@@ -7,12 +7,15 @@ use bevy::{
 };
 
 use crate::{
-    combat::{skills::Skill, CombatPanel, CombatState},
+    combat::skills::Skill,
     constants::ui::{dialogs::*, style::*},
-    ui::combat_system::{
-        ActionHistoryDisplayer, ActionsLogs, HpMeter, LastActionHistoryDisplayer, MpMeter,
+    ui::{
+        combat_system::{
+            ActionHistoryDisplayer, ActionsLogs, CombatStateDisplayer, HpMeter,
+            LastActionHistoryDisplayer, MpMeter,
+        },
+        player_interaction::{EndOfTurnButton, ScrollingList},
     },
-    ui::player_interaction::{EndOfTurnButton, ScrollingList},
 };
 
 /// XXX: Useless component used to differentiate Hp/MpMeters of a target or a caster
@@ -627,12 +630,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                                 ..default()
                                             },
                                         ),
-                                        // TODO: Move it somewhere else
-                                        // CombatState::Initiation
-                                        CombatPanel {
-                                            phase: CombatState::SelectionCaster,
-                                            history: vec![],
-                                        },
+                                        CombatStateDisplayer,
                                         Name::new("Combat Phase"),
                                         // -- UI --
                                         // Because this is a distinct label widget and

@@ -34,7 +34,7 @@ pub fn phase_transition(
     mut transition_phase_event: EventReader<TransitionPhaseEvent>,
 
     mut commands: Commands,
-    mut combat_panel_query: Query<&mut CombatPanel>,
+    mut combat_panel: ResMut<CombatPanel>,
 
     mut selected_unit_query: Query<(Entity, &mut ActionCount), With<Selected>>,
     targeted_unit_query: Query<(Entity, &Name), With<Targeted>>,
@@ -61,7 +61,6 @@ pub fn phase_transition(
     >,
 ) {
     for TransitionPhaseEvent(phase_requested) in transition_phase_event.iter() {
-        let mut combat_panel = combat_panel_query.single_mut();
         let mut next_phase = phase_requested;
 
         let default_state = CombatState::default();
@@ -332,12 +331,10 @@ pub fn observation() {
 /// In case of egality: pick the higher initiative boyo to be on top
 pub fn roll_initiative(
     npc_query: Query<(&Initiative, &Alterations), With<NPC>>,
-    mut combat_panel_query: Query<&mut CombatPanel>,
+    mut combat_panel: ResMut<CombatPanel>,
 
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
-    let mut combat_panel = combat_panel_query.single_mut();
-
     let mut initiatives: Vec<Action> = Vec::new();
 
     for action in combat_panel.history.iter_mut() {
@@ -404,7 +401,7 @@ pub fn roll_initiative(
 }
 
 pub fn execution_phase(
-    combat_panel_query: Query<&CombatPanel>,
+    combat_panel: Res<CombatPanel>,
 
     mut execute_skill_event: EventWriter<ExecuteSkillEvent>,
 
@@ -428,8 +425,6 @@ pub fn execution_phase(
     // --- DEBUG END ---
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
-    let combat_panel = combat_panel_query.single();
-
     // --------------------- DEBUG --------------------------
     // REFACTOR: Move these ui lines somewhere else -> [[combat::phases::phase_transition()]]
     // IDEA: Reset or just push infinitly ?
