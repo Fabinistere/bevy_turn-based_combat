@@ -75,6 +75,40 @@ pub mod ui {
 
     pub const DRAGGED_ENTITY_Z: f32 = 100.0;
 
+    pub mod fighting_hall_position {
+        /* -------------------------------------------------------------------------- */
+        /*                               Enemy Position                               */
+        /* -------------------------------------------------------------------------- */
+
+        pub const ENEMY_FRONTLINE_LEFT: (f32, f32) = (5., 8.);
+        pub const ENEMY_FRONTLINE_MIDDLE: (f32, f32) = (7., 10.);
+        pub const ENEMY_FRONTLINE_RIGHT: (f32, f32) = (9., 12.);
+
+        pub const ENEMY_MIDDLELINE_LEFT: (f32, f32) = (3., 10.);
+        pub const ENEMY_MIDDLELINE_MIDDLE: (f32, f32) = (5., 12.);
+        pub const ENEMY_MIDDLELINE_RIGHT: (f32, f32) = (7., 14.);
+
+        pub const ENEMY_BACKLINE_LEFT: (f32, f32) = (1., 12.);
+        pub const ENEMY_BACKLINE_MIDDLE: (f32, f32) = (3., 14.);
+        pub const ENEMY_BACKLINE_RIGHT: (f32, f32) = (5., 16.);
+
+        /* -------------------------------------------------------------------------- */
+        /*                                Ally Position                               */
+        /* -------------------------------------------------------------------------- */
+
+        pub const ALLY_FRONTLINE_LEFT: (f32, f32) = (9., 5.);
+        pub const ALLY_FRONTLINE_MIDDLE: (f32, f32) = (11., 7.);
+        pub const ALLY_FRONTLINE_RIGHT: (f32, f32) = (13., 9.);
+
+        pub const ALLY_MIDDLELINE_LEFT: (f32, f32) = (11., 3.);
+        pub const ALLY_MIDDLELINE_MIDDLE: (f32, f32) = (13., 5.);
+        pub const ALLY_MIDDLELINE_RIGHT: (f32, f32) = (15., 7.);
+
+        pub const ALLY_BACKLINE_LEFT: (f32, f32) = (13., 1.);
+        pub const ALLY_BACKLINE_MIDDLE: (f32, f32) = (15., 3.);
+        pub const ALLY_BACKLINE_RIGHT: (f32, f32) = (17., 5.);
+    }
+
     pub mod dialogs {
         use bevy::prelude::Color;
 

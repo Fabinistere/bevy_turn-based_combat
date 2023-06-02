@@ -108,6 +108,12 @@ pub struct ScrollingList {
     position: f32,
 }
 
+/// # Note
+///
+/// TODO: Unsynchronise lists (scroll only if the cursor is on the list in question)
+///
+/// TODO: Customise the mouse scrolling system for actions (could also work with the skills menu overflow)
+/// TODO: (Prevent) Only allow scrolling on visible actions
 pub fn mouse_scroll(
     mut mouse_wheel_events: EventReader<MouseWheel>,
     mut query_list: Query<(&mut ScrollingList, &mut Style, &Parent, &Node)>,

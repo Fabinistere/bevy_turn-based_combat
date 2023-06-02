@@ -15,14 +15,16 @@ Assets are deported on a different cloud to stop wasting git use which is very c
 
 ## Features
 
-- DONE: Display Actions
-- DONE: Confirm Actions
-- DONE: Roll Initiative
-- DONE: Execute in order Actions
-- DONE: Nice, Smooth and intuitive ui inputs
-- DONE: Scrolling Logs
-- DONE: Display all skill per entity (when selected)
-- DONE: Display all action in the Initiative Vertical Bar
+- Display Actions
+- Confirm Actions
+- Roll Initiative
+- Execute in order Actions
+- Nice, Smooth and intuitive ui inputs
+- Scrolling Logs
+- Display all skill per entity (when selected)
+- Display all action in the Initiative Vertical Bar
+- Place Fighters corresponding of their tactical position (diamond shape)
+- TODO: Update fighters' transform % window's size
 - TODO: Display all basic stats on the Fighting Hall (Hp/Mp under all entities)
 
 ## Example
