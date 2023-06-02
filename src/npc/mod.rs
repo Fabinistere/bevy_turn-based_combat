@@ -6,15 +6,10 @@ use crate::{
     combat::{
         skills::Skill,
         stuff::{Equipements, Job, SkillTiers, WeaponBundle, WeaponType},
-        ActionCount, CombatBundle, InCombat, Karma, Recruted, Skills, Team,
+        ActionCount, CombatBundle, InCombat, Karma, Recruted, Skills, TacticalPlace,
+        TacticalPosition, Team,
     },
-    constants::{
-        character::npc::{
-            movement::{ADMIRAL_POSITION, FABICURION_POSITION, HUGO_POSITION, OLF_POSITION},
-            *,
-        },
-        combat::team::*,
-    },
+    constants::{character::npc::*, combat::team::*},
     spritesheet::FabienSheet,
     ui::player_interaction::{Clickable, Hoverable, SpriteSize, SPRITE_SIZE},
 };
@@ -27,8 +22,7 @@ pub struct NPCPlugin;
 
 impl Plugin for NPCPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(spawn_characters)
-            .add_startup_system(spawn_aggresives_characters);
+        app.add_startup_system(spawn_characters);
     }
 }
 
@@ -36,8 +30,11 @@ impl Plugin for NPCPlugin {
 // the npc_z_position
 
 fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
-    // ---- Equipements ----
-    // TODO: Equip Stuff from Inventory (+ spawn this weapon in the team's inventory)
+    /* -------------------------------------------------------------------------- */
+    /*                            ---- Equipements ----                           */
+    /* -------------------------------------------------------------------------- */
+    // TODO: feat - Equip Stuff from Inventory (+ spawn this weapon in the team's inventory)
+    // TODO: feat - Team's Inventory
 
     let bass = commands
         .spawn(WeaponBundle {
@@ -54,7 +51,9 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
         })
         .id();
 
-    // ---- Characters ----
+    /* -------------------------------------------------------------------------- */
+    /*                            ---- Characters ----                            */
+    /* -------------------------------------------------------------------------- */
 
     // ADMIRAL
     commands.spawn((
@@ -66,8 +65,7 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
             },
             texture_atlas: fabien.0.clone(),
             transform: Transform {
-                translation: Vec3::from(ADMIRAL_POSITION),
-                scale: Vec3::splat(NPC_SCALE),
+                scale: Vec3::splat(NPC_SCALE * 1.),
                 ..default()
             },
             ..default()
@@ -91,6 +89,7 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
             },
             job: Job::Musician,
             action_count: ActionCount::new(20),
+            tactical_position: TacticalPosition::FrontLine(TacticalPlace::Left),
             ..Default::default()
         },
         // -- UI Related Components --
@@ -108,8 +107,7 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
             },
             texture_atlas: fabien.0.clone(),
             transform: Transform {
-                translation: Vec3::from(HUGO_POSITION),
-                scale: Vec3::splat(NPC_SCALE),
+                scale: Vec3::splat(NPC_SCALE * 1.),
                 ..default()
             },
             ..default()
@@ -127,23 +125,25 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
             team: Team(Some(TEAM_MC)),
             karma: Karma(100),
             skills: Skills(vec![Skill::bam(), Skill::implosion(), Skill::pass()]),
+            tactical_position: TacticalPosition::FrontLine(TacticalPlace::Middle),
             ..Default::default()
         },
         // -- UI Related Components --
         Hoverable,
         Clickable,
     ));
-}
 
-fn spawn_aggresives_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
+    /* -------------------------------------------------------------------------- */
+    /*                              ---- Enemies ----                             */
+    /* -------------------------------------------------------------------------- */
+
     // OLF
     commands.spawn((
         SpriteSheetBundle {
             sprite: TextureAtlasSprite::new(OLF_STARTING_ANIM),
             texture_atlas: fabien.0.clone(),
             transform: Transform {
-                translation: Vec3::from(OLF_POSITION),
-                scale: Vec3::splat(NPC_SCALE),
+                scale: Vec3::splat(NPC_SCALE * 1.),
                 ..default()
             },
             ..default()
@@ -164,6 +164,7 @@ fn spawn_aggresives_characters(mut commands: Commands, fabien: Res<FabienSheet>)
                 weapon: None,
                 armor: None,
             },
+            tactical_position: TacticalPosition::FrontLine(TacticalPlace::Middle),
             ..Default::default()
         },
         // -- UI Related Components --
@@ -173,19 +174,14 @@ fn spawn_aggresives_characters(mut commands: Commands, fabien: Res<FabienSheet>)
 
     // Two FABICURION
     for i in 0..2 {
-        let name = "NPC Fabicurion nmb".replace("nmb", &i.to_string());
+        let name = format!("NPC Fabicurion {}", i);
 
         commands.spawn((
             SpriteSheetBundle {
                 sprite: TextureAtlasSprite::new(FABICURION_STARTING_ANIM),
                 texture_atlas: fabien.0.clone(),
                 transform: Transform {
-                    translation: Vec3::new(
-                        FABICURION_POSITION.0,
-                        FABICURION_POSITION.1 + (i * 30) as f32,
-                        FABICURION_POSITION.2,
-                    ),
-                    scale: Vec3::splat(NPC_SCALE),
+                    scale: Vec3::splat(NPC_SCALE * 1.),
                     ..default()
                 },
                 ..default()
@@ -206,6 +202,11 @@ fn spawn_aggresives_characters(mut commands: Commands, fabien: Res<FabienSheet>)
                     weapon: None,
                     armor: None,
                 },
+                tactical_position: if i == 0 {
+                    TacticalPosition::MiddleLine(TacticalPlace::Right)
+                } else {
+                    TacticalPosition::MiddleLine(TacticalPlace::Left)
+                },
                 ..Default::default()
             },
             // -- UI Related Components --
@@ -213,4 +214,34 @@ fn spawn_aggresives_characters(mut commands: Commands, fabien: Res<FabienSheet>)
             Clickable,
         ));
     }
+
+    // commands
+    // .spawn((
+    //     NodeBundle {
+    //         style: Style {
+    //             size: Size::width(Val::Percent(100.0)),
+    //             justify_content: JustifyContent::SpaceBetween,
+    //             flex_direction: FlexDirection::Row,
+    //             ..default()
+    //         },
+    //         ..default()
+    //     },
+    //     Name::new("NPC Scene"),
+    // ))
+    // .with_children(|parent| {
+    //     // Fighting Hall - Where the npcs are
+    //     parent
+    //         .spawn((
+    //             NodeBundle {
+    //                 style: Style {
+    //                     size: Size::width(Val::Percent(56.)),
+    //                     flex_direction: FlexDirection::Column,
+    //                     ..default()
+    //                 },
+    //                 background_color: Color::rgba(0., 0., 0., 0.).into(),
+    //                 ..default()
+    //             },
+    //             Name::new("NPCs - Fighting Hall"),
+    //         ))
+    //         .with_children(|parent| {});
 }

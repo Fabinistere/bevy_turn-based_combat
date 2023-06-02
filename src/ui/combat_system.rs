@@ -1,7 +1,9 @@
 use bevy::prelude::*;
 
 use crate::{
-    combat::{phases::TransitionPhaseEvent, CombatPanel, CombatState, InCombat},
+    combat::{
+        phases::TransitionPhaseEvent, skills::TargetOption, CombatPanel, CombatState, InCombat,
+    },
     ui::player_interaction::Clicked,
 };
 
@@ -149,28 +151,47 @@ pub fn update_targeted_unit(
                 last_action.targets = match last_action.targets.clone() {
                     None => {
                         // Number of target = max targetable
-                        if last_action.skill.target_number == 1 {
-                            transition_phase_event
-                                .send(TransitionPhaseEvent(CombatState::default()));
+                        match last_action.skill.target_option {
+                            TargetOption::Ally(1)
+                            | TargetOption::Enemy(1)
+                            | TargetOption::OneSelf => transition_phase_event
+                                .send(TransitionPhaseEvent(CombatState::default())),
+                            _ => {}
                         }
                         Some(vec![character])
                     }
                     Some(mut targets) => {
-                        if targets.len() < last_action.skill.target_number {
-                            targets.push(character);
-                            if targets.len() == last_action.skill.target_number {
-                                transition_phase_event
-                                    .send(TransitionPhaseEvent(CombatState::default()));
+                        match last_action.skill.target_option {
+                            TargetOption::Ally(number)
+                            | TargetOption::Enemy(number)
+                            | TargetOption::AllyButSelf(number) => {
+                                // Only work if we can target muiltiple times one entity
+                                // or if the number of available target is < number asked
+                                // TODO: can target less if = the max possible
+                                if targets.len() < number {
+                                    targets.push(character);
+                                    if targets.len() == number {
+                                        transition_phase_event
+                                            .send(TransitionPhaseEvent(CombatState::default()));
+                                    }
+                                } else if targets.len() > number {
+                                    warn!(
+                                        "Error! The number of target is exceeded {}/{:?}",
+                                        targets.len(),
+                                        last_action.skill.target_option
+                                    );
+                                    while targets.len() > number {
+                                        commands
+                                            .entity(targets.pop().unwrap())
+                                            .remove::<Targeted>();
+                                    }
+                                }
                             }
-                        } else if targets.len() > last_action.skill.target_number {
-                            warn!(
-                                "Error! The number of target is exceeded {}/{}",
-                                targets.len(),
-                                last_action.skill.target_number
-                            );
-                            while targets.len() > last_action.skill.target_number {
-                                commands.entity(targets.pop().unwrap()).remove::<Targeted>();
-                            }
+                            // managed by phase_transition() or select_skill()
+                            TargetOption::OneSelf
+                            | TargetOption::AllAlly
+                            | TargetOption::AllEnemy
+                            | TargetOption::All => {}
                         }
                         Some(targets)
                     }

@@ -9,7 +9,7 @@ use bevy::{
 use crate::{
     combat::{
         phases::TransitionPhaseEvent,
-        skills::{Skill, TargetSide},
+        skills::{Skill, TargetOption},
         Action, ActionCount, CombatPanel, CombatState,
     },
     constants::ui::dialogs::*,
@@ -210,7 +210,6 @@ pub fn select_skill(
         // if this system can run
         // we are in SelectionSkill or SelectionTarget
         // so there is a selected unit.
-        // FIXME: Crash - Esc bug, after cancel an action but still in selectionSkill with no action left
         let (caster, _caster_name, action_count) = unit_selected_query.single();
 
         match *interaction {
@@ -241,14 +240,10 @@ pub fn select_skill(
                     // cause we're in the TargetSelection phase
 
                     let last_action = combat_panel.history.last_mut().unwrap();
-                    last_action.skill = skill.clone();
-                    last_action.targets = if skill.target_side == TargetSide::OneSelf {
-                        transition_phase_event.send(TransitionPhaseEvent(CombatState::default()));
-                        Some(vec![caster])
-                    } else {
-                        // and we're still in TargetSelection phase
-                        None
-                    };
+                    last_action.targets = None;
+
+                    // This transitionEvent will trigger all the verification about skill selected (selfcast, etc)
+                    transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionTarget));
 
                     // info!("DEBUG: action = {} do {} to None", caster_name, skill.name);
 
@@ -296,8 +291,8 @@ pub struct EndOfTurnButton;
 
 /// # Note
 ///
-/// TODO: Check ActionCount ? x
-/// FIXME: End of turn in SelectionSkill: trigger a double press
+/// TODO: feature - Confirm The EndOfTurn
+/// BUG: End of turn in SelectionSkill: trigger a double press
 /// @see [`ui::player_interaction::confirm_action_button()`] to check: correct target number
 pub fn end_of_turn_button(
     mut interaction_query: Query<
@@ -364,7 +359,6 @@ pub fn cancel_last_input(
         info!("Esc in {}", combat_panel.phase);
         match combat_panel.phase {
             CombatState::SelectionSkill => {
-                // FIXME: Smashing esc can skip a beat and crash here
                 let (selected, name) = selected_unit_query.single();
 
                 info!("{} was selected", name);
@@ -423,7 +417,7 @@ pub fn cancel_last_input(
                                     action_count.current += 1;
                                     info!("action left: {}", action_count.current);
 
-                                    if last_action.skill.target_side == TargetSide::OneSelf {
+                                    if last_action.skill.target_option == TargetOption::OneSelf {
                                         transition_phase_event.send(TransitionPhaseEvent(
                                             CombatState::SelectionSkill,
                                         ));

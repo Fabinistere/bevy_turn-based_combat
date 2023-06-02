@@ -49,6 +49,7 @@ pub mod skill_list;
 pub mod skills;
 pub mod stats;
 pub mod stuff;
+pub mod tactical_position;
 
 /// Just help to create a ordered system in the app builder
 #[derive(Default, SystemSet, PartialEq, Eq, Hash, Clone, Debug, Reflect)]
@@ -104,6 +105,7 @@ impl Plugin for CombatPlugin {
             .add_event::<phases::TransitionPhaseEvent>()
             .add_event::<skills::ExecuteSkillEvent>()
             // .add_event::<alterations::ExecuteAlterationEvent>()
+            .add_event::<tactical_position::UpdateCharacterPositionEvent>()
 
             .init_resource::<JobsMasteries>()
 
@@ -130,8 +132,20 @@ impl Plugin for CombatPlugin {
                 .run_if(in_executive_phase)
                 .in_set(CombatState::ExecuteSkills)
             )
-            .add_system(skills::execute_skill)
+            .add_system(
+                skills::execute_skill
+                .run_if(in_executive_phase)
+                .after(CombatState::ExecuteSkills)
+            )
             .add_system(phases::phase_transition)
+
+            // -- UI ? --
+
+            // .add_system(tactical_position::detect_window_tactical_pos_change)
+            .add_system(
+                tactical_position::update_character_position
+                // .after(tactical_position::detect_window_tactical_pos_change)
+            )
             // .add_systems(
             //     (show_hp, show_mana)
             //         .run_if(pressed_h)
@@ -141,7 +155,9 @@ impl Plugin for CombatPlugin {
     }
 }
 
-// -- Combat Components --
+/* -------------------------------------------------------------------------- */
+/*                           -- Combat Components --                          */
+/* -------------------------------------------------------------------------- */
 
 #[derive(Bundle)]
 pub struct CombatBundle {
@@ -152,6 +168,7 @@ pub struct CombatBundle {
     pub skills: Skills,
     pub equipements: Equipements,
     pub action_count: ActionCount,
+    pub tactical_position: TacticalPosition,
 
     #[bundle]
     pub stats: StatBundle,
@@ -167,6 +184,7 @@ impl Default for CombatBundle {
             skills: Skills(Vec::new()),
             equipements: Equipements { weapon: None, armor: None },
             action_count: ActionCount::default(),
+            tactical_position: TacticalPosition::default(),
             stats: StatBundle::default()
         }
     }
@@ -219,7 +237,37 @@ pub struct Leader;
 #[derive(Copy, Clone, PartialEq, Eq, Component)]
 pub struct Recruted;
 
-// -- Combat Core Operation --
+#[derive(Copy, Clone, PartialEq, Eq, Component)]
+pub struct Player;
+
+/* -------------------------------------------------------------------------- */
+/*                         -- Position in the Group --                        */
+/* -------------------------------------------------------------------------- */
+
+#[derive(Default, Reflect, PartialEq, Eq, Hash, Clone, Copy, Debug)]
+pub enum TacticalPlace {
+    #[default]
+    Left,
+    Middle,
+    Right,
+}
+
+#[derive(Component, Reflect, PartialEq, Eq, Hash, Clone, Copy, Debug)]
+pub enum TacticalPosition {
+    FrontLine(TacticalPlace),
+    MiddleLine(TacticalPlace),
+    BackLine(TacticalPlace),
+}
+
+impl Default for TacticalPosition {
+    fn default() -> Self {
+        TacticalPosition::FrontLine(TacticalPlace::default())
+    }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                         -- Combat Core Operation --                        */
+/* -------------------------------------------------------------------------- */
 
 /// REFACTOR: Resource ?
 #[derive(Default, Component)]
@@ -287,7 +335,9 @@ impl PartialEq for Action {
 
 impl Eq for Action {}
 
-// -- Run Criteria --
+/* -------------------------------------------------------------------------- */
+/*                             -- Run Criteria --                             */
+/* -------------------------------------------------------------------------- */
 
 pub fn in_initiation_phase(combat_panel_query: Query<&CombatPanel>) -> bool {
     let combat_panel = combat_panel_query.single();

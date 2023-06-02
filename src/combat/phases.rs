@@ -4,7 +4,7 @@ use rand::Rng;
 use crate::{
     combat::{
         alterations::{Alteration, AlterationAction},
-        skills::{ExecuteSkillEvent, TargetSide},
+        skills::{ExecuteSkillEvent, TargetOption},
         stats::{Attack, AttackSpe, Defense, DefenseSpe, Hp, Initiative, Mana, Shield},
         Action, ActionCount, Alterations, CombatPanel, CombatState, InCombat,
     },
@@ -73,31 +73,49 @@ pub fn phase_transition(
             (CombatState::SelectionSkill, CombatState::SelectionSkill) => {
                 // FIXME: there is still some Targeted - While switching Caster to caster after the creation of a action
             }
-            (CombatState::SelectionSkill, CombatState::SelectionTarget) => {
-                // remove from previous entity the targeted component
-                for (targeted, _) in targeted_unit_query.iter() {
-                    commands.entity(targeted).remove::<Targeted>();
-                }
-
-                // if the skill is a selfcast => put the self into the target,
-                // IDEA: change the phase to SelectionCaster and `continue;` -> skip the phase change
+            (
+                CombatState::SelectionSkill | CombatState::SelectionTarget,
+                CombatState::SelectionTarget,
+            ) => {
                 let last_action = combat_panel.history.last_mut().unwrap();
-                if last_action.skill.target_side == TargetSide::OneSelf {
-                    last_action.targets = Some(vec![last_action.caster]);
-                    // If there is still some action left for the current caster,
-                    // skip SelectionTarget
+
+                // - Select Skill in SelectionSkill
+                // - Changing Skill while being in SelectionTarget
+                if last_action.targets == None {
+                    // remove from previous entity the targeted component
+                    for (targeted, _) in targeted_unit_query.iter() {
+                        commands.entity(targeted).remove::<Targeted>();
+                    }
+
                     let mut action_count = selected_unit_query
                         .get_component_mut::<ActionCount>(last_action.caster)
                         .unwrap();
 
-                    action_count.current -= 1;
-                    info!("action left: {}", action_count.current);
+                    // if the skill is a selfcast => put the self into the target,
+                    match last_action.skill.target_option {
+                        TargetOption::OneSelf => {
+                            last_action.targets = Some(vec![last_action.caster]);
+                            // If there is still some action left for the current caster,
+                            // skip SelectionTarget
 
-                    next_phase = if action_count.current > 0 {
-                        &CombatState::SelectionSkill
-                    } else {
-                        &default_state
-                    };
+                            action_count.current -= 1;
+                            info!("action left: {}", action_count.current);
+
+                            next_phase = if action_count.current > 0 {
+                                &CombatState::SelectionSkill
+                            } else {
+                                &default_state
+                            };
+                        }
+                        // TODO: TargetOption All-ish
+                        TargetOption::AllAlly => {}
+                        TargetOption::AllEnemy => {}
+                        TargetOption::All => {}
+                        _ => {}
+                    }
+                } else {
+                    // WARNING: If we implement TargetOption, do not throw phaseTransiEvent if unauthorized
+                    // - Target a entity and there is more to choose left (S.Target -> S.Target)
                 }
             }
             // (CombatState::SelectionTarget, CombatState::default())
