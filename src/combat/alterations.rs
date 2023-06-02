@@ -61,9 +61,9 @@ pub struct Alteration {
     ///
     /// # Note
     ///
-    /// REFACTOR: Target Option should onyl be managed by the skill calling the alteration
+    /// REFACTOR: Target Option should only be managed by the skill calling the alteration
     /// TODO: Remove target_option
-    pub target_option: (TargetSide, usize),
+    pub target_option: TargetOption,
 
     /// hp dealt or healed each time the target plays
     ///
@@ -117,7 +117,7 @@ impl Default for Alteration {
             action: AlterationAction::Dots,
             turn_count: 0,
             duration: 1,
-            target_option: (TargetSide::Ally, 0),
+            target_option: TargetOption::Enemy(1),
             hp: 0,
             mana: 0,
             shield: 0,

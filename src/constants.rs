@@ -72,6 +72,43 @@ pub mod combat {
 }
 
 pub mod ui {
+
+    pub const DRAGGED_ENTITY_Z: f32 = 100.0;
+
+    pub mod fighting_hall_position {
+        /* -------------------------------------------------------------------------- */
+        /*                               Enemy Position                               */
+        /* -------------------------------------------------------------------------- */
+
+        pub const ENEMY_FRONTLINE_LEFT: (f32, f32) = (5., 8.);
+        pub const ENEMY_FRONTLINE_MIDDLE: (f32, f32) = (7., 10.);
+        pub const ENEMY_FRONTLINE_RIGHT: (f32, f32) = (9., 12.);
+
+        pub const ENEMY_MIDDLELINE_LEFT: (f32, f32) = (3., 10.);
+        pub const ENEMY_MIDDLELINE_MIDDLE: (f32, f32) = (5., 12.);
+        pub const ENEMY_MIDDLELINE_RIGHT: (f32, f32) = (7., 14.);
+
+        pub const ENEMY_BACKLINE_LEFT: (f32, f32) = (1., 12.);
+        pub const ENEMY_BACKLINE_MIDDLE: (f32, f32) = (3., 14.);
+        pub const ENEMY_BACKLINE_RIGHT: (f32, f32) = (5., 16.);
+
+        /* -------------------------------------------------------------------------- */
+        /*                                Ally Position                               */
+        /* -------------------------------------------------------------------------- */
+
+        pub const ALLY_FRONTLINE_LEFT: (f32, f32) = (9., 5.);
+        pub const ALLY_FRONTLINE_MIDDLE: (f32, f32) = (11., 7.);
+        pub const ALLY_FRONTLINE_RIGHT: (f32, f32) = (13., 9.);
+
+        pub const ALLY_MIDDLELINE_LEFT: (f32, f32) = (11., 3.);
+        pub const ALLY_MIDDLELINE_MIDDLE: (f32, f32) = (13., 5.);
+        pub const ALLY_MIDDLELINE_RIGHT: (f32, f32) = (15., 7.);
+
+        pub const ALLY_BACKLINE_LEFT: (f32, f32) = (13., 1.);
+        pub const ALLY_BACKLINE_MIDDLE: (f32, f32) = (15., 3.);
+        pub const ALLY_BACKLINE_RIGHT: (f32, f32) = (17., 5.);
+    }
+
     pub mod dialogs {
         use bevy::prelude::Color;
 
@@ -85,5 +122,56 @@ pub mod ui {
         pub const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
     }
 
-    pub const DRAGGED_ENTITY_Z: f32 = 100.0;
+    pub mod style {
+        //, text::TextStyle, ui::*
+        use bevy::prelude::*;
+
+        pub fn get_text_style(asset_server: &Res<AssetServer>, font_size: f32) -> TextStyle {
+            TextStyle {
+                font: asset_server.load("fonts/dpcomic.ttf"),
+                font_size,
+                color: Color::rgb(0.9, 0.9, 0.9),
+            }
+        }
+
+        pub const LIST_HIDDEN_OVERFLOW_STYLE: Style = Style {
+            flex_direction: FlexDirection::Column,
+            align_self: AlignSelf::Stretch,
+            overflow: Overflow::Hidden,
+            ..Style::DEFAULT
+        };
+
+        pub const MOVING_PANEL_STYLE: Style = Style {
+            flex_direction: FlexDirection::Column,
+            flex_wrap: FlexWrap::NoWrap,
+            max_size: Size::UNDEFINED,
+            align_items: AlignItems::FlexStart,
+            ..Style::DEFAULT
+        };
+
+        pub const SKILL_BUTTON_STYLE: Style = Style {
+            size: Size::new(Val::Px(150.0), Val::Px(65.0)),
+            // center button
+            margin: UiRect::all(Val::Auto),
+            // horizontally center child text
+            justify_content: JustifyContent::Center,
+            // vertically center child text
+            align_items: AlignItems::Center,
+            position: UiRect::DEFAULT,
+            ..Style::DEFAULT
+        };
+
+        pub const ACTION_BUTTON_STYLE: Style = Style {
+            size: Size::new(
+                Val::Px(154.), // Val::Percent(100.),
+                Val::Px(103.),
+            ),
+            justify_content: JustifyContent::Center,
+            flex_direction: FlexDirection::ColumnReverse,
+            flex_wrap: FlexWrap::NoWrap,
+            align_items: AlignItems::Center,
+            position: UiRect::DEFAULT,
+            ..Style::DEFAULT
+        };
+    }
 }

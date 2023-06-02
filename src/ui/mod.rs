@@ -8,6 +8,8 @@ use crate::combat::{
     CombatState,
 };
 
+use self::initiative_bar::SpriteNames;
+
 pub mod character_sheet;
 pub mod combat_panel;
 pub mod combat_system;
@@ -35,16 +37,25 @@ impl Plugin for UiPlugin {
             .add_event::<combat_system::UpdateUnitSelectedEvent>()
             .add_event::<combat_system::UpdateUnitTargetedEvent>()
 
+            .init_resource::<SpriteNames>()
+
             .add_startup_system(combat_panel::setup.in_set(UiLabel::Textures))
 
-            // --- Player Input Global ---
-            .add_systems((
-                player_interaction::mouse_scroll.in_set(UiLabel::Player),
-                player_interaction::select_unit_by_mouse.in_set(UiLabel::Player),
-                player_interaction::cancel_last_input.in_set(UiLabel::Player),
-            ))
+            /* -------------------------------------------------------------------------- */
+            /*                         --- Player Input Global ---                        */
+            /* -------------------------------------------------------------------------- */
+            .add_systems(
+                (
+                    player_interaction::mouse_scroll,
+                    player_interaction::select_unit_by_mouse,
+                    player_interaction::cancel_last_input,
+                ).in_set(UiLabel::Player)
+            )
+            .add_system(player_interaction::action_button.after(initiative_bar::action_visibility))
             
-            // --- Limited Phase ---
+            /* -------------------------------------------------------------------------- */
+            /*                            --- Limited Phase ---                           */
+            /* -------------------------------------------------------------------------- */
             .configure_set(
                 CombatState::SelectionCaster
                     .run_if(in_caster_phase)
@@ -103,7 +114,10 @@ impl Plugin for UiPlugin {
             //     ().run_if(in_evasive_phase)
             // )
             
-            // DEBUG -- DISPLAYER --
+            /* -------------------------------------------------------------------------- */
+            /*                            -- DEBUG DISPLAYER --                           */
+            /* -------------------------------------------------------------------------- */
+
             .add_systems((
                 combat_system::update_combat_phase_displayer
                     .in_set(UiLabel::Display),
@@ -128,7 +142,10 @@ impl Plugin for UiPlugin {
                     .after(UiLabel::Display),
             ))
 
-            // --- COLOR ---
+            /* -------------------------------------------------------------------------- */
+            /*                                --- COLOR ---                               */
+            /* -------------------------------------------------------------------------- */
+            
             .add_system(player_interaction::button_system)
             ;
     }

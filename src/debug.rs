@@ -19,9 +19,10 @@ use crate::{
         skills::{
             // Skill,
             SkillType,
-            TargetSide,
+            TargetOption,
         },
         stats::{Hp, Mana, Shield, Initiative, Attack, AttackSpe, Defense, DefenseSpe}, stuff::{Equipements, WeaponType},
+        TacticalPlace,
     },
     npc::NPC,
 };
@@ -37,7 +38,9 @@ impl Plugin for DebugPlugin {
 
                 .register_type::<NPC>()
                 
-                // --- Global Structure ---
+                /* -------------------------------------------------------------------------- */
+                /*                          --- Global Structure ---                          */
+                /* -------------------------------------------------------------------------- */
                 
                 .register_type::<CombatState>()
                 // .register_type::<CombatPanel>()
@@ -45,22 +48,31 @@ impl Plugin for DebugPlugin {
                 
                 .register_type::<ActionCount>()
 
-                // --- Skills and Alterations ---
+                // .register_type::<TacticalPosition>()
+                .register_type::<TacticalPlace>()
+                
+                /* -------------------------------------------------------------------------- */
+                /*                       --- Skills and Alterations ---                       */
+                /* -------------------------------------------------------------------------- */
 
                 // .register_type::<Alterations>()
                 .register_type::<Alteration>()
                 .register_type::<AlterationAction>()
-                .register_type::<TargetSide>()
+                .register_type::<TargetOption>()
                 
                 // .register_type::<Skill>()
                 .register_type::<SkillType>()
                 
-                // --- Weapons ---
+                /* -------------------------------------------------------------------------- */
+                /*                               --- Weapons ---                              */
+                /* -------------------------------------------------------------------------- */
                 
                 .register_type::<Equipements>()
                 .register_type::<WeaponType>()
                 
-                // --- Stats ---
+                /* -------------------------------------------------------------------------- */
+                /*                                --- Stats ---                               */
+                /* -------------------------------------------------------------------------- */
                 
                 .register_type::<Hp>()
                 .register_type::<Mana>()
@@ -71,7 +83,9 @@ impl Plugin for DebugPlugin {
                 .register_type::<Defense>()
                 .register_type::<DefenseSpe>()
 
-                // --- UI ---
+                /* -------------------------------------------------------------------------- */
+                /*                                 --- UI ---                                 */
+                /* -------------------------------------------------------------------------- */
                 ;
         }
     }
