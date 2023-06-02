@@ -27,11 +27,6 @@ pub struct UpdateCharacterPositionEvent;
 /// Detect Change in the component TacticalPosition in an entity
 ///
 /// At each change detected, will send an event to adapt OnScreenPosition
-///
-/// # Note
-///
-/// TODO: Active system in combat::mod
-/// FIXME: prevent repetitive Event send
 pub fn detect_window_tactical_pos_change(
     resize_event: Res<Events<WindowResized>>,
     characters_query: Query<Entity, (Changed<TacticalPosition>, With<InCombat>, With<Transform>)>,
@@ -54,15 +49,21 @@ pub fn detect_window_tactical_pos_change(
 ///
 /// # Note
 ///
-/// FIXME: The transformation window's coordinates -> transform only work with window's size = 1920/1280
+/// FIXME: The window resize by automatic action (snap windows, etc) "spoil" the adaptation
 pub fn update_character_position(
     mut update_char_pos_event: EventReader<UpdateCharacterPositionEvent>,
+
     window_query: Query<&Window, With<PrimaryWindow>>,
+    // query to get camera transform
+    camera_q: Query<(&Camera, &GlobalTransform)>,
+
     ally_query: Query<Or<(With<Recruted>, With<Player>)>>,
     mut characters_query: Query<(Entity, &mut Transform, &TacticalPosition, &Name), With<InCombat>>,
 ) {
     for _ in update_char_pos_event.iter() {
         let window = window_query.get_single().unwrap();
+        // assuming there is exactly one main camera entity, so query::single() is OK
+        let (camera, camera_transform) = camera_q.single();
 
         let width = window.width();
         let height = window.height();
@@ -120,25 +121,26 @@ pub fn update_character_position(
 
             // info!("x_offset: {}, y_offset: {}", x_offset, y_offset);
 
-            let window_coordinates = (x * x_offset, y * y_offset);
+            // To be in the center of the box = - (x,y / 2.)
+            let window_coordinates = Vec2::new(x * x_offset - (x / 2.), y * y_offset - (y / 2.));
             // info!(
             //     "x_w: {}, y_w: {}",
             //     window_coordinates.0, window_coordinates.1
             // );
 
-            // TODO: to be in the center of the box = win_cor - ((width * 0.56) / 17.) / 2.
-
-            let transform_coordinates = (
-                window_coordinates.0 * (90. / (width / 2.)) - 90.,
-                window_coordinates.1 * (50. / (height / 2.)) - 50.,
-            );
+            let transform_coordinates = Some(window_coordinates)
+                .and_then(|onscreen_position| {
+                    camera.viewport_to_world(camera_transform, onscreen_position)
+                })
+                .map(|ray| ray.origin.truncate())
+                .unwrap();
             // info!(
             //     "x_t: {}, y_t: {}",
             //     transform_coordinates.0, transform_coordinates.1
             // );
 
-            transform.translation.x = transform_coordinates.0;
-            transform.translation.y = transform_coordinates.1;
+            transform.translation.x = transform_coordinates.x;
+            transform.translation.y = transform_coordinates.y;
 
             // info!("---------------");
         }

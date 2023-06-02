@@ -141,7 +141,7 @@ impl Plugin for CombatPlugin {
 
             // -- UI ? --
 
-            // .add_system(tactical_position::detect_window_tactical_pos_change)
+            .add_system(tactical_position::detect_window_tactical_pos_change)
             .add_system(
                 tactical_position::update_character_position
                 // .after(tactical_position::detect_window_tactical_pos_change)
