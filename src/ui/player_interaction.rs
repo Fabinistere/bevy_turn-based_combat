@@ -213,6 +213,12 @@ pub fn select_skill(
     for (interaction, skill, mut color, children) in &mut interaction_query {
         let mut text = text_query.get_mut(children[0]).unwrap();
 
+        // XXX: Tempo the command which give a Selected after cancel_input a selfcast skill in SelectionCaster
+        if let Err(_) = unit_selected_query.get_single() {
+            warn!("No Selected in SelectionSkill");
+            continue;
+        }
+
         // if this system can run
         // we are in SelectionSkill or SelectionTarget
         // so there is a selected unit.
@@ -317,12 +323,11 @@ pub fn end_of_turn_button(
             Interaction::Clicked => {
                 let (_, mut combat_panel) = combat_panel_query.single_mut();
 
-                if let Some(last_action) = combat_panel.history.pop() {
+                if let Some(last_action) = combat_panel.history.last() {
                     // TODO: Check correct target number
-                    // atm we can partially confirm an action by pressing "end_of_turn"
-                    if last_action.targets != None {
-                        // reput the last_action in the pool
-                        combat_panel.history.push(last_action);
+                    // FIXME: atm we can partially confirm an action by pressing "end_of_turn"
+                    if last_action.targets == None {
+                        combat_panel.history.pop();
                     }
                 } else {
                     // allow pass with no action in the history
@@ -362,21 +367,24 @@ pub fn cancel_last_input(
     let mut combat_panel = combat_panel_query.single_mut();
 
     if keyboard_input.just_pressed(KeyCode::Escape) {
-        info!("Esc in {}", combat_panel.phase);
-        match combat_panel.phase {
+        let current_phase = combat_panel.phase.clone();
+        info!("Esc in {}", current_phase);
+
+        match current_phase {
             CombatState::SelectionSkill => {
                 let (selected, name) = selected_unit_query.single();
 
-                info!("{} was selected", name);
-
                 commands.entity(selected).remove::<Selected>();
+                info!("{} is no longer selected", name);
+
                 transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionCaster));
             }
             CombatState::SelectionCaster | CombatState::SelectionTarget => {
                 // Remove last targeted and modify the last action
-                match combat_panel.history.pop() {
+                // FIXME: crash of cancel_system/selected entity with th replacement of pop by last_mut
+                match combat_panel.history.last_mut() {
                     None => {
-                        if combat_panel.phase == CombatState::SelectionTarget {
+                        if current_phase == CombatState::SelectionTarget {
                             warn!("In TargetSelectionPhase, it should have at least one action");
                             // DEBUG: Error Handle
                             transition_phase_event
@@ -388,6 +396,7 @@ pub fn cancel_last_input(
                     Some(ref mut last_action) => {
                         // give the last_action.caster the selected component
                         if let Ok((selected, name)) = selected_unit_query.get_single() {
+                            info!("{}:{:?} was selected", name, selected);
                             if selected != last_action.caster {
                                 commands.entity(selected).remove::<Selected>();
                                 info!(
@@ -396,13 +405,16 @@ pub fn cancel_last_input(
                                 );
                             }
                         }
+                        // XXX: this command take too long to be processed if we transi to SelectionSkill
+                        // [Hard Sync Point](https://github.com/bevyengine/bevy/issues/1613) required to stop waiting the command to be executed
+                        // IDEA: New TempoPhase to wait for commands to be processed.
                         commands.entity(last_action.caster).insert(Selected);
                         info!("{:?} is now selected", last_action.caster);
 
                         match &mut last_action.targets {
                             None => {
                                 // undo the skill selection and go back to SelectionSkill (handled in `phase_transition()`)
-                                // ^^^^--- by not placing back the action in the history
+                                combat_panel.history.pop();
 
                                 transition_phase_event
                                     .send(TransitionPhaseEvent(CombatState::SelectionSkill));
@@ -415,15 +427,17 @@ pub fn cancel_last_input(
                                     last_action.targets = None;
                                 }
 
-                                if combat_panel.phase == CombatState::SelectionCaster {
+                                if current_phase == CombatState::SelectionCaster {
                                     // Give back the action
                                     let mut action_count = caster_query
                                         .get_component_mut::<ActionCount>(last_action.caster)
                                         .unwrap();
                                     action_count.current += 1;
-                                    info!("action left: {}", action_count.current);
+                                    info!("action given back, left: {}", action_count.current);
 
                                     if last_action.skill.target_option == TargetOption::OneSelf {
+                                        combat_panel.history.pop();
+
                                         transition_phase_event.send(TransitionPhaseEvent(
                                             CombatState::SelectionSkill,
                                         ));
@@ -431,11 +445,8 @@ pub fn cancel_last_input(
                                         transition_phase_event.send(TransitionPhaseEvent(
                                             CombatState::SelectionTarget,
                                         ));
-                                        combat_panel.history.push(last_action.clone());
                                     }
                                 } else {
-                                    combat_panel.history.push(last_action.clone());
-
                                     // In SelectionTarget, the action_count should be correct.
                                 }
                             }

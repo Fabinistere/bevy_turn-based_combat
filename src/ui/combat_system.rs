@@ -39,7 +39,9 @@ pub struct UpdateUnitSelectedEvent(pub Entity);
 /// DOC
 pub struct UpdateUnitTargetedEvent(pub Entity);
 
-// -------------------------- UI Systems --------------------------
+/* -------------------------------------------------------------------------- */
+/*                                 UI Systems                                 */
+/* -------------------------------------------------------------------------- */
 
 /// # Note
 pub fn caster_selection(
@@ -73,12 +75,19 @@ pub fn target_selection(
     }
 }
 
-// -------------------------- UI Updates --------------------------
+/* -------------------------------------------------------------------------- */
+/*                                 UI Updates                                 */
+/* -------------------------------------------------------------------------- */
 
 /// Event Handler of UpdateUnitSelectedEvent
 ///
 /// There can only be one entity selected.
 /// After completed a action with one, you can reselect it.
+///
+/// # Note
+///
+/// FIXME: Multiple Entity can be selected if clicked simultaneous
+/// REFACTOR: Directly Manage Clicked Entity in the update systems (instead of event)
 pub fn update_selected_unit(
     mut commands: Commands,
 
@@ -201,7 +210,9 @@ pub fn update_targeted_unit(
     }
 }
 
-// ---------------------------- UI Logs ----------------------------
+/* -------------------------------------------------------------------------- */
+/*                                   UI Logs                                  */
+/* -------------------------------------------------------------------------- */
 
 /// Display the current phase
 ///
