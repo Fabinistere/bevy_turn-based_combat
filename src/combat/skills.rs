@@ -1,7 +1,7 @@
 //! Implement SKILLS
 
 use bevy::prelude::*;
-use bevy_inspector_egui::Inspectable;
+// use bevy_inspector_egui::prelude::*;
 
 use crate::{
     combat::{
@@ -13,7 +13,7 @@ use crate::{
 
 use super::Alterations;
 
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, Reflect)]
 pub enum SkillType {
     Heal,
     Attack,
@@ -28,16 +28,21 @@ pub enum SkillType {
     Flee,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Inspectable)]
-pub enum TargetSide {
+/// # Note
+///
+/// - AllAllyButSelf
+#[derive(Default, Debug, Clone, PartialEq, Reflect)]
+pub enum TargetOption {
     /// Identity
-    OneSelf,
-    Enemy,
-    /// Include the identity (self)
     #[default]
-    Ally,
+    OneSelf,
+    Enemy(usize),
+    /// Include the identity (self)
+    Ally(usize),
     /// Exclude the identity (self)
-    AllyButSelf,
+    AllyButSelf(usize),
+    AllAlly,
+    AllEnemy,
     All,
 }
 
@@ -45,24 +50,28 @@ pub enum TargetSide {
 ///
 /// - Negative = MALUS
 /// - Positive = BONUS
-#[derive(Debug, Component, Clone)]
+#[derive(Debug, Component, Clone, PartialEq)]
 pub struct Skill {
     pub skill_type: SkillType,
     /// Which side the skill is allow to target
-    pub target_side: TargetSide,
+    ///
     /// # Example
     ///
     /// - target all ally/enemy party: MAX_PARTY (6)
-    /// - self-target: 1
+    /// - self-target: 0
     /// - targeted heal: 1
     /// - small explosion: 2
-    pub target_number: usize,
+    pub target_option: TargetOption,
     /// Area of Effect
     ///
     /// Should the skill affect all target
     /// or one by one
     pub aoe: bool,
     /// Wait for the turn delay to execute
+    ///
+    /// # Note
+    ///
+    /// Without Canalisation (can act while "waiting")
     pub turn_delay: i32,
     /// initiave: slower; faster
     ///
@@ -106,8 +115,7 @@ impl Default for Skill {
     fn default() -> Self {
         Skill {
             skill_type: Default::default(),
-            target_side: TargetSide::default(),
-            target_number: 1,
+            target_option: TargetOption::OneSelf,
             aoe: false,
             turn_delay: 0,
             initiative: 0,
@@ -249,7 +257,7 @@ pub fn execute_skill(
                             .push_str(&format!("\n  - Caster is already dead: {}", caster_name));
                     } else {
                         actions_logs_text.sections[0].value.push_str(&format!(
-                            "\n  - Caster killed him.herself: {}, from {} to {}",
+                            "\n  - Caster killed him·herself: {}, from {} to {}",
                             caster_name,
                             caster_hp.current + skill_executed.hp_cost,
                             skill_executed.hp_cost
@@ -397,6 +405,8 @@ pub fn execute_skill(
                     SkillType::Pass => {
                         // force action: Pass to the target next turn
                         // IDEA: The next action of this entity is mute or the next time won't choose an action ?
+
+                        // atm: an blank action
                     }
                     _ => {}
                 }

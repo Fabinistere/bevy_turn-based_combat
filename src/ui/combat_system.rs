@@ -1,10 +1,13 @@
 use bevy::prelude::*;
 
 use crate::{
-    combat::{phases::TransitionPhaseEvent, CombatPanel, CombatState, InCombat},
-    constants::ui::dialogs::*,
+    combat::{
+        phases::TransitionPhaseEvent, skills::TargetOption, CombatPanel, CombatState, InCombat,
+    },
     ui::player_interaction::Clicked,
 };
+
+// ------------------------- UI Components -------------------------
 
 #[derive(Component)]
 pub struct ButtonTargeting;
@@ -22,6 +25,9 @@ pub struct HpMeter;
 pub struct MpMeter;
 
 #[derive(Component)]
+pub struct CombatStateDisplayer;
+
+#[derive(Component)]
 pub struct ActionHistoryDisplayer;
 
 #[derive(Component)]
@@ -35,6 +41,10 @@ pub struct UpdateUnitSelectedEvent(pub Entity);
 
 /// DOC
 pub struct UpdateUnitTargetedEvent(pub Entity);
+
+/* -------------------------------------------------------------------------- */
+/*                                 UI Systems                                 */
+/* -------------------------------------------------------------------------- */
 
 /// # Note
 pub fn caster_selection(
@@ -68,55 +78,19 @@ pub fn target_selection(
     }
 }
 
-#[deprecated(
-    since = "0.0.3",
-    note = "please use `select_unit_by_mouse` and `target_selection` instead"
-)]
-pub fn target_random_system(
-    mut commands: Commands,
-
-    mut button_system: Query<
-        (Entity, &Interaction, &mut BackgroundColor),
-        (Changed<Interaction>, With<Button>, With<ButtonTargeting>),
-    >,
-
-    combat_unit_query: Query<(Entity, &Name), (With<InCombat>, Without<Targeted>)>,
-    targeted_unit: Query<Entity, With<Targeted>>,
-
-    mut update_unit_targeted_event: EventWriter<UpdateUnitTargetedEvent>,
-) {
-    for (_button, interaction, mut color) in &mut button_system {
-        match *interaction {
-            Interaction::Clicked => {
-                for (npc, _name) in combat_unit_query.iter() {
-                    // target the first one on the list
-                    if let Ok(targeted) = targeted_unit.get_single() {
-                        commands.entity(targeted).remove::<Targeted>();
-                    }
-                    // DEBUG: TEMPORARY TARGET
-                    update_unit_targeted_event.send(UpdateUnitTargetedEvent(npc));
-
-                    break;
-                }
-
-                *color = PRESSED_BUTTON.into();
-            }
-            // TODO: feature - preview
-            // Store the previous selected in the temp and restore it when none
-            Interaction::Hovered => {
-                *color = HOVERED_BUTTON.into();
-            }
-            Interaction::None => {
-                *color = NORMAL_BUTTON.into();
-            }
-        }
-    }
-}
+/* -------------------------------------------------------------------------- */
+/*                                 UI Updates                                 */
+/* -------------------------------------------------------------------------- */
 
 /// Event Handler of UpdateUnitSelectedEvent
 ///
 /// There can only be one entity selected.
 /// After completed a action with one, you can reselect it.
+///
+/// # Note
+///
+/// FIXME: Multiple Entity can be selected if clicked simultaneous
+/// REFACTOR: Directly Manage Clicked Entity in the update systems (instead of event)
 pub fn update_selected_unit(
     mut commands: Commands,
 
@@ -137,7 +111,7 @@ pub fn update_selected_unit(
                 // Don't change the entity selected
                 // TOTEST: This case only happens when the player reselect a entity by his.her will
                 Ok(_) => {
-                    transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionSkills));
+                    transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionSkill));
                 }
             },
             // Wasn't already selected
@@ -150,7 +124,7 @@ pub fn update_selected_unit(
                     commands.entity(selected).remove::<Selected>();
                 }
 
-                transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionSkills));
+                transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionSkill));
             }
         }
     }
@@ -169,59 +143,78 @@ pub fn update_targeted_unit(
 
     combat_unit_query: Query<(Entity, &Name), With<InCombat>>,
 
-    mut combat_panel_query: Query<(Entity, &mut CombatPanel)>,
+    mut combat_panel: ResMut<CombatPanel>,
+    mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
     // DEBUG DISPLAYER
     // unit_selected_query: Query<(Entity, &Name, &Selected)>,
 ) {
     for event in event_query.iter() {
-        // REFACTOR: ? does this match is mandatory ? can just add Targeted to the unit. XXX
-        // same in update_seleted_unit
         match combat_unit_query.get(event.0) {
             Err(e) => warn!("The entity targeted is invalid: {:?}", e),
             Ok((character, target_name)) => {
                 commands.entity(character).insert(Targeted);
                 info!("{} targeted", target_name);
 
-                let (_, mut combat_panel) = combat_panel_query.single_mut();
-                let mut last_action = combat_panel.history.pop().unwrap();
+                let last_action = combat_panel.history.last_mut().unwrap();
 
-                // TODO: impl change target/skill in the Vec<Action>
+                // TODO: ?? - impl change target/skill in the Vec<Action>
                 // Possibility to target multiple depending to the skill selected
-                last_action.targets = match last_action.targets {
-                    None => Some(vec![character]),
-                    Some(mut targets) => {
-                        if targets.len() < last_action.skill.target_number {
-                            targets.push(character);
-                        } else if targets.len() > last_action.skill.target_number {
-                            // abrsurd, should not happen
-                            // FIXME: error Handling -> back to a length acceptable
-                            warn!(
-                                "The number of target is exceeded {}/{}",
-                                targets.len(),
-                                last_action.skill.target_number
-                            );
-                            while targets.len() > last_action.skill.target_number {
-                                targets.pop();
-                            }
-                        }
+                last_action.targets = match last_action.targets.clone() {
+                    None => {
                         // Number of target = max targetable
-                        else {
-                            // 'replace' the first one by the newly targeted
-                            // ^^^^^^^^^---- Remove the first and push the new one
-                            if let Some((first_target, rem_targets)) = targets.split_first_mut() {
-                                commands.entity(*first_target).remove::<Targeted>();
-                                targets = rem_targets.to_vec();
-                                targets.push(character);
+                        match last_action.skill.target_option {
+                            TargetOption::Ally(1)
+                            | TargetOption::Enemy(1)
+                            | TargetOption::OneSelf => transition_phase_event
+                                .send(TransitionPhaseEvent(CombatState::default())),
+                            _ => {}
+                        }
+                        Some(vec![character])
+                    }
+                    Some(mut targets) => {
+                        match last_action.skill.target_option {
+                            TargetOption::Ally(number)
+                            | TargetOption::Enemy(number)
+                            | TargetOption::AllyButSelf(number) => {
+                                // Only work if we can target muiltiple times one entity
+                                // or if the number of available target is < number asked
+                                // TODO: can target less if = the max possible
+                                if targets.len() < number {
+                                    targets.push(character);
+                                    if targets.len() == number {
+                                        transition_phase_event
+                                            .send(TransitionPhaseEvent(CombatState::default()));
+                                    }
+                                } else if targets.len() > number {
+                                    warn!(
+                                        "Error! The number of target is exceeded {}/{:?}",
+                                        targets.len(),
+                                        last_action.skill.target_option
+                                    );
+                                    while targets.len() > number {
+                                        commands
+                                            .entity(targets.pop().unwrap())
+                                            .remove::<Targeted>();
+                                    }
+                                }
                             }
+                            // managed by phase_transition() or select_skill()
+                            TargetOption::OneSelf
+                            | TargetOption::AllAlly
+                            | TargetOption::AllEnemy
+                            | TargetOption::All => {}
                         }
                         Some(targets)
                     }
                 };
-                combat_panel.history.push(last_action.clone());
             }
         }
     }
 }
+
+/* -------------------------------------------------------------------------- */
+/*                                   UI Logs                                  */
+/* -------------------------------------------------------------------------- */
 
 /// Display the current phase
 ///
@@ -229,14 +222,12 @@ pub fn update_targeted_unit(
 ///
 /// DEBUG
 pub fn update_combat_phase_displayer(
-    mut combat_panel_query: Query<
-        (Entity, &CombatPanel, &mut Text),
-        Or<(Added<CombatPanel>, Changed<CombatPanel>)>,
-    >,
+    combat_panel: Res<CombatPanel>,
+    mut combat_state_displayer_query: Query<&mut Text, With<CombatStateDisplayer>>,
 ) {
-    if let Ok((_, combat_panel, mut text)) = combat_panel_query.get_single_mut() {
-        let phase_display = format!("Combat Phase: {}", combat_panel.phase);
-        text.sections[0].value = phase_display;
+    if combat_panel.is_changed() {
+        let mut text = combat_state_displayer_query.single_mut();
+        text.sections[0].value = format!("Combat Phase: {}", combat_panel.phase);
     }
 }
 
@@ -246,11 +237,11 @@ pub fn update_combat_phase_displayer(
 ///
 /// DEBUG
 pub fn last_action_displayer(
-    mut combat_panel_query: Query<(Entity, &CombatPanel), Changed<CombatPanel>>,
+    combat_panel: Res<CombatPanel>,
     unit_combat_query: Query<(Entity, &Name), With<InCombat>>,
     mut action_displayer_query: Query<&mut Text, With<ActionHistoryDisplayer>>,
 ) {
-    if let Ok((_, combat_panel)) = combat_panel_query.get_single_mut() {
+    if combat_panel.is_changed() {
         let mut action_displayer_text = action_displayer_query.single_mut();
 
         let mut history = String::from("---------------\nActions:");
@@ -273,6 +264,7 @@ pub fn last_action_displayer(
                         }
                     }
                 }
+
                 let action_display = if action.initiative == -1 {
                     format!(
                         "\n{}. {} do {} to {}",
