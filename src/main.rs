@@ -36,7 +36,7 @@ fn main() {
                         ),
                         title: "Turn-Based Combat".to_string(),
                         // TODO: feature - resizable
-                        resizable: false,
+                        resizable: true,
                         ..default()
                     }),
                     ..default()

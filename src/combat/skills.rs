@@ -28,16 +28,21 @@ pub enum SkillType {
     Flee,
 }
 
+/// # Note
+///
+/// - AllAllyButSelf
 #[derive(Default, Debug, Clone, PartialEq, Reflect)]
-pub enum TargetSide {
+pub enum TargetOption {
     /// Identity
-    OneSelf,
-    Enemy,
-    /// Include the identity (self)
     #[default]
-    Ally,
+    OneSelf,
+    Enemy(usize),
+    /// Include the identity (self)
+    Ally(usize),
     /// Exclude the identity (self)
-    AllyButSelf,
+    AllyButSelf(usize),
+    AllAlly,
+    AllEnemy,
     All,
 }
 
@@ -49,20 +54,24 @@ pub enum TargetSide {
 pub struct Skill {
     pub skill_type: SkillType,
     /// Which side the skill is allow to target
-    pub target_side: TargetSide,
+    ///
     /// # Example
     ///
     /// - target all ally/enemy party: MAX_PARTY (6)
-    /// - self-target: 1
+    /// - self-target: 0
     /// - targeted heal: 1
     /// - small explosion: 2
-    pub target_number: usize,
+    pub target_option: TargetOption,
     /// Area of Effect
     ///
     /// Should the skill affect all target
     /// or one by one
     pub aoe: bool,
     /// Wait for the turn delay to execute
+    ///
+    /// # Note
+    ///
+    /// Without Canalisation (can act while "waiting")
     pub turn_delay: i32,
     /// initiave: slower; faster
     ///
@@ -106,8 +115,7 @@ impl Default for Skill {
     fn default() -> Self {
         Skill {
             skill_type: Default::default(),
-            target_side: TargetSide::default(),
-            target_number: 1,
+            target_option: TargetOption::OneSelf,
             aoe: false,
             turn_delay: 0,
             initiative: 0,

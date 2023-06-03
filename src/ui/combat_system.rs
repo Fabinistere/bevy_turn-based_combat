@@ -1,7 +1,10 @@
 use bevy::prelude::*;
 
 use crate::{
-    combat::{phases::TransitionPhaseEvent, CombatPanel, CombatState, InCombat},
+    combat::{
+        phases::TransitionPhaseEvent, skills::TargetOption, CombatPanel, CombatState, InCombat,
+        Team,
+    },
     ui::player_interaction::Clicked,
 };
 
@@ -23,6 +26,9 @@ pub struct HpMeter;
 pub struct MpMeter;
 
 #[derive(Component)]
+pub struct CombatStateDisplayer;
+
+#[derive(Component)]
 pub struct ActionHistoryDisplayer;
 
 #[derive(Component)]
@@ -37,7 +43,9 @@ pub struct UpdateUnitSelectedEvent(pub Entity);
 /// DOC
 pub struct UpdateUnitTargetedEvent(pub Entity);
 
-// -------------------------- UI Systems --------------------------
+/* -------------------------------------------------------------------------- */
+/*                                 UI Systems                                 */
+/* -------------------------------------------------------------------------- */
 
 /// # Note
 pub fn caster_selection(
@@ -71,12 +79,19 @@ pub fn target_selection(
     }
 }
 
-// -------------------------- UI Updates --------------------------
+/* -------------------------------------------------------------------------- */
+/*                                 UI Updates                                 */
+/* -------------------------------------------------------------------------- */
 
 /// Event Handler of UpdateUnitSelectedEvent
 ///
 /// There can only be one entity selected.
 /// After completed a action with one, you can reselect it.
+///
+/// # Note
+///
+/// FIXME: Multiple Entity can be selected if clicked simultaneous
+/// REFACTOR: Directly Manage Clicked Entity in the update systems (instead of event)
 pub fn update_selected_unit(
     mut commands: Commands,
 
@@ -124,53 +139,95 @@ pub fn update_selected_unit(
 /// Differentiation only when selecting a skill
 pub fn update_targeted_unit(
     mut commands: Commands,
+    mut combat_panel: ResMut<CombatPanel>,
 
     mut event_query: EventReader<UpdateUnitTargetedEvent>,
 
-    combat_unit_query: Query<(Entity, &Name), With<InCombat>>,
+    unit_selected_query: Query<(Entity, &Team), With<Selected>>,
+    combat_unit_query: Query<(Entity, &Name, &Team), With<InCombat>>,
 
-    mut combat_panel_query: Query<(Entity, &mut CombatPanel)>,
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
-    // DEBUG DISPLAYER
-    // unit_selected_query: Query<(Entity, &Name, &Selected)>,
 ) {
     for event in event_query.iter() {
         match combat_unit_query.get(event.0) {
             Err(e) => warn!("The entity targeted is invalid: {:?}", e),
-            Ok((character, target_name)) => {
+            Ok((character, target_name, target_team)) => {
+                let last_action = combat_panel.history.last_mut().unwrap();
+
+                // Is it a correct target ?
+                match last_action.skill.target_option {
+                    TargetOption::Ally(_) => {
+                        let (_, caster_team) = unit_selected_query.single();
+                        if target_team != caster_team {
+                            info!("The target is not an ally");
+                            continue;
+                        }
+                    }
+                    TargetOption::Enemy(_) => {
+                        let (_, caster_team) = unit_selected_query.single();
+                        if target_team == caster_team {
+                            info!("The target is not an enemy");
+                            continue;
+                        }
+                    }
+                    TargetOption::AllyButSelf(_) => {
+                        let (caster, caster_team) = unit_selected_query.single();
+                        if target_team != caster_team || character == caster {
+                            info!("The target is not an ally or is the caster");
+                            continue;
+                        }
+                    }
+                    _ => {}
+                }
+
                 commands.entity(character).insert(Targeted);
                 info!("{} targeted", target_name);
 
-                let (_, mut combat_panel) = combat_panel_query.single_mut();
-                let last_action = combat_panel.history.last_mut().unwrap();
-
-                // TODO: ?? - impl change target/skill in the Vec<Action>
                 // Possibility to target multiple depending to the skill selected
                 last_action.targets = match last_action.targets.clone() {
                     None => {
                         // Number of target = max targetable
-                        if last_action.skill.target_number == 1 {
-                            transition_phase_event
-                                .send(TransitionPhaseEvent(CombatState::default()));
+                        match last_action.skill.target_option {
+                            TargetOption::Ally(1)
+                            | TargetOption::Enemy(1)
+                            | TargetOption::OneSelf => transition_phase_event
+                                .send(TransitionPhaseEvent(CombatState::default())),
+                            _ => {}
                         }
                         Some(vec![character])
                     }
                     Some(mut targets) => {
-                        if targets.len() < last_action.skill.target_number {
-                            targets.push(character);
-                            if targets.len() == last_action.skill.target_number {
-                                transition_phase_event
-                                    .send(TransitionPhaseEvent(CombatState::default()));
+                        match last_action.skill.target_option {
+                            TargetOption::Ally(number)
+                            | TargetOption::Enemy(number)
+                            | TargetOption::AllyButSelf(number) => {
+                                // Only work if we can target muiltiple times one entity
+                                // or if the number of available target is < number asked
+                                // TODO: can target less if = the max possible
+                                if targets.len() < number {
+                                    targets.push(character);
+                                    if targets.len() == number {
+                                        transition_phase_event
+                                            .send(TransitionPhaseEvent(CombatState::default()));
+                                    }
+                                } else if targets.len() > number {
+                                    warn!(
+                                        "Error! The number of target is exceeded {}/{:?}",
+                                        targets.len(),
+                                        last_action.skill.target_option
+                                    );
+                                    while targets.len() > number {
+                                        commands
+                                            .entity(targets.pop().unwrap())
+                                            .remove::<Targeted>();
+                                    }
+                                }
                             }
-                        } else if targets.len() > last_action.skill.target_number {
-                            warn!(
-                                "Error! The number of target is exceeded {}/{}",
-                                targets.len(),
-                                last_action.skill.target_number
-                            );
-                            while targets.len() > last_action.skill.target_number {
-                                commands.entity(targets.pop().unwrap()).remove::<Targeted>();
-                            }
+                            // managed by phase_transition() or select_skill()
+                            TargetOption::OneSelf
+                            | TargetOption::AllAlly
+                            | TargetOption::AllEnemy
+                            | TargetOption::All => {}
                         }
                         Some(targets)
                     }
@@ -180,7 +237,9 @@ pub fn update_targeted_unit(
     }
 }
 
-// ---------------------------- UI Logs ----------------------------
+/* -------------------------------------------------------------------------- */
+/*                                   UI Logs                                  */
+/* -------------------------------------------------------------------------- */
 
 /// Display the current phase
 ///
@@ -188,14 +247,12 @@ pub fn update_targeted_unit(
 ///
 /// DEBUG
 pub fn update_combat_phase_displayer(
-    mut combat_panel_query: Query<
-        (Entity, &CombatPanel, &mut Text),
-        Or<(Added<CombatPanel>, Changed<CombatPanel>)>,
-    >,
+    combat_panel: Res<CombatPanel>,
+    mut combat_state_displayer_query: Query<&mut Text, With<CombatStateDisplayer>>,
 ) {
-    if let Ok((_, combat_panel, mut text)) = combat_panel_query.get_single_mut() {
-        let phase_display = format!("Combat Phase: {}", combat_panel.phase);
-        text.sections[0].value = phase_display;
+    if combat_panel.is_changed() {
+        let mut text = combat_state_displayer_query.single_mut();
+        text.sections[0].value = format!("Combat Phase: {}", combat_panel.phase);
     }
 }
 
@@ -205,11 +262,11 @@ pub fn update_combat_phase_displayer(
 ///
 /// DEBUG
 pub fn last_action_displayer(
-    mut combat_panel_query: Query<(Entity, &CombatPanel), Changed<CombatPanel>>,
+    combat_panel: Res<CombatPanel>,
     unit_combat_query: Query<(Entity, &Name), With<InCombat>>,
     mut action_displayer_query: Query<&mut Text, With<ActionHistoryDisplayer>>,
 ) {
-    if let Ok((_, combat_panel)) = combat_panel_query.get_single_mut() {
+    if combat_panel.is_changed() {
         let mut action_displayer_text = action_displayer_query.single_mut();
 
         let mut history = String::from("---------------\nActions:");
@@ -221,8 +278,8 @@ pub fn last_action_displayer(
                 match &action.targets {
                     None => targets_name = "None".to_string(),
                     Some(targets) => {
-                        for target in targets {
-                            if targets.len() > 1 {
+                        for (i, target) in targets.iter().enumerate() {
+                            if targets.len() > 1 && i != 0 {
                                 targets_name.push_str(" and ");
                             }
                             match unit_combat_query.get(*target) {

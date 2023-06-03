@@ -9,12 +9,12 @@ use bevy::{
 use crate::{
     combat::{
         phases::TransitionPhaseEvent,
-        skills::{Skill, TargetSide},
+        skills::{Skill, TargetOption},
         Action, ActionCount, CombatPanel, CombatState,
     },
     constants::ui::dialogs::*,
     ui::{
-        combat_panel::SkillDisplayer,
+        combat_panel::{ActionDisplayer, SkillDisplayer},
         combat_system::{Selected, Targeted},
     },
 };
@@ -90,24 +90,17 @@ pub fn button_system(
     }
 }
 
-// # Note
-//
-// TODO: feature - can drag unit just to cancel the click
-// avoid missclick by dragging
-//
-// TODO: feature - Skill dropped
-// To a possible target: Confirm
-// To something else: Cancel (or just back to skill clicked)
-
-// # Note
-//
-// TODO: feature - Hover Unit - Preview Combat Page
-
 #[derive(Component, Default)]
 pub struct ScrollingList {
     position: f32,
 }
 
+/// # Note
+///
+/// TODO: Unsynchronise lists (scroll only if the cursor is on the list in question)
+///
+/// TODO: Customise the mouse scrolling system for actions (could also work with the skills menu overflow)
+/// TODO: (Prevent) Only allow scrolling on visible actions
 pub fn mouse_scroll(
     mut mouse_wheel_events: EventReader<MouseWheel>,
     mut query_list: Query<(&mut ScrollingList, &mut Style, &Parent, &Node)>,
@@ -136,7 +129,15 @@ pub fn mouse_scroll(
 /*                       ----- Specific UI systems -----                      */
 /* -------------------------------------------------------------------------- */
 
+// /// TODO: couldhave - Hover Unit = Preview Combat Page
+// /// Give Hovered which is prioritized to be displayed if it exists
+// pub fn hover_unit_by_mouse() {}
+
 /// Adds the Component 'Clicked' to a valid Entity
+///
+/// # Note
+///
+/// TODO: couldhave - can drag unit just to cancel the click = avoid missclick by dragging
 pub fn select_unit_by_mouse(
     mut commands: Commands,
 
@@ -191,7 +192,12 @@ pub fn select_unit_by_mouse(
 /// # Note
 ///
 /// - skill_color(): Skill color will update at caster/action_count change
+/// - TODO: couldhave - Skill dropped
+///   - To a possible target: Confirm
+///   - To something else: Cancel (or just back to skill clicked)
 pub fn select_skill(
+    mut combat_panel: ResMut<CombatPanel>,
+
     mut interaction_query: Query<
         (&Interaction, &Skill, &mut BackgroundColor, &Children),
         (Changed<Interaction>, With<Button>, With<SkillDisplayer>),
@@ -199,18 +205,21 @@ pub fn select_skill(
 
     mut text_query: Query<&mut Text>,
 
-    mut combat_panel_query: Query<(Entity, &mut CombatPanel)>,
-
     unit_selected_query: Query<(Entity, &Name, &ActionCount), With<Selected>>,
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
     for (interaction, skill, mut color, children) in &mut interaction_query {
         let mut text = text_query.get_mut(children[0]).unwrap();
 
+        // XXX: Tempo the command which give a Selected after cancel_input a selfcast skill in SelectionCaster
+        if let Err(_) = unit_selected_query.get_single() {
+            warn!("No Selected in SelectionSkill");
+            continue;
+        }
+
         // if this system can run
         // we are in SelectionSkill or SelectionTarget
         // so there is a selected unit.
-        // FIXME: Crash - Esc bug, after cancel an action but still in selectionSkill with no action left
         let (caster, _caster_name, action_count) = unit_selected_query.single();
 
         match *interaction {
@@ -222,9 +231,8 @@ pub fn select_skill(
                     continue;
                 }
 
-                let (_, mut combat_panel) = combat_panel_query.single_mut();
-
                 // BUG: XXX: Weird "Bug" Event/GameState related handle
+                // Prevent the Trigger of the "double press"
                 if let Some(last_action) = combat_panel.history.last() {
                     if last_action.skill == skill.clone() && last_action.targets == None {
                         // warn!("Same Skill Selected Event handled twice");
@@ -241,14 +249,10 @@ pub fn select_skill(
                     // cause we're in the TargetSelection phase
 
                     let last_action = combat_panel.history.last_mut().unwrap();
-                    last_action.skill = skill.clone();
-                    last_action.targets = if skill.target_side == TargetSide::OneSelf {
-                        transition_phase_event.send(TransitionPhaseEvent(CombatState::default()));
-                        Some(vec![caster])
-                    } else {
-                        // and we're still in TargetSelection phase
-                        None
-                    };
+                    last_action.targets = None;
+
+                    // This transitionEvent will trigger all the verification about skill selected (selfcast, etc)
+                    transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionTarget));
 
                     // info!("DEBUG: action = {} do {} to None", caster_name, skill.name);
 
@@ -296,10 +300,12 @@ pub struct EndOfTurnButton;
 
 /// # Note
 ///
-/// TODO: Check ActionCount ? x
-/// FIXME: End of turn in SelectionSkill: trigger a double press
+/// TODO: feature - Confirm The EndOfTurn
+/// BUG: End of turn in SelectionSkill: trigger a double press
 /// @see [`ui::player_interaction::confirm_action_button()`] to check: correct target number
 pub fn end_of_turn_button(
+    mut combat_panel: ResMut<CombatPanel>,
+
     mut interaction_query: Query<
         (&Interaction, &Children),
         (Changed<Interaction>, With<Button>, With<EndOfTurnButton>),
@@ -307,21 +313,15 @@ pub fn end_of_turn_button(
 
     mut text_query: Query<&mut Text>,
 
-    mut combat_panel_query: Query<(Entity, &mut CombatPanel)>,
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
     for (interaction, children) in &mut interaction_query {
         let mut text = text_query.get_mut(children[0]).unwrap();
         match *interaction {
             Interaction::Clicked => {
-                let (_, mut combat_panel) = combat_panel_query.single_mut();
-
-                if let Some(last_action) = combat_panel.history.pop() {
-                    // TODO: Check correct target number
-                    // atm we can partially confirm an action by pressing "end_of_turn"
-                    if last_action.targets != None {
-                        // reput the last_action in the pool
-                        combat_panel.history.push(last_action);
+                if let Some(last_action) = combat_panel.history.last() {
+                    if !last_action.is_correct(combat_panel.number_of_fighters.clone()) {
+                        combat_panel.history.pop();
                     }
                 } else {
                     // allow pass with no action in the history
@@ -347,36 +347,40 @@ pub fn end_of_turn_button(
 /// If the user press 'esc',
 /// depending of the phase we're in,
 /// will undo the previous input (predicted, not real undo)
+///
+/// Many operation are processed in `combat::phases::phase_transition()`
+///
+/// # Note
+///
+/// Can be an [Exclusive System](https://github.com/bevyengine/bevy/blob/1c5c94715cb17cda5ae209eef12a938501de90b5/examples/ecs/ecs_guide.rs#L198)
 pub fn cancel_last_input(
     mut commands: Commands,
     keyboard_input: Res<Input<KeyCode>>,
+    mut combat_panel: ResMut<CombatPanel>,
 
     selected_unit_query: Query<(Entity, &Name), With<Selected>>,
-    // , With<Selected>
     mut caster_query: Query<(Entity, &mut ActionCount)>,
 
-    mut combat_panel_query: Query<&mut CombatPanel>,
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
-    let mut combat_panel = combat_panel_query.single_mut();
-
     if keyboard_input.just_pressed(KeyCode::Escape) {
-        info!("Esc in {}", combat_panel.phase);
-        match combat_panel.phase {
+        let current_phase = combat_panel.phase.clone();
+        info!("Esc in {}", current_phase);
+
+        match current_phase {
             CombatState::SelectionSkill => {
-                // FIXME: Smashing esc can skip a beat and crash here
                 let (selected, name) = selected_unit_query.single();
 
-                info!("{} was selected", name);
-
                 commands.entity(selected).remove::<Selected>();
+                info!("{} is no longer selected", name);
+
                 transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionCaster));
             }
             CombatState::SelectionCaster | CombatState::SelectionTarget => {
                 // Remove last targeted and modify the last action
-                match combat_panel.history.pop() {
+                match combat_panel.history.last_mut() {
                     None => {
-                        if combat_panel.phase == CombatState::SelectionTarget {
+                        if current_phase == CombatState::SelectionTarget {
                             warn!("In TargetSelectionPhase, it should have at least one action");
                             // DEBUG: Error Handle
                             transition_phase_event
@@ -394,48 +398,55 @@ pub fn cancel_last_input(
                                     "{}:{:?} was selected over our last caster {:?}",
                                     name, selected, last_action.caster
                                 );
+                            } else {
+                                info!("{}:{:?} is selected", name, selected);
                             }
                         }
+                        // XXX: this command take too long to be processed if we transi to SelectionSkill
+                        // [Hard Sync Point](https://github.com/bevyengine/bevy/issues/1613) required to stop waiting the command to be executed
+                        // IDEA: New TempoPhase to wait for commands to be processed.
                         commands.entity(last_action.caster).insert(Selected);
                         info!("{:?} is now selected", last_action.caster);
 
                         match &mut last_action.targets {
                             None => {
-                                // undo the skill selection and go back to SelectionSkill (handled in `phase_transition()`)
-                                // ^^^^--- by not placing back the action in the history
+                                combat_panel.history.pop();
 
                                 transition_phase_event
                                     .send(TransitionPhaseEvent(CombatState::SelectionSkill));
                             }
                             Some(ref mut targets) => {
-                                // remove last targeted
                                 let old_target = targets.pop().unwrap();
                                 commands.entity(old_target).remove::<Targeted>();
                                 if targets.len() == 0 {
                                     last_action.targets = None;
                                 }
 
-                                if combat_panel.phase == CombatState::SelectionCaster {
-                                    // Give back the action
+                                if current_phase == CombatState::SelectionCaster {
                                     let mut action_count = caster_query
                                         .get_component_mut::<ActionCount>(last_action.caster)
                                         .unwrap();
                                     action_count.current += 1;
-                                    info!("action left: {}", action_count.current);
+                                    info!("action given back, left: {}", action_count.current);
 
-                                    if last_action.skill.target_side == TargetSide::OneSelf {
-                                        transition_phase_event.send(TransitionPhaseEvent(
-                                            CombatState::SelectionSkill,
-                                        ));
-                                    } else {
-                                        transition_phase_event.send(TransitionPhaseEvent(
-                                            CombatState::SelectionTarget,
-                                        ));
-                                        combat_panel.history.push(last_action.clone());
+                                    match last_action.skill.target_option {
+                                        TargetOption::OneSelf
+                                        | TargetOption::All
+                                        | TargetOption::AllAlly
+                                        | TargetOption::AllEnemy => {
+                                            combat_panel.history.pop();
+
+                                            transition_phase_event.send(TransitionPhaseEvent(
+                                                CombatState::SelectionSkill,
+                                            ));
+                                        }
+                                        _ => {
+                                            transition_phase_event.send(TransitionPhaseEvent(
+                                                CombatState::SelectionTarget,
+                                            ));
+                                        }
                                     }
                                 } else {
-                                    combat_panel.history.push(last_action.clone());
-
                                     // In SelectionTarget, the action_count should be correct.
                                 }
                             }
@@ -444,6 +455,57 @@ pub fn cancel_last_input(
                 }
             }
             _ => {}
+        }
+    }
+}
+
+/// Button interaction system for ActionDisplayer
+///
+/// # Behavior
+///
+/// - Clicked
+/// swap the one clicked with the last (downward the action to be accessed easly)
+/// - TODO: Hover Action
+/// Visualize action effect
+///
+/// # Note
+///
+/// TODO: feat UI - simplify deleting an action by adding a cross to do so.
+pub fn action_button(
+    mut combat_panel: ResMut<CombatPanel>,
+
+    mut interaction_query: Query<
+        (&Interaction, &ActionDisplayer),
+        (Changed<Interaction>, With<Button>),
+    >,
+) {
+    for (interaction, action_displayer) in &mut interaction_query {
+        match *interaction {
+            Interaction::Clicked => {
+                info!("Action {} clicked", action_displayer.0);
+
+                if combat_panel.history.len() <= action_displayer.0 {
+                    warn!(
+                        "Action {} is visible even if it shouldn't: {}/{}",
+                        action_displayer.0,
+                        action_displayer.0,
+                        combat_panel.history.len()
+                    )
+                } else {
+                    if let Some(last_action) = combat_panel.history.last() {
+                        if !last_action.is_correct(combat_panel.number_of_fighters.clone()) {
+                            info!("Abort current action (wasn't complete)");
+                            combat_panel.history.pop();
+                        }
+                    }
+
+                    // use of remove() to preserve order
+                    let action = combat_panel.history.remove(action_displayer.0);
+                    combat_panel.history.push(action);
+                }
+            }
+            Interaction::Hovered => {}
+            Interaction::None => {}
         }
     }
 }
