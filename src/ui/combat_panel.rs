@@ -349,7 +349,8 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                 style: Style {
                                     size: Size::height(Val::Percent(42.)),
                                     flex_direction: FlexDirection::Column,
-                                    // align_items: AlignItems::Center,
+                                    // align_content: AlignContent::SpaceAround,
+                                    justify_content: JustifyContent::Center,
                                     ..default()
                                 },
                                 background_color: Color::AZURE.into(),
@@ -370,8 +371,6 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                         ..default()
                                     },
                                     Name::new("Base Skills"),
-                                    // A component to differenciation ? or just children[0]
-                                    // BaseSkillBar,
                                 ))
                                 .with_children(|parent| {
                                     // 6 Base skill max
@@ -412,8 +411,6 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                         ..default()
                                     },
                                     Name::new("Tier2 Skills"),
-                                    // A component to differenciation ? or just children[1]
-                                    // Tier2SkillBar,
                                 ))
                                 .with_children(|parent| {
                                     // 3 Tier2 skill max
@@ -472,8 +469,6 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                         ..default()
                                     },
                                     Name::new("Tier1 Skills"),
-                                    // A component to differenciation ? or just children[2]
-                                    // Tier1SkillBar,
                                 ))
                                 .with_children(|parent| {
                                     // 3 Tier1 skill max
@@ -532,8 +527,6 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                         ..default()
                                     },
                                     Name::new("Tier0 Skills"),
-                                    // A component to differenciation ? or just children[3]
-                                    // Tier0SkillBar,
                                 ))
                                 .with_children(|parent| {
                                     // 3 Tier0 skill max
