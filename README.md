@@ -24,8 +24,11 @@ Assets are deported on a different cloud to stop wasting git use which is very c
 - Display all skill per entity (when selected)
 - Display all action in the Initiative Vertical Bar
 - Place Fighters corresponding of their tactical position (diamond shape)
-- TODO: Update fighters' transform % window's size
-- TODO: Display all basic stats on the Fighting Hall (Hp/Mp under all entities)
+- Update fighters' transform % window's size
+- Force Respect of the selected skill's TargetOption
+- TODO: ShouldHave - Stuff Tab, Equip from Team's Inventory, Desequip
+- TODO: MustHave - Display all basic stats on the Fighting Hall (Hp/Mp under all entities)
+- TODO: MustHave - Display Job and potential
 
 ## Example
 

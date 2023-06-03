@@ -348,6 +348,8 @@ pub fn end_of_turn_button(
 /// depending of the phase we're in,
 /// will undo the previous input (predicted, not real undo)
 ///
+/// Many operation are processed in `combat::phases::phase_transition()`
+///
 /// # Note
 ///
 /// Can be an [Exclusive System](https://github.com/bevyengine/bevy/blob/1c5c94715cb17cda5ae209eef12a938501de90b5/examples/ecs/ecs_guide.rs#L198)
@@ -357,7 +359,6 @@ pub fn cancel_last_input(
     mut combat_panel: ResMut<CombatPanel>,
 
     selected_unit_query: Query<(Entity, &Name), With<Selected>>,
-    // , With<Selected>
     mut caster_query: Query<(Entity, &mut ActionCount)>,
 
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
@@ -377,7 +378,6 @@ pub fn cancel_last_input(
             }
             CombatState::SelectionCaster | CombatState::SelectionTarget => {
                 // Remove last targeted and modify the last action
-                // FIXME: crash of cancel_system/selected entity with th replacement of pop by last_mut
                 match combat_panel.history.last_mut() {
                     None => {
                         if current_phase == CombatState::SelectionTarget {
@@ -392,13 +392,14 @@ pub fn cancel_last_input(
                     Some(ref mut last_action) => {
                         // give the last_action.caster the selected component
                         if let Ok((selected, name)) = selected_unit_query.get_single() {
-                            info!("{}:{:?} was selected", name, selected);
                             if selected != last_action.caster {
                                 commands.entity(selected).remove::<Selected>();
                                 info!(
                                     "{}:{:?} was selected over our last caster {:?}",
                                     name, selected, last_action.caster
                                 );
+                            } else {
+                                info!("{}:{:?} is selected", name, selected);
                             }
                         }
                         // XXX: this command take too long to be processed if we transi to SelectionSkill
@@ -409,14 +410,12 @@ pub fn cancel_last_input(
 
                         match &mut last_action.targets {
                             None => {
-                                // undo the skill selection and go back to SelectionSkill (handled in `phase_transition()`)
                                 combat_panel.history.pop();
 
                                 transition_phase_event
                                     .send(TransitionPhaseEvent(CombatState::SelectionSkill));
                             }
                             Some(ref mut targets) => {
-                                // remove last targeted
                                 let old_target = targets.pop().unwrap();
                                 commands.entity(old_target).remove::<Targeted>();
                                 if targets.len() == 0 {
@@ -424,23 +423,28 @@ pub fn cancel_last_input(
                                 }
 
                                 if current_phase == CombatState::SelectionCaster {
-                                    // Give back the action
                                     let mut action_count = caster_query
                                         .get_component_mut::<ActionCount>(last_action.caster)
                                         .unwrap();
                                     action_count.current += 1;
                                     info!("action given back, left: {}", action_count.current);
 
-                                    if last_action.skill.target_option == TargetOption::OneSelf {
-                                        combat_panel.history.pop();
+                                    match last_action.skill.target_option {
+                                        TargetOption::OneSelf
+                                        | TargetOption::All
+                                        | TargetOption::AllAlly
+                                        | TargetOption::AllEnemy => {
+                                            combat_panel.history.pop();
 
-                                        transition_phase_event.send(TransitionPhaseEvent(
-                                            CombatState::SelectionSkill,
-                                        ));
-                                    } else {
-                                        transition_phase_event.send(TransitionPhaseEvent(
-                                            CombatState::SelectionTarget,
-                                        ));
+                                            transition_phase_event.send(TransitionPhaseEvent(
+                                                CombatState::SelectionSkill,
+                                            ));
+                                        }
+                                        _ => {
+                                            transition_phase_event.send(TransitionPhaseEvent(
+                                                CombatState::SelectionTarget,
+                                            ));
+                                        }
                                     }
                                 } else {
                                     // In SelectionTarget, the action_count should be correct.
