@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use crate::{
     combat::{
         phases::TransitionPhaseEvent, skills::TargetOption, CombatPanel, CombatState, InCombat,
+        Team,
     },
     ui::player_interaction::Clicked,
 };
@@ -138,26 +139,50 @@ pub fn update_selected_unit(
 /// Differentiation only when selecting a skill
 pub fn update_targeted_unit(
     mut commands: Commands,
+    mut combat_panel: ResMut<CombatPanel>,
 
     mut event_query: EventReader<UpdateUnitTargetedEvent>,
 
-    combat_unit_query: Query<(Entity, &Name), With<InCombat>>,
+    unit_selected_query: Query<(Entity, &Team), With<Selected>>,
+    combat_unit_query: Query<(Entity, &Name, &Team), With<InCombat>>,
 
-    mut combat_panel: ResMut<CombatPanel>,
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
-    // DEBUG DISPLAYER
-    // unit_selected_query: Query<(Entity, &Name, &Selected)>,
 ) {
     for event in event_query.iter() {
         match combat_unit_query.get(event.0) {
             Err(e) => warn!("The entity targeted is invalid: {:?}", e),
-            Ok((character, target_name)) => {
+            Ok((character, target_name, target_team)) => {
+                let last_action = combat_panel.history.last_mut().unwrap();
+
+                // Is it a correct target ?
+                match last_action.skill.target_option {
+                    TargetOption::Ally(_) => {
+                        let (_, caster_team) = unit_selected_query.single();
+                        if target_team != caster_team {
+                            info!("The target is not an ally");
+                            continue;
+                        }
+                    }
+                    TargetOption::Enemy(_) => {
+                        let (_, caster_team) = unit_selected_query.single();
+                        if target_team == caster_team {
+                            info!("The target is not an enemy");
+                            continue;
+                        }
+                    }
+                    TargetOption::AllyButSelf(_) => {
+                        let (caster, caster_team) = unit_selected_query.single();
+                        if target_team != caster_team || character == caster {
+                            info!("The target is not an ally or is the caster");
+                            continue;
+                        }
+                    }
+                    _ => {}
+                }
+
                 commands.entity(character).insert(Targeted);
                 info!("{} targeted", target_name);
 
-                let last_action = combat_panel.history.last_mut().unwrap();
-
-                // TODO: ?? - impl change target/skill in the Vec<Action>
                 // Possibility to target multiple depending to the skill selected
                 last_action.targets = match last_action.targets.clone() {
                     None => {
@@ -253,8 +278,8 @@ pub fn last_action_displayer(
                 match &action.targets {
                     None => targets_name = "None".to_string(),
                     Some(targets) => {
-                        for target in targets {
-                            if targets.len() > 1 {
+                        for (i, target) in targets.iter().enumerate() {
+                            if targets.len() > 1 && i != 0 {
                                 targets_name.push_str(" and ");
                             }
                             match unit_combat_query.get(*target) {
