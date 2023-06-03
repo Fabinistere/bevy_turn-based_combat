@@ -14,6 +14,8 @@ use crate::{
     },
 };
 
+use super::Team;
+
 /* -------------------------------------------------------------------------- */
 /*                    ----- Transitions Between Phase -----                   */
 /* -------------------------------------------------------------------------- */
@@ -36,11 +38,11 @@ pub fn phase_transition(
     mut commands: Commands,
     mut combat_panel: ResMut<CombatPanel>,
 
-    mut selected_unit_query: Query<(Entity, &mut ActionCount), With<Selected>>,
+    mut selected_unit_query: Query<Entity, With<Selected>>,
     targeted_unit_query: Query<(Entity, &Name), With<Targeted>>,
+    mut combat_unit_query: Query<(Entity, &mut ActionCount, &Hp, &Team), With<InCombat>>,
 
     // REFACTOR: --- Abstraction Needed ---
-    mut unselected_unit_query: Query<&mut ActionCount, (Without<Selected>, With<InCombat>)>,
     // BUG: This query, by its very existence, is crashing the .single() of query<With<Selected>> (in select_skill()) w.t.f.
     // mut actions_logs_query: Query<
     //     &mut Text,
@@ -86,17 +88,18 @@ pub fn phase_transition(
                         commands.entity(targeted).remove::<Targeted>();
                     }
 
-                    let mut action_count = selected_unit_query
+                    // ------ ActionCount ------
+
+                    let _ = selected_unit_query.get(last_action.caster).unwrap();
+                    let mut action_count = combat_unit_query
                         .get_component_mut::<ActionCount>(last_action.caster)
                         .unwrap();
 
-                    // if the skill is a selfcast => put the self into the target,
                     match last_action.skill.target_option {
-                        TargetOption::OneSelf => {
-                            last_action.targets = Some(vec![last_action.caster]);
-                            // If there is still some action left for the current caster,
-                            // skip SelectionTarget
-
+                        TargetOption::OneSelf
+                        | TargetOption::AllAlly
+                        | TargetOption::AllEnemy
+                        | TargetOption::All => {
                             action_count.current -= 1;
                             info!("action left: {}", action_count.current);
 
@@ -106,10 +109,46 @@ pub fn phase_transition(
                                 &default_state
                             };
                         }
-                        // TODO: TargetOption All-ish
-                        TargetOption::AllAlly => {}
-                        TargetOption::AllEnemy => {}
-                        TargetOption::All => {}
+                        _ => {}
+                    }
+
+                    // ------ Targets ------
+
+                    let caster_team = combat_unit_query
+                        .get_component::<Team>(last_action.caster)
+                        .unwrap();
+
+                    match last_action.skill.target_option {
+                        TargetOption::OneSelf => {
+                            last_action.targets = Some(vec![last_action.caster]);
+                        }
+                        TargetOption::AllAlly => {
+                            let mut targets: Vec<Entity> = Vec::new();
+                            for (entity, _, hp, team) in combat_unit_query.iter() {
+                                if hp.current > 0 && team == caster_team {
+                                    targets.push(entity);
+                                }
+                            }
+                            last_action.targets = Some(targets);
+                        }
+                        TargetOption::AllEnemy => {
+                            let mut targets: Vec<Entity> = Vec::new();
+                            for (entity, _, hp, team) in combat_unit_query.iter() {
+                                if hp.current > 0 && team != caster_team {
+                                    targets.push(entity);
+                                }
+                            }
+                            last_action.targets = Some(targets);
+                        }
+                        TargetOption::All => {
+                            let mut targets: Vec<Entity> = Vec::new();
+                            for (entity, _, hp, _) in combat_unit_query.iter() {
+                                if hp.current > 0 {
+                                    targets.push(entity);
+                                }
+                            }
+                            last_action.targets = Some(targets);
+                        }
                         _ => {}
                     }
                 } else {
@@ -122,7 +161,8 @@ pub fn phase_transition(
                 // If there is still some action left for the current caster,
                 // skip SelectionCaster (The previous will still have the comp `Selected`)
                 let last_action = combat_panel.history.last().unwrap();
-                let mut action_count = selected_unit_query
+                let _ = selected_unit_query.get(last_action.caster).unwrap();
+                let mut action_count = combat_unit_query
                     .get_component_mut::<ActionCount>(last_action.caster)
                     .unwrap();
 
@@ -157,9 +197,8 @@ pub fn phase_transition(
                 }
                 // remove `Selected` from the last potential selected
                 // DOC: will trigger all RemovedComponent queries
-                if let Ok((selected, mut action_count)) = selected_unit_query.get_single_mut() {
+                if let Ok(selected) = selected_unit_query.get_single_mut() {
                     commands.entity(selected).remove::<Selected>();
-                    action_count.current = action_count.base;
                 }
                 // remove all `Targeted`
                 for (targeted, _) in targeted_unit_query.iter() {
@@ -197,10 +236,7 @@ pub fn phase_transition(
                 combat_panel.history = Vec::new();
 
                 // Reset all ActionCounter/Limit
-                if let Ok((_, mut action_count)) = selected_unit_query.get_single_mut() {
-                    action_count.current = action_count.base;
-                }
-                for mut action_count in unselected_unit_query.iter_mut() {
+                for (_, mut action_count, _, _) in combat_unit_query.iter_mut() {
                     action_count.current = action_count.base;
                 }
             }
