@@ -15,20 +15,28 @@ Assets are deported on a different cloud to stop wasting git use which is very c
 
 ## Features
 
-- Display Actions
-- Confirm Actions
-- Roll Initiative
-- Execute in order Actions
-- Nice, Smooth and intuitive ui inputs
-- Scrolling Logs
-- Display all skill per entity (when selected)
-- Display all action in the Initiative Vertical Bar
-- Place Fighters corresponding of their tactical position (diamond shape)
-- Update fighters' transform % window's size
-- Force Respect of the selected skill's TargetOption
-- TODO: ShouldHave - Stuff Tab, Equip from Team's Inventory, Desequip
-- TODO: MustHave - Display all basic stats on the Fighting Hall (Hp/Mp under all entities)
-- TODO: MustHave - Display Job and potential
+- [x] Phases
+  - [x] Roll Initiative
+  - [x] Execute in order Actions
+- [ ] Mecanics
+  - [ ] TODO: CouldHave - Skill Range (depending of the caster's position)
+  - [x] Force Respect of the selected skill's TargetOption
+  - [ ] TODO: ShouldHave - Select only 4 to 6 skills from your catalogue, for the next fight.
+  - [ ] TODO: CouldHave - TierExtra Skills (unlocked bvy job's tree)
+- [ ] UI
+  - [x] Nice, Smoother and intuitive ui inputs
+  - [ ] Fighting Hall
+    - [x] Place Fighters corresponding of their tactical position (diamond shape)
+    - [x] Update fighters' transform % window's size
+    - [ ] TODO: MustHave - Display all basic stats on the Fighting Hall (Hp/Mp under all entities)
+  - [x] Initiative Vertical Bar
+    - [x] Display all action in the Initiative Vertical Bar
+  - [ ] Character's Sheet
+    - [x] Display all skill per entity (when selected)
+    - [x] Scrolling Logs
+    - [ ] TODO: MustHave - Display Job
+    - [ ] TODO: ShouldHave - Stuff Tab, Equip from Team's Inventory, Desequip
+    - [ ] TODO: CouldHave - Display somewhere else the catalogue
 
 ## Example
 
