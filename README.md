@@ -39,3 +39,14 @@ Assets are deported on a different cloud to stop wasting git use which is very c
 Dans ce projet, il existe une erreur que je connais:
 
 $\exists e E(e) \wedge SelfAck(e)$
+
+## License
+
+This project is free, open source and permissively licensed!
+
+All code in this repository is dual-licensed under either:
+
+- MIT License ([LICENSE-MIT](LICENSE-MIT) or [http://opensource.org/licenses/MIT](http://opensource.org/licenses/MIT))
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or [http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0))
+
+See the very good reasons for including both [here](https://github.com/bevyengine/bevy/issues/2373).
