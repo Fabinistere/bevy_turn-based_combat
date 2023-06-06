@@ -4,58 +4,297 @@
 use bevy::prelude::*;
 
 use crate::{
+    characters::{FabiensInfos, PersonalInfos},
     combat::{
+        alterations::AlterationAction,
         skills::Skill,
-        stats::{Hp, Mana},
+        stats::{Attack, AttackSpe, Defense, DefenseSpe, Hp, Initiative, Mana, Shield},
         stuff::{Equipement, Equipements, Job, JobsMasteries, MasteryTier, SkillTiers, WeaponType},
-        ActionCount, InCombat, Skills,
+        ActionCount, Alterations, InCombat, Skills,
     },
     constants::ui::dialogs::*,
     ui::{
-        combat_panel::{CasterMeter, SkillBar, SkillDisplayer, TargetMeter},
+        combat_panel::{SkillBar, SkillDisplayer, TargetMeter},
         combat_system::{HpMeter, MpMeter, Selected, Targeted},
     },
 };
 
+use super::combat_panel::{FabienName, Portrait, Title};
+
+/* -------------------------------------------------------------------------- */
+/*                                   Headers                                  */
+/* -------------------------------------------------------------------------- */
+
+/// Update the character's sheet with the current selected, name, sprite.
+pub fn update_headers(
+    asset_server: Res<AssetServer>,
+    fabiens_infos: Res<FabiensInfos>,
+
+    caster_name_query: Query<
+        (&Job, &Name, &TextureAtlasSprite),
+        (Changed<Selected>, With<InCombat>),
+    >,
+
+    mut portrait_query: Query<&mut UiImage, (With<Portrait>, Without<InCombat>)>,
+    mut fabine_name_query: Query<
+        &mut Text,
+        (
+            With<FabienName>,
+            Without<Title>,
+            Without<Job>,
+            Without<InCombat>,
+        ),
+    >,
+    mut title_query: Query<
+        &mut Text,
+        (
+            With<Title>,
+            Without<Job>,
+            Without<FabienName>,
+            Without<InCombat>,
+        ),
+    >,
+    mut job_text_query: Query<
+        &mut Text,
+        (
+            With<Job>,
+            Without<Title>,
+            Without<FabienName>,
+            Without<InCombat>,
+        ),
+    >,
+) {
+    if let Ok((caster_job, caster_name, _caster_sprite)) = caster_name_query.get_single() {
+        let mut portrait = portrait_query.single_mut();
+        let mut fabien_name_text = fabine_name_query.single_mut();
+        let mut title_text = title_query.single_mut();
+        let mut job_text = job_text_query.single_mut();
+
+        // portrait.index = caster_sprite.index;
+        if let Some(PersonalInfos { title, sprite_path }) =
+            fabiens_infos.get(&caster_name.to_string())
+        {
+            fabien_name_text.sections[0].value = caster_name.replace("NPC ", "");
+            title_text.sections[0].value = title.to_string();
+            job_text.sections[0].value = format!("{:?}", caster_job);
+            portrait.texture = asset_server.load(sprite_path);
+        } else {
+            warn!("{} Not Found/Associated in the FabienDataBase", caster_name);
+            fabien_name_text.sections[0].value = caster_name.replace("NPC ", "");
+            title_text.sections[0].value = "Fabien".to_string();
+            job_text.sections[0].value = "Chill".to_string();
+            portrait.texture = asset_server.load("textures/character/idle/idle_Fabien_Loyal.png");
+        };
+    }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                    Stats                                   */
+/* -------------------------------------------------------------------------- */
+
 /// # Note
 ///
 /// DEBUG
+/// XXX: Stats Displayer
+/// TODO: Add Damage Multiplier (Suffered/Inflicted)
 pub fn update_caster_stats_panel(
     selected_query: Query<
-        (Entity, &Selected, &Name, &Hp, &Mana),
         (
-            Or<(
-                Added<Selected>,
-                Changed<Selected>,
-                Changed<Hp>,
-                Changed<Mana>,
-            )>,
+            &Hp,
+            &Mana,
+            &Shield,
+            &Initiative,
+            &Attack,
+            &AttackSpe,
+            &Defense,
+            &DefenseSpe,
+            &Alterations,
+            // &Equipements,
+        ),
+        (
+            Or<(Changed<Selected>, Changed<Hp>, Changed<Mana>)>,
+            With<Selected>,
             With<InCombat>,
         ),
     >,
 
     mut select_removals: RemovedComponents<Selected>,
 
-    mut hp_query: Query<(Entity, &HpMeter, &mut Text), (Without<MpMeter>, With<CasterMeter>)>,
-    mut mp_query: Query<(Entity, &MpMeter, &mut Text), (Without<HpMeter>, With<CasterMeter>)>,
+    mut hp_text_query: Query<
+        &mut Text,
+        (
+            With<Hp>,
+            Without<Mana>,
+            Without<Shield>,
+            Without<Initiative>,
+            Without<Attack>,
+            Without<AttackSpe>,
+            Without<Defense>,
+            Without<DefenseSpe>,
+        ),
+    >,
+    mut mp_text_query: Query<
+        &mut Text,
+        (
+            With<Mana>,
+            Without<Hp>,
+            Without<Shield>,
+            Without<Initiative>,
+            Without<Attack>,
+            Without<AttackSpe>,
+            Without<Defense>,
+            Without<DefenseSpe>,
+        ),
+    >,
+    mut shield_text_query: Query<
+        &mut Text,
+        (
+            With<Shield>,
+            Without<Hp>,
+            Without<Mana>,
+            Without<Initiative>,
+            Without<Attack>,
+            Without<AttackSpe>,
+            Without<Defense>,
+            Without<DefenseSpe>,
+        ),
+    >,
+    mut initiative_text_query: Query<
+        &mut Text,
+        (
+            With<Initiative>,
+            Without<Hp>,
+            Without<Mana>,
+            Without<Shield>,
+            Without<Attack>,
+            Without<AttackSpe>,
+            Without<Defense>,
+            Without<DefenseSpe>,
+        ),
+    >,
+    mut attack_text_query: Query<
+        &mut Text,
+        (
+            With<Attack>,
+            Without<Hp>,
+            Without<Mana>,
+            Without<Shield>,
+            Without<Initiative>,
+            Without<AttackSpe>,
+            Without<Defense>,
+            Without<DefenseSpe>,
+        ),
+    >,
+    mut attack_spe_text_query: Query<
+        &mut Text,
+        (
+            With<AttackSpe>,
+            Without<Hp>,
+            Without<Mana>,
+            Without<Shield>,
+            Without<Initiative>,
+            Without<Attack>,
+            Without<Defense>,
+            Without<DefenseSpe>,
+        ),
+    >,
+    mut defense_text_query: Query<
+        &mut Text,
+        (
+            With<Defense>,
+            Without<Hp>,
+            Without<Mana>,
+            Without<Shield>,
+            Without<Initiative>,
+            Without<Attack>,
+            Without<AttackSpe>,
+            Without<DefenseSpe>,
+        ),
+    >,
+    mut defense_spe_text_query: Query<
+        &mut Text,
+        (
+            With<DefenseSpe>,
+            Without<Hp>,
+            Without<Mana>,
+            Without<Shield>,
+            Without<Initiative>,
+            Without<Attack>,
+            Without<AttackSpe>,
+            Without<Defense>,
+        ),
+    >,
 ) {
-    let (_, _, mut hp_text) = hp_query.single_mut();
-    let (_, _, mut mp_text) = mp_query.single_mut();
+    let mut hp_text = hp_text_query.single_mut();
+    let mut mp_text = mp_text_query.single_mut();
+    let mut shield_text = shield_text_query.single_mut();
+    let mut initiative_text = initiative_text_query.single_mut();
+    let mut attack_text = attack_text_query.single_mut();
+    let mut attack_spe_text = attack_spe_text_query.single_mut();
+    let mut defense_text = defense_text_query.single_mut();
+    let mut defense_spe_text = defense_spe_text_query.single_mut();
 
     for _ in select_removals.iter() {
-        let hp_display = String::from("Caster hp: ??");
-        let mp_display = String::from("Caster mp: ??");
-
-        hp_text.sections[0].value = hp_display;
-        mp_text.sections[0].value = mp_display;
+        hp_text.sections[0].value = String::from("Health: ???/???");
+        mp_text.sections[0].value = String::from("Mana: ???/???");
+        shield_text.sections[0].value = String::from("Shield: ???");
+        initiative_text.sections[0].value = String::from("Initiative: ???/???");
+        attack_text.sections[0].value = String::from("Attack: ???/???");
+        attack_spe_text.sections[0].value = String::from("AttackSpe: ???/???");
+        defense_text.sections[0].value = String::from("Defense: ???/???");
+        defense_spe_text.sections[0].value = String::from("DefenseSpe: ???/???");
     }
 
-    if let Ok((_, _, name, hp, mana)) = selected_query.get_single() {
-        let hp_display = format!("Caster {} hp: {}", name, &hp.current.to_string());
-        let mp_display = format!("Caster {} mp: {}", name, &mana.current.to_string());
+    if let Ok((
+        caster_hp,
+        caster_mp,
+        caster_shield,
+        caster_initiative,
+        caster_attack,
+        caster_attack_spe,
+        caster_defense,
+        caster_defense_spe,
+        caster_alterations,
+        // caster_equipments,
+    )) = selected_query.get_single()
+    {
+        let mut attack_multiplier: f32 = 100.;
+        let mut attack_spe_multiplier: f32 = 100.;
+        let mut defense_multiplier: f32 = 100.;
+        let mut defense_spe_multiplier: f32 = 100.;
 
-        hp_text.sections[0].value = hp_display;
-        mp_text.sections[0].value = mp_display;
+        for alt in caster_alterations.iter() {
+            match alt.action {
+                AlterationAction::StatsPercentage | AlterationAction::StatsFlat => {
+                    attack_multiplier += alt.attack as f32;
+                    attack_spe_multiplier += alt.attack_spe as f32;
+                    defense_multiplier += alt.defense as f32;
+                    defense_spe_multiplier += alt.defense_spe as f32;
+                }
+                _ => {}
+            }
+        }
+
+        hp_text.sections[0].value = format!("Health: {}/{}", caster_hp.current, caster_hp.max);
+        mp_text.sections[0].value = format!("Mana: {}/{}", caster_mp.current, caster_mp.max);
+        shield_text.sections[0].value = format!("Shield: {}", caster_shield.0);
+        initiative_text.sections[0].value = format!("Initiative: {}", (caster_initiative.0 as f32));
+        attack_text.sections[0].value = format!(
+            "Attack: {}",
+            (caster_attack.base as f32) * attack_multiplier / 100.
+        );
+        attack_spe_text.sections[0].value = format!(
+            "AttackSpe: {}",
+            (caster_attack_spe.base as f32) * attack_spe_multiplier / 100.
+        );
+        defense_text.sections[0].value = format!(
+            "Defense: {}",
+            (caster_defense.base as f32) * defense_multiplier / 100.
+        );
+        defense_spe_text.sections[0].value = format!(
+            "DefenseSpe: {}",
+            (caster_defense_spe.base as f32) * defense_spe_multiplier / 100.
+        );
     }
 }
 
@@ -65,26 +304,22 @@ pub fn update_caster_stats_panel(
 /// XXX: A proper clone of update_caster_stats_panel but just for target instead of caster
 pub fn update_target_stats_panel(
     targeted_query: Query<
-        (Entity, &Targeted, &Name, &Hp, &Mana),
+        (&Name, &Hp, &Mana),
         (
-            Or<(
-                Added<Targeted>,
-                Changed<Targeted>,
-                Changed<Hp>,
-                Changed<Mana>,
-            )>,
+            Or<(Changed<Targeted>, Changed<Hp>, Changed<Mana>)>,
+            With<Targeted>,
             With<InCombat>,
         ),
     >,
 
     mut target_removals: RemovedComponents<Targeted>,
 
-    mut hp_query: Query<(Entity, &HpMeter, &mut Text), (Without<MpMeter>, With<TargetMeter>)>,
-    mut mp_query: Query<(Entity, &MpMeter, &mut Text), (Without<HpMeter>, With<TargetMeter>)>,
+    mut hp_query: Query<&mut Text, (With<HpMeter>, Without<MpMeter>, With<TargetMeter>)>,
+    mut mp_query: Query<&mut Text, (Without<HpMeter>, With<MpMeter>, With<TargetMeter>)>,
 ) {
-    for (_, _, name, hp, mana) in targeted_query.iter() {
-        let (_, _, mut hp_text) = hp_query.single_mut();
-        let (_, _, mut mp_text) = mp_query.single_mut();
+    for (name, hp, mana) in targeted_query.iter() {
+        let mut hp_text = hp_query.single_mut();
+        let mut mp_text = mp_query.single_mut();
 
         let hp_display = format!("Target {} hp: {}", name, &hp.current.to_string());
         hp_text.sections[0].value = hp_display;
@@ -94,8 +329,8 @@ pub fn update_target_stats_panel(
     }
 
     for _entity in target_removals.iter() {
-        let (_, _, mut hp_text) = hp_query.single_mut();
-        let (_, _, mut mp_text) = mp_query.single_mut();
+        let mut hp_text = hp_query.single_mut();
+        let mut mp_text = mp_query.single_mut();
 
         let hp_display = String::from("Target hp: ??");
         hp_text.sections[0].value = hp_display;
@@ -104,6 +339,10 @@ pub fn update_target_stats_panel(
         mp_text.sections[0].value = mp_display;
     }
 }
+
+/* -------------------------------------------------------------------------- */
+/*                                 Skill Menu                                 */
+/* -------------------------------------------------------------------------- */
 
 /// Determine the visibility of the 6 skills
 ///
@@ -335,7 +574,7 @@ pub fn skill_color(
 
     changed_selected_query: Query<
         (Entity, &Name, &ActionCount),
-        (With<Selected>, Or<(Added<Selected>, Changed<ActionCount>)>),
+        (With<Selected>, Changed<ActionCount>),
     >,
 ) {
     if let Ok((_, _, action_count)) = changed_selected_query.get_single() {

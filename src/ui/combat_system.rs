@@ -8,7 +8,9 @@ use crate::{
     ui::player_interaction::Clicked,
 };
 
-// ------------------------- UI Components -------------------------
+/* -------------------------------------------------------------------------- */
+/*                                UI Components                               */
+/* -------------------------------------------------------------------------- */
 
 #[derive(Component)]
 pub struct ButtonTargeting;
@@ -28,14 +30,29 @@ pub struct MpMeter;
 #[derive(Component)]
 pub struct CombatStateDisplayer;
 
+/// Current Action History
+#[derive(Resource, Debug, Reflect, Deref, DerefMut, Clone)]
+pub struct ActionHistory(pub String);
+
+/// Points to the UI Text which display Current Action History
 #[derive(Component)]
 pub struct ActionHistoryDisplayer;
 
+/// Last turn Action History
+#[derive(Resource, Debug, Reflect, Deref, DerefMut, Clone)]
+pub struct LastTurnActionHistory(pub String);
+
+/// Points to the UI Text which display Last Turn Action History
 #[derive(Component)]
 pub struct LastActionHistoryDisplayer;
 
+/// Logs Action History
+#[derive(Resource, Debug, Reflect, Deref, DerefMut, Clone)]
+pub struct ActionsLogs(pub String);
+
+/// Points to the UI Text which display Last Turn Actions Precise Logs
 #[derive(Component)]
-pub struct ActionsLogs;
+pub struct ActionsLogsDisplayer;
 
 /// DOC
 pub struct UpdateUnitSelectedEvent(pub Entity);
@@ -97,17 +114,17 @@ pub fn update_selected_unit(
 
     mut event_query: EventReader<UpdateUnitSelectedEvent>,
 
-    combat_unit_query: Query<(Entity, &Name), (Without<Selected>, With<InCombat>)>,
-    selected_unit_query: Query<(Entity, &Name), With<Selected>>,
+    unselected_unit_query: Query<(Entity, &Name), (Without<Selected>, With<InCombat>)>,
+    selected_unit_query: Query<(Entity, &Name), (With<Selected>, With<InCombat>)>,
 
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
     for event in event_query.iter() {
-        match combat_unit_query.get(event.0) {
-            Err(e_combat) => match selected_unit_query.get(event.0) {
+        match unselected_unit_query.get(event.0) {
+            Err(e_unselect) => match selected_unit_query.get(event.0) {
                 Err(e_select) => warn!(
                     "The entity selected is invalid: {:?} --//-- {:?}",
-                    e_combat, e_select
+                    e_unselect, e_select
                 ),
                 // Don't change the entity selected
                 // TOTEST: This case only happens when the player reselect a entity by his.her will
@@ -131,7 +148,8 @@ pub fn update_selected_unit(
     }
 }
 
-/// Event Handler of UpdateUnitSelectedEvent
+/// Event Handler of UpdateUnitSelectedEvent.
+/// Will accept or not a target depending of the skill currently selected.
 ///
 /// # Note
 ///
@@ -245,35 +263,61 @@ pub fn update_targeted_unit(
 ///
 /// # Note
 ///
-/// DEBUG
+/// DEBUG: update_combat_phase_displayer()
 pub fn update_combat_phase_displayer(
     combat_panel: Res<CombatPanel>,
     mut combat_state_displayer_query: Query<&mut Text, With<CombatStateDisplayer>>,
 ) {
+    // FIXME: don't update afterwards if wasn't on the Logs Panel
     if combat_panel.is_changed() {
-        let mut text = combat_state_displayer_query.single_mut();
-        text.sections[0].value = format!("Combat Phase: {}", combat_panel.phase);
+        if let Ok(mut text) = combat_state_displayer_query.get_single_mut() {
+            text.sections[0].value = format!("Combat Phase: {}", combat_panel.phase);
+        }
     }
 }
 
-/// Display the modified action
+/// Display all combat logs
 ///
 /// # Note
 ///
-/// DEBUG
-pub fn last_action_displayer(
+/// DEBUG: actions_logs_displayer()
+/// IDEA: CouldHave - Character's Event (Died, killed thingy, etc)
+pub fn actions_logs_displayer(
+    actions_logs: Res<ActionsLogs>,
+    mut actions_logs_query: Query<
+        &mut Text,
+        (
+            With<ActionsLogsDisplayer>,
+            Without<LastActionHistoryDisplayer>,
+            Without<ActionHistoryDisplayer>,
+        ),
+    >,
+) {
+    // FIXME: don't update afterwards if wasn't on the Logs Panel
+    // fixed by: || in_enter(UILocation::LogsPanel)
+    if actions_logs.is_changed() {
+        if let Ok(mut actions_logs_text) = actions_logs_query.get_single_mut() {
+            actions_logs_text.sections[0].value = actions_logs.clone().0;
+        }
+    }
+}
+
+/// Format the modified action
+///
+/// # Note
+///
+/// IDEA: Atm each turn it resets
+pub fn current_action_formater(
     combat_panel: Res<CombatPanel>,
-    unit_combat_query: Query<(Entity, &Name), With<InCombat>>,
-    mut action_displayer_query: Query<&mut Text, With<ActionHistoryDisplayer>>,
+    mut action_history: ResMut<ActionHistory>,
+
+    combat_units_query: Query<(Entity, &Name), With<InCombat>>,
 ) {
     if combat_panel.is_changed() {
-        let mut action_displayer_text = action_displayer_query.single_mut();
+        action_history.0 = String::from("---------------\nActions:");
 
-        let mut history = String::from("---------------\nActions:");
-        // println!("Actions:");
-        let mut number = 1;
-        for action in combat_panel.history.iter() {
-            if let Ok((_, caster_name)) = unit_combat_query.get(action.caster) {
+        for (number, action) in combat_panel.history.iter().enumerate() {
+            if let Ok((_, caster_name)) = combat_units_query.get(action.caster) {
                 let mut targets_name = String::new();
                 match &action.targets {
                     None => targets_name = "None".to_string(),
@@ -282,7 +326,7 @@ pub fn last_action_displayer(
                             if targets.len() > 1 && i != 0 {
                                 targets_name.push_str(" and ");
                             }
-                            match unit_combat_query.get(*target) {
+                            match combat_units_query.get(*target) {
                                 Err(_) => targets_name.push_str("Target Err"),
                                 Ok((_, name)) => targets_name.push_str(name),
                             }
@@ -293,23 +337,60 @@ pub fn last_action_displayer(
                 let action_display = if action.initiative == -1 {
                     format!(
                         "\n{}. {} do {} to {}",
-                        number, caster_name, action.skill.name, targets_name
+                        number + 1,
+                        caster_name,
+                        action.skill.name,
+                        targets_name
                     )
                 } else {
                     format!(
                         "\n{}. {}: {} do {} to {}",
-                        number, action.initiative, caster_name, action.skill.name, targets_name
+                        number + 1,
+                        action.initiative,
+                        caster_name,
+                        action.skill.name,
+                        targets_name
                     )
                 };
-                // let action_display = format!(
-                //     "{}: {} do {} to {}",
-                //     action.initiative, caster_name, action.skill.name, target_name
-                // );
-                // println!("{}. {}", number, action_display);
-                history.push_str(&action_display);
-                number += 1;
+
+                action_history.push_str(&action_display);
             }
         }
-        action_displayer_text.sections[0].value = history;
+    }
+}
+
+/// Display all current actions
+///
+/// # Note
+///
+/// DEBUG: current_action_displayer()
+pub fn current_action_displayer(
+    action_history: Res<ActionHistory>,
+    mut action_displayer_query: Query<&mut Text, With<ActionHistoryDisplayer>>,
+) {
+    // FIXME: don't update afterwards if wasn't on the Logs Panel
+    // fixed by: || in_enter(UILocation::LogsPanel)
+    if action_history.is_changed() {
+        if let Ok(mut action_displayer_text) = action_displayer_query.get_single_mut() {
+            action_displayer_text.sections[0].value = action_history.clone().0;
+        }
+    }
+}
+
+/// Display the last turn actions
+///
+/// # Note
+///
+/// DEBUG: last_action_displayer()
+pub fn last_action_displayer(
+    last_action_history: Res<LastTurnActionHistory>,
+    mut last_action_displayer_query: Query<&mut Text, With<LastActionHistoryDisplayer>>,
+) {
+    // FIXME: don't update afterwards if wasn't on the Logs Panel
+    // fixed by: || in_enter(UILocation::LogsPanel)
+    if last_action_history.is_changed() {
+        if let Ok(mut last_action_displayer_text) = last_action_displayer_query.get_single_mut() {
+            last_action_displayer_text.sections[0].value = last_action_history.clone().0;
+        }
     }
 }

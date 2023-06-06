@@ -1,14 +1,17 @@
 use bevy::{prelude::*, winit::WinitSettings};
 
-use crate::combat::{
-    in_caster_phase,
-    in_skill_phase, 
-    in_target_phase, 
-    // in_evasive_phase, in_executive_phase, in_initiation_phase, in_initiative_phase,
-    CombatState,
+use crate::{
+    characters::FabiensInfos,
+    combat::{
+        in_caster_phase,
+        in_skill_phase, 
+        in_target_phase, 
+        // in_evasive_phase, in_executive_phase, in_initiation_phase, in_initiative_phase,
+        CombatState,
+    },
 };
 
-use self::initiative_bar::SpriteNames;
+use self::{combat_system::{ActionHistory, ActionsLogs, LastTurnActionHistory}};
 
 pub mod character_sheet;
 pub mod combat_panel;
@@ -34,10 +37,13 @@ impl Plugin for UiPlugin {
             // OPTIMIZE: Only run the app when there is user input. This will significantly reduce CPU/GPU use.
             .insert_resource(WinitSettings::game())
 
+            .insert_resource(ActionsLogs(String::from("---------------\nActions Logs:")))
+            .insert_resource(ActionHistory(String::from("---------------\nActions:")))
+            .insert_resource(LastTurnActionHistory(String::from("---------------\nLast Turn Actions:")))
+            .init_resource::<FabiensInfos>()
+
             .add_event::<combat_system::UpdateUnitSelectedEvent>()
             .add_event::<combat_system::UpdateUnitTargetedEvent>()
-
-            .init_resource::<SpriteNames>()
 
             .add_startup_system(combat_panel::setup.in_set(UiLabel::Textures))
 
@@ -90,6 +96,8 @@ impl Plugin for UiPlugin {
                     // FIXME: In SelectionSkill, the end_of_turn trigger twice
                     // cancel the current action if imcomplete -----vvv
                     player_interaction::end_of_turn_button,
+                    character_sheet::update_headers,
+                    character_sheet::update_caster_stats_panel.after(UiLabel::Player),
                 )
                     .in_set(CombatState::SelectionSkill)
                     // .in_schedule(CoreSchedule::FixedUpdate)
@@ -101,6 +109,8 @@ impl Plugin for UiPlugin {
                     // switch to a new action ----vvv
                     player_interaction::select_skill,
                     player_interaction::end_of_turn_button,
+                    character_sheet::update_headers,
+                    character_sheet::update_caster_stats_panel.after(UiLabel::Player),
                 )
                     .in_set(CombatState::SelectionTarget)
             )
@@ -117,17 +127,20 @@ impl Plugin for UiPlugin {
             /* -------------------------------------------------------------------------- */
             /*                            -- DEBUG DISPLAYER --                           */
             /* -------------------------------------------------------------------------- */
-
             .add_systems((
                 combat_system::update_combat_phase_displayer
                     .in_set(UiLabel::Display),
-                combat_system::last_action_displayer
+                combat_system::current_action_formater
                     .in_set(UiLabel::Display)
                     .after(CombatState::RollInitiative)
                     .before(CombatState::ExecuteSkills),
-                character_sheet::update_caster_stats_panel
-                    .in_set(UiLabel::Display)
-                    .after(UiLabel::Player),
+                combat_system::current_action_displayer
+                    .after(combat_system::current_action_formater),
+                combat_system::last_action_displayer
+                    .after(CombatState::ExecuteSkills),
+                combat_system::actions_logs_displayer
+                    .after(CombatState::RollInitiative)
+                    .after(CombatState::ExecuteSkills),
                 character_sheet::update_target_stats_panel
                     .in_set(UiLabel::Display)
                     .after(UiLabel::Player),
@@ -145,7 +158,6 @@ impl Plugin for UiPlugin {
             /* -------------------------------------------------------------------------- */
             /*                                --- COLOR ---                               */
             /* -------------------------------------------------------------------------- */
-            
             .add_system(player_interaction::button_system)
             ;
     }

@@ -268,9 +268,11 @@ pub struct CombatPanel {
     pub phase: CombatState,
     pub history: Vec<Action>,
     pub number_of_fighters: GlobalFighterStats,
+    pub number_of_turn: usize,
 }
 
 impl FromWorld for CombatPanel {
+    /// FIXME: Too Soon on the setup (no ally nor enemy)
     fn from_world(
         world: &mut World,
     ) -> Self {
@@ -283,7 +285,8 @@ impl FromWorld for CombatPanel {
         CombatPanel {
             phase: CombatState::default(),
             history: Vec::new(),
-            number_of_fighters: GlobalFighterStats::new(allies.len(), enemies.len())
+            number_of_fighters: GlobalFighterStats::new(allies.len(), enemies.len()),
+            number_of_turn: 0
         }
     }
 }

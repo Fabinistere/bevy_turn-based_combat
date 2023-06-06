@@ -17,7 +17,7 @@ use super::{skills::Skill, stats::StatBundle};
 /// # Note
 ///
 /// See [Jobs' skills](https://github.com/Fabinistere/FABIENs_Brain/blob/main/FTO/Combat/FTO_Jobs.md#jobs-skills)
-#[derive(Component, Default, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect, EnumIter)]
+#[derive(Component, Reflect, Default, PartialEq, Eq, Hash, Clone, Copy, Debug, EnumIter)]
 pub enum Job {
     /// The perfect job
     ///
@@ -39,7 +39,7 @@ pub enum Job {
     Fencer,
 }
 
-#[derive(Default, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect)]
+#[derive(Reflect, Default, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub enum MasteryTier {
     /// Will use it upsidedown
     #[default]
@@ -55,7 +55,7 @@ pub enum MasteryTier {
 /// # Note
 ///
 /// This aHashMap is not designed for cryptoSecurity but for performance (from bevy)
-#[derive(Debug, Resource, Reflect, Deref, DerefMut, Clone)]
+#[derive(Resource, Reflect, Debug, Deref, DerefMut, Clone)]
 pub struct JobsMasteries(pub HashMap<(Job, WeaponType), MasteryTier>);
 
 /// Correspond with the default for the initiation of the resource
@@ -106,13 +106,26 @@ pub struct WeaponBundle {
     pub equipement: Equipement,
     pub weapon_type: WeaponType,
     pub skill_tiers: SkillTiers,
+    /// TODO: Link these stats with something (weapon skill / owner's stats / etc)
     pub stats: StatBundle,
     pub name: Name,
 }
 
 /// Contains the user if in use (in case of weapons are droped in the floor)
-#[derive(Default, Component)]
-pub struct Equipement(pub Option<Entity>);
+#[derive(Component)]
+pub struct Equipement {
+    pub owner: Option<Entity>,
+    pub icon_path: String,
+}
+
+impl Default for Equipement {
+    fn default() -> Self {
+        Equipement {
+            owner: None,
+            icon_path: String::from("assets/textures/icons/weapons/fish_01b.png"),
+        }
+    }
+}
 
 #[derive(Component, Default, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect, EnumIter)]
 pub enum WeaponType {
@@ -148,7 +161,6 @@ pub fn spawn_stuff(mut commands: Commands) {
         },
         // weapon_type: WeaponType::Improvised,
         // stats: StatBundle::default(),
-        // equipement: Equipement(None),
         ..Default::default()
     });
 }

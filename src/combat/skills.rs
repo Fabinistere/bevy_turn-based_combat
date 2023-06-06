@@ -57,15 +57,19 @@ pub struct Skill {
     ///
     /// # Example
     ///
-    /// - target all ally/enemy party: MAX_PARTY (6)
-    /// - self-target: 0
-    /// - targeted heal: 1
-    /// - small explosion: 2
+    /// - target all enemy party: TargetOption::AllEnemy
+    /// - self-target: TargetOption::OneSelf
+    /// - targeted heal: TargetOption::Ally(1)
+    /// - small explosion: TargetOption::Enemy(1) (but with aoe: true)
     pub target_option: TargetOption,
     /// Area of Effect
     ///
     /// Should the skill affect all target
     /// or one by one
+    ///
+    /// # Note
+    ///
+    /// TODO: CouldHave - Impl AOE (each target will propagate the skill to their surronding)
     pub aoe: bool,
     /// Wait for the turn delay to execute
     ///
@@ -98,7 +102,7 @@ pub struct Skill {
     pub hp_cost: i32,
     /// The Skill's Mana cost
     pub mana_cost: i32,
-    // TODO: feature: shield cost ?
+    // TODO: feature - shield cost ?
     /// Debuff or Buff
     pub alterations: Vec<Alteration>,
     /// The 'list' of skills called after this one
@@ -107,6 +111,7 @@ pub struct Skill {
     ///
     /// Used for complex skill
     pub skills_queue: Vec<Skill>,
+    pub path_icon: String,
     pub description: String,
     pub name: String,
 }
@@ -127,13 +132,10 @@ impl Default for Skill {
             alterations: vec![],
             skills_queue: vec![],
             description: String::from("..."),
+            path_icon: String::from("textures/icons/skills-alterations/Dark_8.png"),
             name: String::from("Skill"),
         }
     }
-}
-
-fn _skill_caller(_query: Query<(Entity, &Skill)>, // ??
-) {
 }
 
 /// Happens in
@@ -181,7 +183,7 @@ pub fn execute_skill(
         ),
         // Or<(With<Selected>, With<Targeted>)>
     >,
-    mut actions_logs_query: Query<&mut Text, With<ActionsLogs>>,
+    mut actions_logs: ResMut<ActionsLogs>,
 ) {
     for ExecuteSkillEvent {
         skill,
@@ -223,11 +225,8 @@ pub fn execute_skill(
                 );
 
                 // -----------------------------------------------
-                // REFACTOR: Move these ui lines somewhere else
-                // IDEA: Reset or just push infinitly ?
-                let mut actions_logs_text = actions_logs_query.single_mut();
-
-                actions_logs_text.sections[0].value.push_str(&format!(
+                // REFACTOR: Move these ui lines somewhere else ?
+                actions_logs.0.push_str(&format!(
                     "\n- Execute skill: {}, from {} to {}",
                     skill.name, caster_name, target_name
                 ));
@@ -252,11 +251,11 @@ pub fn execute_skill(
                 // don't execute the rest if the current of the caster is < 0
                 if caster_hp.current <= 0 {
                     if caster_hp.current + skill_executed.hp_cost <= 0 {
-                        actions_logs_text.sections[0]
-                            .value
+                        actions_logs
+                            .0
                             .push_str(&format!("\n  - Caster is already dead: {}", caster_name));
                     } else {
-                        actions_logs_text.sections[0].value.push_str(&format!(
+                        actions_logs.0.push_str(&format!(
                             "\n  - Caster killed him·herself: {}, from {} to {}",
                             caster_name,
                             caster_hp.current + skill_executed.hp_cost,
@@ -324,8 +323,8 @@ pub fn execute_skill(
                             as i32;
                         if hp_dealt > 0 {
                             info!("hp dealt: {}", hp_dealt);
-                            actions_logs_text.sections[0]
-                                .value
+                            actions_logs
+                                .0
                                 .push_str(&format!("\n  - hp dealt: {}", hp_dealt));
                         }
 
@@ -334,8 +333,8 @@ pub fn execute_skill(
                         let mp_dealt = skill_executed.mana_dealt;
                         if mp_dealt > 0 {
                             info!("mp dealt: {}", mp_dealt);
-                            actions_logs_text.sections[0]
-                                .value
+                            actions_logs
+                                .0
                                 .push_str(&format!("\n  - mp dealt: {}", mp_dealt));
                         }
 
@@ -367,8 +366,8 @@ pub fn execute_skill(
                             as i32;
                         if hp_dealt > 0 {
                             info!("hp dealt: {}", hp_dealt);
-                            actions_logs_text.sections[0]
-                                .value
+                            actions_logs
+                                .0
                                 .push_str(&format!("\n  - hp dealt: {}", hp_dealt));
                         }
 
@@ -378,8 +377,8 @@ pub fn execute_skill(
                             / 100.) as i32;
                         if mp_dealt > 0 {
                             info!("mp dealt: {}", mp_dealt);
-                            actions_logs_text.sections[0]
-                                .value
+                            actions_logs
+                                .0
                                 .push_str(&format!("\n  - mp dealt: {}", mp_dealt));
                         }
 

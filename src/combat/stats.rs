@@ -3,7 +3,7 @@
 use bevy::prelude::*;
 // use bevy_inspector_egui::prelude::*;
 
-use crate::npc::NPC;
+use crate::characters::npcs::NPC;
 
 /// Each entity which can be involved in a combat has this Bundle
 #[derive(Bundle, Default)]
@@ -108,7 +108,7 @@ pub fn show_mana(npc_query: Query<(&Mana, &Name), With<NPC>>) {
 /// Start of the Game: 0-100shield -> End of the Game: 10 000shield.
 ///
 /// Can be modified by level, item, buff, debuff, technics.
-#[derive(Component, Deref, DerefMut, Reflect)]
+#[derive(Component, Deref, DerefMut, Reflect, Debug)]
 pub struct Shield(pub i32);
 
 impl Default for Shield {
@@ -221,7 +221,7 @@ impl Default for DefenseSpe {
 ///
 /// Indicate the speed of initiative, the entity has.
 /// The more they has, the more likly they will start their turn first.
-#[derive(Component, Clone, Deref, DerefMut, Reflect)]
+#[derive(Component, Clone, Deref, DerefMut, Reflect, Debug)]
 pub struct Initiative(pub i32);
 
 impl Default for Initiative {
@@ -233,6 +233,11 @@ impl Default for Initiative {
 /// ----------ACCURACY----------
 ///
 /// Used to calculate if the technic will hit (in percentage).
+///
+/// # Note
+///
+/// - Unsed
+/// - TODO: CouldHave - Impl Accuracy
 #[derive(Component, Deref, DerefMut, Reflect)]
 pub struct Accuracy(pub i32);
 
@@ -249,6 +254,11 @@ impl Default for Accuracy {
 /// A Critical technic has its dmg inflicted multiplied by 300%
 ///
 /// ONLY allow critics on hit
+///
+/// # Note
+///
+/// - Unsed
+/// - TODO: CouldHave - Impl Critical
 #[derive(Component, Deref, DerefMut, Reflect)]
 pub struct Critical(pub i32);
 

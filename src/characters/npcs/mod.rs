@@ -46,7 +46,6 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
                 tier_0: vec![],
             },
             // TODO: ownership
-            // equipement: Equipement(None),
             ..Default::default()
         })
         .id();

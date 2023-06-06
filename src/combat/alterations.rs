@@ -24,7 +24,6 @@ pub enum AlterationAction {
     #[default]
     Dots,
     StatsFlat,
-    /// FIXME: how to undo changes?
     StatsPercentage,
     /// ??
     PercentageAsDots,
@@ -132,7 +131,7 @@ impl Default for Alteration {
             heal_received: 0,
             description: String::from("Mystery Alteration"),
             name: String::from("An Alteration"),
-            path_icon: String::from("assets/textures/icons/Nature_7"),
+            path_icon: String::from("textures/icons/skills-alterations/Nature_7.png"),
         }
     }
 }

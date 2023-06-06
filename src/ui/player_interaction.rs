@@ -195,6 +195,7 @@ pub fn select_unit_by_mouse(
 /// - TODO: couldhave - Skill dropped
 ///   - To a possible target: Confirm
 ///   - To something else: Cancel (or just back to skill clicked)
+/// - FIXME: After selecting a multitarget skill, stop before the limit and press the action bar to supp it, it will crash somedays
 pub fn select_skill(
     mut combat_panel: ResMut<CombatPanel>,
 
@@ -249,6 +250,7 @@ pub fn select_skill(
                     // cause we're in the TargetSelection phase
 
                     let last_action = combat_panel.history.last_mut().unwrap();
+                    // FIXME: Switch from a skill which target x people to a selfcast skill doesn't work ("do Pass to None")
                     last_action.targets = None;
 
                     // This transitionEvent will trigger all the verification about skill selected (selfcast, etc)
@@ -464,7 +466,7 @@ pub fn cancel_last_input(
 /// # Behavior
 ///
 /// - Clicked
-/// swap the one clicked with the last (downward the action to be accessed easly)
+/// put the one clicked as last (downward the action to be accessed easly)
 /// - TODO: Hover Action
 /// Visualize action effect
 ///
@@ -472,12 +474,16 @@ pub fn cancel_last_input(
 ///
 /// TODO: feat UI - simplify deleting an action by adding a cross to do so.
 pub fn action_button(
+    mut commands: Commands,
     mut combat_panel: ResMut<CombatPanel>,
 
     mut interaction_query: Query<
         (&Interaction, &ActionDisplayer),
         (Changed<Interaction>, With<Button>),
     >,
+    selected_query: Query<Entity, With<Selected>>,
+    targeted_query: Query<Entity, With<Targeted>>,
+    mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
     for (interaction, action_displayer) in &mut interaction_query {
         match *interaction {
@@ -491,17 +497,36 @@ pub fn action_button(
                         action_displayer.0,
                         combat_panel.history.len()
                     )
-                } else {
-                    if let Some(last_action) = combat_panel.history.last() {
+                } else if let Some(last_action) = combat_panel.history.last() {
+                    // don't bother to do anything if there is only one action
+                    // or if the action clicked was already the last
+                    if 1 != combat_panel.history.len()
+                        && action_displayer.0 + 1 != combat_panel.history.len()
+                    {
                         if !last_action.is_correct(combat_panel.number_of_fighters.clone()) {
                             info!("Abort current action (wasn't complete)");
-                            combat_panel.history.pop();
+                            combat_panel.history.pop().unwrap();
+                        }
+
+                        // use of remove() to preserve order
+                        let action = combat_panel.history.remove(action_displayer.0);
+                        combat_panel.history.push(action.clone());
+
+                        // --- Clean Up ---
+                        if let Ok(selected) = selected_query.get_single() {
+                            if action.clone().caster != selected {
+                                commands.entity(selected).remove::<Selected>();
+                            }
+                        }
+                        commands.entity(action.clone().caster).insert(Selected);
+
+                        transition_phase_event
+                            .send(TransitionPhaseEvent(CombatState::SelectionSkill));
+
+                        for targeted in targeted_query.iter() {
+                            commands.entity(targeted).remove::<Targeted>();
                         }
                     }
-
-                    // use of remove() to preserve order
-                    let action = combat_panel.history.remove(action_displayer.0);
-                    combat_panel.history.push(action);
                 }
             }
             Interaction::Hovered => {}

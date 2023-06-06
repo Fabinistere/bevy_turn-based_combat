@@ -130,9 +130,20 @@ pub mod ui {
             TextStyle {
                 font: asset_server.load("fonts/dpcomic.ttf"),
                 font_size,
-                color: Color::rgb(0.9, 0.9, 0.9),
+                color: Color::WHITE, // rgb(0.9, 0.9, 0.9),
             }
         }
+
+        pub const TEXT_STYLE: Style = Style {
+            flex_shrink: 0.,
+            size: Size::new(Val::Undefined, Val::Px(20.)),
+            margin: UiRect {
+                left: Val::Auto,
+                right: Val::Auto,
+                ..UiRect::DEFAULT
+            },
+            ..Style::DEFAULT
+        };
 
         pub const LIST_HIDDEN_OVERFLOW_STYLE: Style = Style {
             flex_direction: FlexDirection::Column,
