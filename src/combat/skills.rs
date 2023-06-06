@@ -44,6 +44,7 @@ pub enum TargetOption {
     AllAlly,
     AllEnemy,
     All,
+    // IDEA: Any(usize) ?
 }
 
 /// Endure every stats to the target

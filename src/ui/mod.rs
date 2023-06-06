@@ -98,6 +98,7 @@ impl Plugin for UiPlugin {
                     player_interaction::end_of_turn_button,
                     character_sheet::update_headers,
                     character_sheet::update_caster_stats_panel.after(UiLabel::Player),
+                    character_sheet::update_weapon_displayer,
                 )
                     .in_set(CombatState::SelectionSkill)
                     // .in_schedule(CoreSchedule::FixedUpdate)
@@ -111,6 +112,7 @@ impl Plugin for UiPlugin {
                     player_interaction::end_of_turn_button,
                     character_sheet::update_headers,
                     character_sheet::update_caster_stats_panel.after(UiLabel::Player),
+                    character_sheet::update_weapon_displayer,
                 )
                     .in_set(CombatState::SelectionTarget)
             )

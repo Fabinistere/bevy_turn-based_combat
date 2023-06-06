@@ -72,7 +72,9 @@ impl Skill {
         }
     }
 
-    // ------------------------- Weapons' Skills -------------------------
+    /* -------------------------------------------------------------------------- */
+    /*                               Weapons' Skills                              */
+    /* -------------------------------------------------------------------------- */
 
     // --- Pickle Jar ---
     pub fn jar_selfdestruction() -> Self {
@@ -118,7 +120,7 @@ impl Skill {
     pub fn swing() -> Self {
         Skill {
             skill_type: SkillType::AttackSpe,
-            target_option: TargetOption::Enemy(1),
+            target_option: TargetOption::Enemy(3),
             initiative: 60,
             // TODO: feature - placement, here NEAR
             mana_cost: 25,
@@ -140,6 +142,61 @@ impl Skill {
             alterations: vec![Alteration::hardness()],
             description: String::from("Give yourself a medium shield and buff your physical defense, focus yourself to aggro"),
             name: String::from("Solo"),
+            ..Default::default()
+        }
+    }
+
+    // --- Smallmouth Bass ---
+    pub fn eat_the_fish() -> Self {
+        Skill {
+            skill_type: SkillType::Heal,
+            target_option: TargetOption::OneSelf,
+            initiative: 15,
+            hp_dealt: 15,
+            shield_dealt: 5,
+            alterations: vec![Alteration::stale_odour()],
+            description: String::from("Give yourself a small shield and heals you a medium amount"),
+            name: String::from("Eat The Fish"),
+            ..Default::default()
+        }
+    }
+
+    // TODO: skill that break the weapon as jar_selfdestruction()
+    pub fn throw_the_fish() -> Self {
+        Skill {
+            skill_type: SkillType::Attack,
+            target_option: TargetOption::Enemy(1),
+            initiative: 30,
+            hp_dealt: 15,
+            alterations: vec![Alteration::stale_odour()],
+            description: String::from("Throw a jelly stinky fish to your enemy"),
+            name: String::from("Throw The Fish"),
+            ..Default::default()
+        }
+    }
+
+    pub fn fish_slam() -> Self {
+        Skill {
+            skill_type: SkillType::Heal,
+            target_option: TargetOption::Enemy(2),
+            initiative: 55,
+            hp_dealt: 25,
+            alterations: vec![Alteration::stale_odour()],
+            description: String::from("Slam two near enemies with power"),
+            name: String::from("Fish Slam"),
+            ..Default::default()
+        }
+    }
+
+    pub fn surf() -> Self {
+        Skill {
+            skill_type: SkillType::Buff,
+            target_option: TargetOption::OneSelf,
+            initiative: 60,
+            mana_cost: 30,
+            alterations: vec![Alteration::swiftness()],
+            description: String::from("Give yourself a small shield and heals you a medium amount"),
+            name: String::from("Surf"),
             ..Default::default()
         }
     }

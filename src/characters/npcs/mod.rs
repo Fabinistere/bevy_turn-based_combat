@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use crate::{
     combat::{
         skills::Skill,
-        stuff::{Equipements, Job, SkillTiers, WeaponBundle, WeaponType},
+        stuff::{Equipements, Job, SkillTiers, WeaponBundle},
         ActionCount, CombatBundle, InCombat, Karma, Recruted, Skills, TacticalPlace,
         TacticalPosition, Team,
     },
@@ -36,19 +36,8 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
     // TODO: feat - Equip Stuff from Inventory (+ spawn this weapon in the team's inventory)
     // TODO: feat - Team's Inventory
 
-    let bass = commands
-        .spawn(WeaponBundle {
-            name: Name::new("Bass"),
-            weapon_type: WeaponType::Instrument,
-            skill_tiers: SkillTiers {
-                tier_2: vec![Skill::swing(), Skill::solo()],
-                tier_1: vec![Skill::melody()],
-                tier_0: vec![],
-            },
-            // TODO: ownership
-            ..Default::default()
-        })
-        .id();
+    let bass = commands.spawn(WeaponBundle::bass()).id();
+    let smallmouth_bass = commands.spawn(WeaponBundle::smallmouth_bass()).id();
 
     /* -------------------------------------------------------------------------- */
     /*                            ---- Characters ----                            */
@@ -198,9 +187,10 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
                 karma: Karma(-100),
                 skills: Skills(vec![Skill::bam(), Skill::pass()]),
                 equipements: Equipements {
-                    weapon: None,
+                    weapon: Some(smallmouth_bass),
                     armor: None,
                 },
+                job: Job::Fabicurion,
                 tactical_position: if i == 0 {
                     TacticalPosition::MiddleLine(TacticalPlace::Right)
                 } else {

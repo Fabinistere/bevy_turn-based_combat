@@ -5,7 +5,10 @@ use crate::combat::skills::TargetOption;
 use super::alterations::{Alteration, AlterationAction};
 
 impl Alteration {
-    // ------ Debuff ------
+    // TODO: ShouldHave - a Counter/Alteration and turn updated in the description
+    /* -------------------------------------------------------------------------- */
+    /*                            ------ Debuff ------                            */
+    /* -------------------------------------------------------------------------- */
 
     // --- IO / InflictSuffer ---
 
@@ -15,13 +18,16 @@ impl Alteration {
             duration: 2,
             target_option: TargetOption::Enemy(1),
             damage_suffered: 25,
-            description: String::from("25% dmg subie en +"),
+            description: String::from("+25% damage suffered for 2turns"),
             name: String::from("Honte"),
+            path_icon: String::from("textures/icons/skills-alterations/Dark/Dark_9.png"),
             ..Default::default()
         }
     }
 
-    // ------ Buff ------
+    /* -------------------------------------------------------------------------- */
+    /*                             ------ Buff ------                             */
+    /* -------------------------------------------------------------------------- */
 
     // --- IO / InflictSuffer ---
 
@@ -29,10 +35,11 @@ impl Alteration {
         Alteration {
             action: AlterationAction::StatsPercentage,
             duration: 2,
-            target_option: TargetOption::Enemy(1),
+            target_option: TargetOption::Ally(1),
             heal_received: 25,
-            description: String::from("25% de soin reçu en +"),
+            description: String::from("+25% received heal for 2turns"),
             name: String::from("Harmonize"),
+            path_icon: String::from("textures/icons/skills-alterations/Holy/Holy_5.png"),
             ..Default::default()
         }
     }
@@ -47,6 +54,7 @@ impl Alteration {
             hp: 10,
             description: String::from("10hp per turn for 3turns"),
             name: String::from("Regenerate"),
+            path_icon: String::from("textures/icons/skills-alterations/Nature/Nature_9.png"),
             ..Default::default()
         }
     }
@@ -61,6 +69,7 @@ impl Alteration {
             initiative: 30,
             description: "Grant +30initiative for 3turns".to_string(),
             name: "Swiftness".to_string(),
+            path_icon: String::from("textures/icons/skills-alterations/Nature/Nature_2.png"),
             ..Default::default()
         }
     }
@@ -70,10 +79,27 @@ impl Alteration {
             action: AlterationAction::StatsFlat,
             duration: 3,
             target_option: TargetOption::Ally(1),
-            initiative: 30,
             defense: 15,
             description: "Grant +15defense for 3turns".to_string(),
             name: "Hardness".to_string(),
+            path_icon: String::from("textures/icons/skills-alterations/Holy/Holy_10.png"),
+            ..Default::default()
+        }
+    }
+
+    /* -------------------------------------------------------------------------- */
+    /*                            ------ Neutral ------                           */
+    /* -------------------------------------------------------------------------- */
+
+    pub fn stale_odour() -> Self {
+        Alteration {
+            // TODO: AlterationAction::Nothing
+            action: AlterationAction::StatsFlat,
+            duration: 2,
+            target_option: TargetOption::Ally(1),
+            description: "You stink to high heaven".to_string(),
+            name: "Stale Odour".to_string(),
+            path_icon: String::from("textures/icons/skills-alterations/Nature/Nature_6.png"),
             ..Default::default()
         }
     }

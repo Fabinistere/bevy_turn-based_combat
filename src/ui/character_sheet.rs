@@ -19,7 +19,7 @@ use crate::{
     },
 };
 
-use super::combat_panel::{FabienName, Portrait, Title};
+use super::combat_panel::{FabienName, Portrait, Title, WeaponDisplayer};
 
 /* -------------------------------------------------------------------------- */
 /*                                   Headers                                  */
@@ -337,6 +337,43 @@ pub fn update_target_stats_panel(
 
         let mp_display = String::from("Target mp: ??");
         mp_text.sections[0].value = mp_display;
+    }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                               Weapon Section                               */
+/* -------------------------------------------------------------------------- */
+
+/// Update the sprite with the weapon of the Selected
+pub fn update_weapon_displayer(
+    asset_server: Res<AssetServer>,
+
+    selected_query: Query<
+        &Equipements,
+        (
+            Or<(Added<Selected>, Changed<Equipements>)>,
+            With<Selected>,
+            With<InCombat>,
+        ),
+    >,
+    mut weapon_displayer_query: Query<(&mut UiImage, &mut Visibility), With<WeaponDisplayer>>,
+    weapon_query: Query<&Equipement, With<WeaponType>>,
+) {
+    if let Ok(Equipements { weapon, armor: _ }) = selected_query.get_single() {
+        let (mut weapon_image, mut visibility) = weapon_displayer_query.single_mut();
+
+        match weapon {
+            None => *visibility = Visibility::Hidden,
+            Some(weapon_entity) => {
+                *visibility = Visibility::Inherited;
+                let Equipement {
+                    owner: _,
+                    icon_path,
+                } = weapon_query.get(*weapon_entity).unwrap();
+
+                weapon_image.texture = asset_server.load(icon_path)
+            }
+        }
     }
 }
 

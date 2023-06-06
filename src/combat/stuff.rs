@@ -37,6 +37,8 @@ pub enum Job {
     Logician,
     /// SwordsMaster / Sword Fighter
     Fencer,
+    // Fabien's Army
+    Fabicurion,
 }
 
 #[derive(Reflect, Default, PartialEq, Eq, Hash, Clone, Copy, Debug)]
@@ -75,6 +77,10 @@ impl FromWorld for JobsMasteries {
             (Job::Technomancian, WeaponType::Instrument),
             MasteryTier::One,
         );
+        // --- Fabicurion ---
+        jobs_mastries.insert((Job::Fabicurion, WeaponType::Club), MasteryTier::Two);
+        jobs_mastries.insert((Job::Fabicurion, WeaponType::Improvised), MasteryTier::Two);
+        jobs_mastries.insert((Job::Fabicurion, WeaponType::Sword), MasteryTier::One);
 
         // forall not implied/inserted, create the association with MasteryTier::Zero
         for job in Job::iter() {
@@ -122,7 +128,7 @@ impl Default for Equipement {
     fn default() -> Self {
         Equipement {
             owner: None,
-            icon_path: String::from("assets/textures/icons/weapons/fish_01b.png"),
+            icon_path: String::from("textures/icons/weapons/fish_01b.png"),
         }
     }
 }
@@ -148,19 +154,10 @@ pub struct SkillTiers {
     pub tier_2: Vec<Skill>,
     pub tier_1: Vec<Skill>,
     pub tier_0: Vec<Skill>,
+    // pub extra: Vec<Skill>,
 }
 
 pub fn spawn_stuff(mut commands: Commands) {
     // Bocal à gros cornichons
-    commands.spawn(WeaponBundle {
-        name: Name::new("Bocal à gros cornichons"),
-        skill_tiers: SkillTiers {
-            tier_2: vec![Skill::jar_selfdestruction()],
-            tier_1: vec![Skill::eat_a_pickle()],
-            tier_0: vec![],
-        },
-        // weapon_type: WeaponType::Improvised,
-        // stats: StatBundle::default(),
-        ..Default::default()
-    });
+    commands.spawn(WeaponBundle::pickle_jar());
 }

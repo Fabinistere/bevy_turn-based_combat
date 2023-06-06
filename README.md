@@ -35,7 +35,8 @@ Assets are deported on a different cloud to stop wasting git use which is very c
   - [ ] Character's Sheet
     - [x] Display all skill per entity (when selected)
     - [x] Scrolling Logs
-    - [ ] TODO: MustHave - Display Job
+    - [x] Display Job, Title, Stats
+    - [x] Display current stuff
     - [ ] TODO: CouldHave - Stuff Tab, Equip from Team's Inventory, Desequip
     - [ ] TODO: CouldHave - Display somewhere else the catalogue
 

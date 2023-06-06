@@ -31,6 +31,9 @@ pub struct ActionDisplayer(pub usize);
 #[derive(Default, Component, Reflect, Deref, DerefMut)]
 pub struct SkillDisplayer(pub usize);
 
+#[derive(Component)]
+pub struct WeaponDisplayer;
+
 // REFACTOR: SkillBar Structure
 
 #[derive(Component, Reflect, PartialEq, Eq, Hash, Clone, Copy, Debug)]
@@ -718,28 +721,51 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                                 background_color: Color::BISQUE.into(),
                                                 ..default()
                                             },
-                                            Name::new("Weapon Frame"),
+                                            Name::new("Equipements Section"),
                                         ))
                                         .with_children(|parent| {
                                             // TODO: add frame underneath
-                                            parent.spawn((
-                                                ImageBundle {
-                                                    image: UiImage {
-                                                        texture: asset_server.load(
-                                                            "textures/icons/weapons/fish_01b.png",
-                                                        ),
+                                            parent
+                                                .spawn((
+                                                    ImageBundle {
+                                                        image: UiImage {
+                                                            texture: asset_server.load(
+                                                                "textures/ui/border/border_05_nobackground.png",
+                                                            ),
+                                                            ..default()
+                                                        },
+                                                        style: Style {
+                                                            size: Size::all(Val::Px(100.)),
+                                                            align_self: AlignSelf::Center,
+                                                            justify_content: JustifyContent::Center,
+                                                            ..default()
+                                                        },
                                                         ..default()
-                                                    },
-                                                    style: Style {
-                                                        size: Size::all(Val::Px(50.)),
-                                                        align_self: AlignSelf::Center,
-                                                        ..default()
-                                                    },
-                                                    ..default()
-                                                } ,
-                                                Name::new("Weapon"),
-                                                // WeaponDisplayer,
-                                            ));
+                                                    } ,
+                                                    Name::new("Frame")
+                                                ))
+                                                .with_children(|parent| {
+                                                    parent.spawn((
+                                                        ImageBundle {
+                                                            image: UiImage {
+                                                                texture: asset_server.load(
+                                                                    "textures/icons/weapons/fish_01b.png",
+                                                                ),
+                                                                ..default()
+                                                            },
+                                                            style: Style {
+                                                                size: Size::all(Val::Px(50.)),
+                                                                align_self: AlignSelf::Center,
+                                                                ..default()
+                                                            },
+                                                            visibility: Visibility::Hidden,
+                                                            ..default()
+                                                        } ,
+                                                        Name::new("Weapon"),
+                                                        WeaponDisplayer,
+                                                    ));
+                                                });
+                                            
                                         });
                                 });
 

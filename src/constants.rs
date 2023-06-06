@@ -42,14 +42,6 @@ pub mod character {
         pub const OLF_STARTING_ANIM: usize = 16;
         pub const HUGO_STARTING_ANIM: usize = 36;
         pub const FABICURION_STARTING_ANIM: usize = 40;
-
-        pub mod movement {
-
-            pub const ADMIRAL_POSITION: (f32, f32, f32) = (-30., 10., 2.);
-            pub const HUGO_POSITION: (f32, f32, f32) = (-30., -20., 2.);
-            pub const FABICURION_POSITION: (f32, f32, f32) = (-80., 10., 2.);
-            pub const OLF_POSITION: (f32, f32, f32) = (-80., -20., 2.);
-        }
     }
 }
 

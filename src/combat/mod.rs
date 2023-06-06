@@ -50,6 +50,7 @@ pub mod skills;
 pub mod stats;
 pub mod stuff;
 pub mod tactical_position;
+pub mod weapons_list;
 
 /// Just help to create a ordered system in the app builder
 #[derive(Default, SystemSet, PartialEq, Eq, Hash, Clone, Debug, Reflect)]
