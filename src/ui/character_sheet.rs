@@ -35,7 +35,7 @@ pub fn update_headers(
         (Changed<Selected>, With<InCombat>),
     >,
 
-    mut portrait_query: Query<&mut UiImage, (With<Portrait>, Without<InCombat>)>,
+    mut portrait_query: Query<(&mut UiImage, &mut Visibility), (With<Portrait>, Without<InCombat>)>,
     mut fabine_name_query: Query<
         &mut Text,
         (
@@ -65,7 +65,7 @@ pub fn update_headers(
     >,
 ) {
     if let Ok((caster_job, caster_name, _caster_sprite)) = caster_name_query.get_single() {
-        let mut portrait = portrait_query.single_mut();
+        let (mut portrait, mut portrait_visibility) = portrait_query.single_mut();
         let mut fabien_name_text = fabine_name_query.single_mut();
         let mut title_text = title_query.single_mut();
         let mut job_text = job_text_query.single_mut();
@@ -74,17 +74,17 @@ pub fn update_headers(
         if let Some(PersonalInfos { title, sprite_path }) =
             fabiens_infos.get(&caster_name.to_string())
         {
-            fabien_name_text.sections[0].value = caster_name.replace("NPC ", "");
             title_text.sections[0].value = title.to_string();
             job_text.sections[0].value = format!("{:?}", caster_job);
             portrait.texture = asset_server.load(sprite_path);
         } else {
             warn!("{} Not Found/Associated in the FabienDataBase", caster_name);
-            fabien_name_text.sections[0].value = caster_name.replace("NPC ", "");
             title_text.sections[0].value = "Fabien".to_string();
             job_text.sections[0].value = "Chill".to_string();
             portrait.texture = asset_server.load("textures/character/idle/idle_Fabien_Loyal.png");
         };
+        fabien_name_text.sections[0].value = caster_name.replace("NPC ", "").replace("Player ", "");
+        *portrait_visibility = Visibility::Inherited;
     }
 }
 
@@ -95,7 +95,7 @@ pub fn update_headers(
 /// # Note
 ///
 /// DEBUG
-/// XXX: Stats Displayer
+/// REFACTOR: XXX: Stats Displayer
 /// TODO: Add Damage Multiplier (Suffered/Inflicted)
 pub fn update_caster_stats_panel(
     selected_query: Query<

@@ -5,11 +5,14 @@ use bevy::prelude::*;
 use crate::{
     combat::{
         skills::Skill,
-        stuff::{Equipements, Job, SkillTiers, WeaponBundle},
-        ActionCount, CombatBundle, InCombat, Karma, Recruted, Skills, TacticalPlace,
+        stuff::{Equipements, Job, WeaponBundle},
+        ActionCount, CombatBundle, InCombat, Karma, Player, Recruted, Skills, TacticalPlace,
         TacticalPosition, Team,
     },
-    constants::{character::npc::*, combat::team::*},
+    constants::{
+        character::{npc::*, CHAR_SCALE},
+        combat::team::*,
+    },
     spritesheet::FabienSheet,
     ui::player_interaction::{Clickable, Hoverable, SpriteSize, SPRITE_SIZE},
 };
@@ -29,6 +32,7 @@ impl Plugin for NPCPlugin {
 // Check in location/temple/mod.rs
 // the npc_z_position
 
+/// TODO: Move the spwan player up ?
 fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
     /* -------------------------------------------------------------------------- */
     /*                            ---- Equipements ----                           */
@@ -42,6 +46,48 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
     /* -------------------------------------------------------------------------- */
     /*                            ---- Characters ----                            */
     /* -------------------------------------------------------------------------- */
+
+    // Morgan
+    commands.spawn((
+        SpriteSheetBundle {
+            sprite: TextureAtlasSprite {
+                index: MORGAN_STARTING_ANIM,
+                flip_x: true,
+                ..default()
+            },
+            texture_atlas: fabien.0.clone(),
+            transform: Transform {
+                scale: Vec3::splat(CHAR_SCALE * 1.),
+                ..default()
+            },
+            ..default()
+        },
+        SpriteSize {
+            width: SPRITE_SIZE.0,
+            height: SPRITE_SIZE.1,
+        },
+        Name::new("Player Morgan"),
+        Player,
+        // -- Combat Components --
+        InCombat,
+        Recruted,
+        CombatBundle {
+            team: Team(Some(TEAM_MC)),
+            karma: Karma(200),
+            skills: Skills(vec![Skill::bam(), Skill::pass()]),
+            equipements: Equipements {
+                weapon: Some(bass),
+                armor: None,
+            },
+            job: Job::Musician,
+            action_count: ActionCount::new(20),
+            tactical_position: TacticalPosition::MiddleLine(TacticalPlace::Middle),
+            ..Default::default()
+        },
+        // -- UI Related Components --
+        Hoverable,
+        Clickable,
+    ));
 
     // ADMIRAL
     commands.spawn((
@@ -70,13 +116,14 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
         CombatBundle {
             team: Team(Some(TEAM_MC)),
             karma: Karma(100),
-            skills: Skills(vec![Skill::bam(), Skill::gifle(), Skill::pass()]),
-            equipements: Equipements {
-                weapon: Some(bass),
-                armor: None,
-            },
+            skills: Skills(vec![
+                Skill::bam(),
+                Skill::gifle(),
+                Skill::diffamation(),
+                Skill::pass(),
+            ]),
             job: Job::Musician,
-            action_count: ActionCount::new(20),
+            action_count: ActionCount::new(1),
             tactical_position: TacticalPosition::FrontLine(TacticalPlace::Left),
             ..Default::default()
         },

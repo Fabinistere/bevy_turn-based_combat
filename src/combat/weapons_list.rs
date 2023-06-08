@@ -33,7 +33,6 @@ impl WeaponBundle {
                 tier_1: vec![Skill::throw_the_fish()],
                 tier_0: vec![Skill::eat_the_fish()],
             },
-            equipement: Equipement::default(),
             ..Default::default()
         }
     }

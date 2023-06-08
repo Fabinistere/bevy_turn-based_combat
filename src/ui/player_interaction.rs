@@ -195,7 +195,6 @@ pub fn select_unit_by_mouse(
 /// - TODO: couldhave - Skill dropped
 ///   - To a possible target: Confirm
 ///   - To something else: Cancel (or just back to skill clicked)
-/// - FIXME: After selecting a multitarget skill, stop before the limit and press the action bar to supp it, it will crash somedays
 pub fn select_skill(
     mut combat_panel: ResMut<CombatPanel>,
 
@@ -250,7 +249,9 @@ pub fn select_skill(
                     // cause we're in the TargetSelection phase
 
                     let last_action = combat_panel.history.last_mut().unwrap();
-                    // FIXME: Switch from a skill which target x people to a selfcast skill doesn't work ("do Pass to None")
+                    // FIXME: Select Bam/Swing instantly into select solo will create two action "solo"
+                    // caster stay the same
+                    last_action.skill = skill.clone();
                     last_action.targets = None;
 
                     // This transitionEvent will trigger all the verification about skill selected (selfcast, etc)

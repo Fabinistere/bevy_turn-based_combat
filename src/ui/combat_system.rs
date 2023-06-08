@@ -5,7 +5,7 @@ use crate::{
         phases::TransitionPhaseEvent, skills::TargetOption, CombatPanel, CombatState, InCombat,
         Team,
     },
-    ui::player_interaction::Clicked,
+    ui::{combat_panel::CombatStateDisplayer, player_interaction::Clicked},
 };
 
 /* -------------------------------------------------------------------------- */
@@ -26,9 +26,6 @@ pub struct HpMeter;
 
 #[derive(Component)]
 pub struct MpMeter;
-
-#[derive(Component)]
-pub struct CombatStateDisplayer;
 
 /// Current Action History
 #[derive(Resource, Debug, Reflect, Deref, DerefMut, Clone)]

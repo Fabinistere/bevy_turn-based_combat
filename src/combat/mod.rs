@@ -37,7 +37,7 @@ use bevy::prelude::*;
 use crate::constants::combat::BASE_ACTION_COUNT;
 
 use self::{
-    alterations::Alteration, phases::observation, skills::{Skill, TargetOption}, stats::StatBundle,
+    alterations::Alteration, phases::observation, skills::{Skill, TargetOption}, stats::{StatBundle, Hp},
     stuff::{Equipements, JobsMasteries, Job},
 };
 
@@ -133,6 +133,7 @@ impl Plugin for CombatPlugin {
                 .after(CombatState::ExecuteSkills)
             )
             .add_system(phases::phase_transition)
+            .add_system(update_number_of_fighters)
 
             // -- UI ? --
 
@@ -210,6 +211,12 @@ impl Default for ActionCount {
 /// The team an entity is assigned to.
 /// 
 /// `None` being Neutral
+/// 
+/// # Note
+/// 
+/// REFACTOR: Just an enum...
+/// Listing all possible teams (cause its fixed)
+/// IDEA: Or An reputation meter for each ?
 #[derive(Copy, Clone, PartialEq, Eq, Component, Deref, DerefMut)]
 pub struct Team(pub Option<i32>);
 
@@ -229,10 +236,10 @@ pub struct Leader;
 
 /// The player can recruted some friendly npc
 /// Can be called, TeamPlayer
-#[derive(Copy, Clone, PartialEq, Eq, Component)]
+#[derive(Component)]
 pub struct Recruted;
 
-#[derive(Copy, Clone, PartialEq, Eq, Component)]
+#[derive(Component)]
 pub struct Player;
 
 /* -------------------------------------------------------------------------- */
@@ -296,16 +303,32 @@ impl FromWorld for CombatPanel {
 #[derive(Default, Reflect, Debug, Clone)]
 pub struct GlobalFighterStats {
     /// (alive, knockout)
-    pub ally: (usize, usize),
+    pub ally: FightersCount,
     /// (alive, knockout)
-    pub enemy: (usize, usize),
+    pub enemy: FightersCount,
 }
 
 impl GlobalFighterStats {
     pub fn new(number_of_allies: usize, number_of_enemies: usize) -> Self {
         GlobalFighterStats {
-            ally: (number_of_allies, number_of_allies),
-            enemy: (number_of_enemies, number_of_enemies),
+            ally: FightersCount::new(number_of_allies),
+            enemy: FightersCount::new(number_of_enemies),
+        }
+    }
+}
+
+/// Default = { alive: 0, total: 0 }
+#[derive(Default, Reflect, Debug, Clone)]
+pub struct FightersCount{
+    alive: usize, 
+    total: usize
+}
+
+impl FightersCount {
+    pub fn new(total: usize) -> Self {
+        FightersCount {
+            alive: total,
+            total,
         }
     }
 }
@@ -356,19 +379,19 @@ impl Action {
         match self.skill.target_option {
             TargetOption::All => {
                 match &self.targets {
-                    Some(targets) => targets.len() == (number_of_fighters.enemy.0 + number_of_fighters.ally.0),
+                    Some(targets) => targets.len() == (number_of_fighters.enemy.alive + number_of_fighters.ally.alive),
                     None => false
                 }
             }
             TargetOption::AllEnemy => {
                 match &self.targets {
-                    Some(targets) => targets.len() == number_of_fighters.enemy.0,
+                    Some(targets) => targets.len() == number_of_fighters.enemy.alive,
                     None => false
                 }
             }
             TargetOption::AllAlly => {
                 match &self.targets {
-                    Some(targets) => targets.len() == number_of_fighters.ally.0,
+                    Some(targets) => targets.len() == number_of_fighters.ally.alive,
                     None => false
                 }
             }
@@ -408,6 +431,46 @@ impl PartialEq for Action {
 }
 
 impl Eq for Action {}
+
+/* -------------------------------------------------------------------------- */
+/*                               Systems Update                               */
+/* -------------------------------------------------------------------------- */
+
+/// If there is any Hp change in the frame, update the number of fighter alive
+pub fn update_number_of_fighters(
+    mut combat_panel: ResMut<CombatPanel>,
+    updated_units_query: Query<Entity, (Changed<Hp>, With<InCombat>)>,
+
+    player_query : Query<&Hp, (With<Player>, With<InCombat>)>,
+    ally_units_query: Query<&Hp, (With<Recruted>, Without<Player>, With<InCombat>)>,
+    enemy_units_query: Query<&Hp, (Without<Recruted>, Without<Player>, With<InCombat>)>,
+) {
+    if !updated_units_query.is_empty() {
+        let player_hp = player_query.single();
+
+        // Do we have to reset/update the total ? (no)
+        combat_panel.number_of_fighters.ally = FightersCount::default();
+        combat_panel.number_of_fighters.enemy = FightersCount::default();
+
+        // see the discord thread about [Fabien's Death](https://discord.com/channels/692439766485958767/990369916785930300/1114261607825019031)
+        if player_hp.current > 0 {
+            combat_panel.number_of_fighters.ally.alive += 1;
+        }
+        
+        for npc_hp in ally_units_query.iter() {
+            if npc_hp.current > 0 {
+                combat_panel.number_of_fighters.ally.alive += 1;
+            }
+            combat_panel.number_of_fighters.ally.total += 1;
+        }
+        for npc_hp in enemy_units_query.iter() {
+            if npc_hp.current > 0 {
+                combat_panel.number_of_fighters.enemy.alive += 1;
+            }
+            combat_panel.number_of_fighters.enemy.total += 1;
+        }
+    }
+}
 
 /* -------------------------------------------------------------------------- */
 /*                             -- Run Criteria --                             */

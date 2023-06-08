@@ -25,6 +25,23 @@ impl Alteration {
         }
     }
 
+    /// Is a Buff without the debuff Honte
+    /// IDEA: if have Honte -> debuff: cry and turn skip
+    /// order ? or whatever
+    /// IDEA: can only use Skill which attack, or Pass
+    pub fn anger() -> Self {
+        Alteration {
+            action: AlterationAction::StatsPercentage,
+            duration: 3,
+            target_option: TargetOption::Enemy(1),
+            damage_inflicted: 25,
+            description: String::from("+25% damage inflicted for 2turns"),
+            name: String::from("Anger"),
+            path_icon: String::from("textures/icons/skills-alterations/Dark/Dark_11.png"),
+            ..Default::default()
+        }
+    }
+
     /* -------------------------------------------------------------------------- */
     /*                             ------ Buff ------                             */
     /* -------------------------------------------------------------------------- */

@@ -39,7 +39,7 @@ impl FromWorld for FabiensInfos {
             },
         );
         fabiens_infos.insert(
-            String::from("NPC Morgan"),
+            String::from("Player Morgan"),
             PersonalInfos {
                 title: String::from("Fabien l'informaticien"),
                 sprite_path: String::from("textures/character/idle/idle_Morgan.png"),

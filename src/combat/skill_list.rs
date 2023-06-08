@@ -58,6 +58,20 @@ impl Skill {
         }
     }
 
+    pub fn diffamation() -> Self {
+        Skill {
+            skill_type: SkillType::Debuff,
+            target_option: TargetOption::Enemy(1),
+            initiative: 75,
+            mana_cost: 20,
+            mana_dealt: 30,
+            alterations: vec![Alteration::anger()],
+            description: String::from("Diffamation Politiquement Correcte"),
+            name: String::from("Diffamation"),
+            ..Default::default()
+        }
+    }
+
     /// `Deal 25dmg to 3targets` (example of multi-targets skills)
     pub fn implosion() -> Self {
         Skill {

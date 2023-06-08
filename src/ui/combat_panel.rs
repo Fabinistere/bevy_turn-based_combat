@@ -25,6 +25,9 @@ use crate::{
 #[derive(Component)]
 pub struct TargetMeter;
 
+#[derive(Component)]
+pub struct CombatStateDisplayer;
+
 #[derive(Default, Component, Reflect, Deref, DerefMut)]
 pub struct ActionDisplayer(pub usize);
 
@@ -42,7 +45,7 @@ pub enum SkillBar {
     Tier2,
     Tier1,
     Tier0,
-    /// TODO: Won'tHave - Unlock by the Job XpTree
+    /// TODO: Won'tHave (PostDemo) - Unlock by the Job XpTree
     Extra,
 }
 
@@ -59,6 +62,7 @@ pub struct Title;
 /*                                  UI Setup                                  */
 /* -------------------------------------------------------------------------- */
 
+/// REFACTOR: Upgrade UiImage to spritesheet UI when [Available](https://github.com/bevyengine/bevy/pull/5070)
 pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     // Scene
     commands
@@ -117,11 +121,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                         .with_children(|parent| {
                             parent.spawn(TextBundle::from_section(
                                 "End of Turn",
-                                TextStyle {
-                                    font: asset_server.load("fonts/dpcomic.ttf"),
-                                    font_size: 40.0,
-                                    color: Color::rgb(0.9, 0.9, 0.9),
-                                },
+                                get_text_style(&asset_server, 40.),
                             ));
                         });
 
@@ -153,6 +153,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                     get_text_style(&asset_server, 20.),
                                 )
                                 .with_style(TEXT_STYLE),
+                                Label,
                                 HpMeter,
                                 TargetMeter,
                                 Name::new("Target Hp"),
@@ -164,9 +165,34 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                     get_text_style(&asset_server, 20.),
                                 )
                                 .with_style(TEXT_STYLE),
+                                Label,
                                 MpMeter,
                                 TargetMeter,
                                 Name::new("Target Mp"),
+                            ));
+
+                            parent.spawn((
+                                TextBundle::from_section(
+                                    format!("Combat Phase: ???"),
+                                    get_text_style(&asset_server, 20.),
+                                )
+                                .with_style(Style {
+                                    flex_shrink: 0.,
+                                    size: Size::new(Val::Undefined, Val::Px(20.)),
+                                    margin: UiRect {
+                                        left: Val::Auto,
+                                        right: Val::Auto,
+                                        ..default()
+                                    },
+                                    ..default()
+                                }),
+                                CombatStateDisplayer,
+                                Name::new("Combat Phase"),
+                                // -- UI --
+                                // Because this is a distinct label widget and
+                                // not button/list item text, this is necessary
+                                // for accessibility to treat the text accordingly.
+                                Label,
                             ));
                         });
                 });
@@ -232,42 +258,16 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                                     get_text_style(&asset_server, 20.),
                                                 ));
 
-                                                // TODO: Upgrade when Available - use Spritesheet
                                                 parent.spawn((
                                                     ImageBundle {
                                                         image: UiImage {
-                                                            texture: asset_server.load(
-                                                                "textures/character/idle/idle_Fabien_Loyal.png",
-                                                            ),
                                                             flip_x: true,
                                                             ..default()
                                                         },
                                                         ..default()
-                                                    } ,
+                                                    },
                                                     Name::new(format!("Sprite {}", action_count)),
                                                 ));
-
-                                                // REFACTOR: Not IN - SpriteSheet doesn't work with UIElement
-                                                // parent.spawn((
-                                                //     SpriteSheetBundle {
-                                                //         sprite: TextureAtlasSprite {
-                                                //             index: FABIEN_STARTING_ANIM,
-                                                //             flip_x: true,
-                                                //             ..default()
-                                                //         },
-                                                //         texture_atlas: fabien.0.clone(),
-                                                //         transform: Transform {
-                                                //             scale: Vec3::splat(NPC_SCALE),
-                                                //             ..default()
-                                                //         },
-                                                //         ..default()
-                                                //     },
-                                                //     Name::new(format!("Sprite {}", action_count)),
-                                                //     // --- Fake the UI ---
-                                                //     Style::default(),
-                                                //     CalculatedSize::default(),
-                                                //     Node::default(),
-                                                // ));
                                             });
                                     }
                                 });
