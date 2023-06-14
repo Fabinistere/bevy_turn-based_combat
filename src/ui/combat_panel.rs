@@ -507,21 +507,15 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                         ))
                                         .with_children(|parent| {
                                             // TODO: Upgrade when Available - use Spritesheet
+                                            // TODO: Apply a mask to conceal the legs of the portrait (or simply change asset but meh.)
+                                            // Or put the portrait between the baseScroll and the base Header (but doesn't work)
                                             parent.spawn((
-                                                ImageBundle {
-                                                    image: UiImage {
-                                                        texture: asset_server.load(
-                                                            "textures/character/idle/idle_Fabien_Loyal.png",
-                                                        ),
-                                                        ..default()
-                                                    },
-                                                    ..default()
-                                                } ,
+                                                ImageBundle::default(),
                                                 Name::new("Portrait"),
                                                 Portrait,
                                             ));
                                         });
-                                    
+
                                     parent
                                         .spawn((
                                             NodeBundle {
@@ -557,6 +551,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                                             get_text_style(&asset_server, 40.),
                                                         )
                                                         .with_style(TEXT_STYLE),
+                                                        Label,
                                                         Name::new("Name"),
                                                         FabienName,
                                                     ));
@@ -567,6 +562,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                                             get_text_style(&asset_server, 20.),
                                                         )
                                                         .with_style(TEXT_STYLE),
+                                                        Label,
                                                         Name::new("Title"),
                                                         Title,
                                                     ));
@@ -591,6 +587,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                                             get_text_style(&asset_server, 20.),
                                                         )
                                                         .with_style(TEXT_STYLE),
+                                                        Label,
                                                         Name::new("Job"),
                                                         Job::default(),
                                                     ));
@@ -635,6 +632,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                                     get_text_style(&asset_server, 20.),
                                                 )
                                                 .with_style(TEXT_STYLE),
+                                                Label,
                                                 Name::new("Health"),
                                                 Hp::default(),
                                             ));
@@ -645,6 +643,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                                     get_text_style(&asset_server, 20.),
                                                 )
                                                 .with_style(TEXT_STYLE),
+                                                Label,
                                                 Name::new("Mana"),
                                                 Mana::default(),
                                             ));
@@ -655,6 +654,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                                     get_text_style(&asset_server, 20.),
                                                 )
                                                 .with_style(TEXT_STYLE),
+                                                Label,
                                                 Name::new("Shield"),
                                                 Shield::default(),
                                             ));
@@ -665,6 +665,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                                     get_text_style(&asset_server, 20.),
                                                 )
                                                 .with_style(TEXT_STYLE),
+                                                Label,
                                                 Name::new("Initiative"),
                                                 Initiative::default(),
                                             ));
@@ -675,6 +676,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                                     get_text_style(&asset_server, 20.),
                                                 )
                                                 .with_style(TEXT_STYLE),
+                                                Label,
                                                 Name::new("Attack"),
                                                 Attack::default(),
                                             ));
@@ -685,6 +687,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                                     get_text_style(&asset_server, 20.),
                                                 )
                                                 .with_style(TEXT_STYLE),
+                                                Label,
                                                 Name::new("AttackSpe"),
                                                 AttackSpe::default(),
                                             ));
@@ -695,6 +698,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                                     get_text_style(&asset_server, 20.),
                                                 )
                                                 .with_style(TEXT_STYLE),
+                                                Label,
                                                 Name::new("Defense"),
                                                 Defense::default(),
                                             ));
@@ -705,6 +709,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                                     get_text_style(&asset_server, 20.),
                                                 )
                                                 .with_style(TEXT_STYLE),
+                                                Label,
                                                 Name::new("DefenseSpe"),
                                                 DefenseSpe::default(),
                                             ));
@@ -741,18 +746,12 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                                             ..default()
                                                         },
                                                         ..default()
-                                                    } ,
-                                                    Name::new("Frame")
+                                                    },
+                                                    Name::new("Frame"),
                                                 ))
                                                 .with_children(|parent| {
                                                     parent.spawn((
                                                         ImageBundle {
-                                                            image: UiImage {
-                                                                texture: asset_server.load(
-                                                                    "textures/icons/weapons/fish_01b.png",
-                                                                ),
-                                                                ..default()
-                                                            },
                                                             style: Style {
                                                                 size: Size::all(Val::Px(50.)),
                                                                 align_self: AlignSelf::Center,
@@ -760,12 +759,11 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                                             },
                                                             visibility: Visibility::Hidden,
                                                             ..default()
-                                                        } ,
+                                                        },
                                                         Name::new("Weapon"),
                                                         WeaponDisplayer,
                                                     ));
                                                 });
-                                            
                                         });
                                 });
 
@@ -821,7 +819,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                                     .with_children(|parent| {
                                                         parent.spawn(TextBundle::from_section(
                                                             format!("Skill {}", skill_count),
-                                                            get_text_style(&asset_server, 40.),
+                                                            get_text_style(&asset_server, 20.),
                                                         ));
                                                     });
                                             }
@@ -912,7 +910,8 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                                                 // center button
                                                                 margin: UiRect::all(Val::Auto),
                                                                 // horizontally center child text
-                                                                justify_content: JustifyContent::Center,
+                                                                justify_content:
+                                                                    JustifyContent::Center,
                                                                 // vertically center child text
                                                                 align_items: AlignItems::Center,
                                                                 position: UiRect::default(),
@@ -932,12 +931,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                                     .with_children(|parent| {
                                                         parent.spawn(TextBundle::from_section(
                                                             format!("Skill {}", skill_count),
-                                                            TextStyle {
-                                                                font: asset_server
-                                                                    .load("fonts/dpcomic.ttf"),
-                                                                font_size: 40.0,
-                                                                color: Color::rgb(0.9, 0.9, 0.9),
-                                                            },
+                                                            get_text_style(&asset_server, 20.),
                                                         ));
                                                     });
                                             }
@@ -970,7 +964,8 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                                                 // center button
                                                                 margin: UiRect::all(Val::Auto),
                                                                 // horizontally center child text
-                                                                justify_content: JustifyContent::Center,
+                                                                justify_content:
+                                                                    JustifyContent::Center,
                                                                 // vertically center child text
                                                                 align_items: AlignItems::Center,
                                                                 position: UiRect::default(),
@@ -990,12 +985,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                                     .with_children(|parent| {
                                                         parent.spawn(TextBundle::from_section(
                                                             format!("Skill {}", skill_count),
-                                                            TextStyle {
-                                                                font: asset_server
-                                                                    .load("fonts/dpcomic.ttf"),
-                                                                font_size: 40.0,
-                                                                color: Color::rgb(0.9, 0.9, 0.9),
-                                                            },
+                                                            get_text_style(&asset_server, 20.),
                                                         ));
                                                     });
                                             }

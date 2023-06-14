@@ -2,12 +2,11 @@ use bevy::prelude::*;
 use rand::Rng;
 
 use crate::{
-    characters::npcs::NPC,
     combat::{
         alterations::{Alteration, AlterationAction},
         skills::{ExecuteSkillEvent, TargetOption},
         stats::{Attack, AttackSpe, Defense, DefenseSpe, Hp, Initiative, Mana, Shield},
-        Action, ActionCount, Alterations, CombatPanel, CombatState, InCombat,
+        Action, ActionCount, CombatPanel, CombatState, CurrentAlterations, InCombat,
     },
     ui::combat_system::{ActionHistory, ActionsLogs, LastTurnActionHistory, Selected, Targeted},
 };
@@ -204,7 +203,7 @@ pub fn phase_transition(
             }
             // --- New Turn ---
             // replace SelectionCaster by CombatState::default()
-            (CombatState::ExecuteSkills, CombatState::SelectionCaster) => {
+            (CombatState::AlterationsExecution, CombatState::SelectionCaster) => {
                 // IDEA: add this history into a full-log to permit the player to see it.
 
                 // --------------------- DEBUG --------------------------
@@ -251,11 +250,11 @@ pub fn execute_alteration(
         &mut Hp,
         &mut Mana,
         &mut Shield,
-        &Attack,
-        &AttackSpe,
-        &Defense,
-        &DefenseSpe,
-        &mut Alterations,
+        // &Attack,
+        // &AttackSpe,
+        // &Defense,
+        // &DefenseSpe,
+        &mut CurrentAlterations,
         &Name,
     )>,
 
@@ -267,10 +266,10 @@ pub fn execute_alteration(
         mut mp,
         mut shield,
         // TODO: remove these queries
-        _attack,
-        _attack_spe,
-        _defense_spe,
-        _defense,
+        // _attack,
+        // _attack_spe,
+        // _defense_spe,
+        // _defense,
         mut alterations,
         name,
     ) in character_query.iter_mut()
@@ -278,6 +277,19 @@ pub fn execute_alteration(
         let mut new_alterations_vector: Vec<Alteration> = vec![];
         for alteration in alterations.iter_mut() {
             info!("DEBUG: Execute Alteration: {} on {}", alteration.name, name);
+            // info!(
+            //     "duration/turnCount - {}/{}",
+            //     alteration.duration, alteration.turn_count
+            // );
+            if alteration.duration > 0 {
+                alteration.duration -= 1;
+                alteration.turn_count += 1;
+                info!(
+                    "DEBUG: new duration: {}", // /{}
+                    alteration.duration        //, alteration.turn_count
+                );
+                new_alterations_vector.push(alteration.clone());
+            }
 
             match alteration.action {
                 AlterationAction::StatsFlat | AlterationAction::StatsPercentage => {
@@ -325,18 +337,12 @@ pub fn execute_alteration(
                     // no action, the alteration being still in the entity contains all the info.
                 }
             }
-
-            if alteration.duration > 0 {
-                new_alterations_vector.push(alteration.clone());
-            }
-            alteration.turn_count += 1;
-            alteration.duration -= 1;
         }
         // update the set of alteration
         alterations.0 = new_alterations_vector;
     }
 
-    transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionCaster));
+    transition_phase_event.send(TransitionPhaseEvent(CombatState::default()));
 }
 
 pub fn observation() {
@@ -349,7 +355,7 @@ pub fn observation() {
 /// Sort the result in a nice table
 /// In case of egality: pick the higher initiative boyo to be on top
 pub fn roll_initiative(
-    npc_query: Query<(&Initiative, &Alterations), With<NPC>>,
+    combat_units_query: Query<(&Initiative, &CurrentAlterations), With<InCombat>>,
     mut combat_panel: ResMut<CombatPanel>,
 
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
@@ -361,10 +367,10 @@ pub fn roll_initiative(
         // REFACTOR: how the initiative is calculated
         let skill_init = action.skill.initiative.clone();
 
-        match npc_query.get(caster) {
+        match combat_units_query.get(caster) {
             Err(e) => warn!("Invalid Caster are in the History: {}", e),
-            Ok((npc_init, alterations)) => {
-                let mut current_init = npc_init.0;
+            Ok((base_init, alterations)) => {
+                let mut current_init = base_init.0;
 
                 // ---- Alterations Rules ----
                 for alteration in alterations.iter() {
@@ -377,14 +383,14 @@ pub fn roll_initiative(
                 }
                 // ---- Calculus ----
 
-                let npc_number = if current_init - 20 <= 0 {
+                let calculated_init = if current_init - 20 <= 0 {
                     rand::thread_rng().gen_range(0..current_init + 20)
                 } else if current_init == 100 {
                     100
                 } else if current_init + 20 >= 100 {
                     rand::thread_rng().gen_range(current_init - 20..100)
                 } else {
-                    rand::thread_rng().gen_range(current_init - 20..npc_init.0 + 20)
+                    rand::thread_rng().gen_range(current_init - 20..current_init + 20)
                 };
 
                 let skill_number = if skill_init - 20 <= 0 {
@@ -399,8 +405,8 @@ pub fn roll_initiative(
 
                 // 0 <= action.initiative <= 200
 
-                // insert these number in a vector
-                action.initiative = npc_number + skill_number;
+                // insert these numbers in a vector
+                action.initiative = calculated_init + skill_number;
                 initiatives.push(action.clone());
             }
         }
@@ -462,5 +468,5 @@ pub fn execution_phase(
         }
     }
 
-    transition_phase_event.send(TransitionPhaseEvent(CombatState::default()));
+    transition_phase_event.send(TransitionPhaseEvent(CombatState::AlterationsExecution));
 }

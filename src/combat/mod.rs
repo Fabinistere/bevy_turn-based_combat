@@ -37,7 +37,7 @@ use bevy::prelude::*;
 use crate::constants::combat::BASE_ACTION_COUNT;
 
 use self::{
-    alterations::Alteration, phases::observation, skills::{Skill, TargetOption}, stats::{StatBundle, Hp},
+    alterations::Alteration, skills::{Skill, TargetOption}, stats::{StatBundle, Hp},
     stuff::{Equipements, JobsMasteries, Job},
 };
 
@@ -91,6 +91,28 @@ impl fmt::Display for CombatState {
     }
 }
 
+#[derive(SystemSet, PartialEq, Eq, Hash, Clone, Debug, Reflect)]
+pub enum HUDState {
+    CombatWall(HUDCombatPanel),
+    DialogWall,
+}
+
+impl Default for HUDState {
+    fn default() -> Self {
+        HUDState::CombatWall(HUDCombatPanel::default())
+    }
+}
+
+#[derive(Default, SystemSet, PartialEq, Eq, Hash, Clone, Debug, Reflect)]
+pub enum HUDCombatPanel {
+    /// is also the Team's Inventory
+    #[default]
+    Wall,
+    AllyCharacterSheet(usize),
+    EnemyCharacterSheet(usize),
+    Logs,
+}
+
 pub struct CombatPlugin;
 
 impl Plugin for CombatPlugin {
@@ -102,36 +124,62 @@ impl Plugin for CombatPlugin {
             .add_event::<phases::TransitionPhaseEvent>()
             .add_event::<skills::ExecuteSkillEvent>()
             .add_event::<tactical_position::UpdateCharacterPositionEvent>()
-
+            
+            .configure_set(
+                CombatState::Initiation
+                    .run_if(in_initiation_phase)
+            )
+            .configure_set(
+                CombatState::AlterationsExecution
+                    .run_if(in_alteration_phase)
+            )
+            .configure_set(
+                CombatState::SelectionCaster
+                    .run_if(in_caster_phase)
+            )
+            .configure_set(
+                CombatState::SelectionSkill
+                    .run_if(in_skill_phase)
+            )
+            .configure_set(
+                CombatState::SelectionTarget
+                    .run_if(in_target_phase)
+            )
+            .configure_set(
+                CombatState::RollInitiative
+                    .run_if(in_initiative_phase)
+            )
+            .configure_set(
+                CombatState::ExecuteSkills
+                    .run_if(in_executive_phase)
+            )
+            .configure_set(
+                CombatState::Evasion
+                    .run_if(in_evasive_phase)
+            )
 
             .add_startup_system(stuff::spawn_stuff)
             
             .add_system(
-                observation
-                    // .run_if(in_observation_phase)
+                phases::observation
                     .in_set(CombatState::Observation)
             )
             .add_system(
                 phases::execute_alteration
-                    .run_if(in_alteration_phase)
                     .in_set(CombatState::AlterationsExecution)
             )
             .add_system(
                 phases::roll_initiative
-                // FixedTimestep::step(FIXED_TIME_STEP as f64)
-                .run_if(in_initiative_phase)
-                .in_set(CombatState::RollInitiative)
+                    .in_set(CombatState::RollInitiative)
             )
-            .add_system(
+            .add_systems((
                 phases::execution_phase
-                .run_if(in_executive_phase)
-                .in_set(CombatState::ExecuteSkills)
-            )
-            .add_system(
+                    .run_if(in_executive_phase)
+                    .in_set(CombatState::ExecuteSkills),
                 skills::execute_skill
-                .run_if(in_executive_phase)
-                .after(CombatState::ExecuteSkills)
-            )
+                    .run_if(in_executive_phase)
+                    .after(CombatState::ExecuteSkills)
+            ))
             .add_system(phases::phase_transition)
             .add_system(update_number_of_fighters)
 
@@ -140,7 +188,7 @@ impl Plugin for CombatPlugin {
             .add_system(tactical_position::detect_window_tactical_pos_change)
             .add_system(
                 tactical_position::update_character_position
-                .after(tactical_position::detect_window_tactical_pos_change)
+                    .after(tactical_position::detect_window_tactical_pos_change)
             )
             // .add_systems(
             //     (show_hp, show_mana)
@@ -160,7 +208,7 @@ pub struct CombatBundle {
     pub karma: Karma,
     pub team: Team,
     pub job: Job,
-    pub alterations: Alterations,
+    pub alterations: CurrentAlterations,
     pub skills: Skills,
     pub equipements: Equipements,
     pub action_count: ActionCount,
@@ -176,7 +224,7 @@ impl Default for CombatBundle {
             karma: Karma(0),
             team: Team(None),
             job: Job::default(),
-            alterations: Alterations(Vec::new()),
+            alterations: CurrentAlterations::default(),
             skills: Skills(Vec::new()),
             equipements: Equipements { weapon: None, armor: None },
             action_count: ActionCount::default(),
@@ -221,8 +269,21 @@ impl Default for ActionCount {
 pub struct Team(pub Option<i32>);
 
 /// Ongoing alterations, Debuff or Buff
+/// 
+/// DOC: The "Current" was added to Differenciate with the simple "Alteration" - new name ?
 #[derive(Default, Component, Deref, DerefMut)]
-pub struct Alterations(pub Vec<Alteration>);
+pub struct CurrentAlterations(Vec<Alteration>);
+
+
+/// Marker: Child of a fighter, has as child all the alteration's icon of the fighter
+/// 
+/// Can be removed
+#[derive(Component)]
+pub struct AllAlterationStatuses;
+
+/// Alterations are also put into an entity which is fighter's child (+ its icon)
+#[derive(Component)]
+pub struct AlterationStatus;
 
 /// Basic/Natural skills own by the entity  
 #[derive(Component, Deref, DerefMut)]
@@ -280,7 +341,6 @@ pub struct CombatPanel {
 }
 
 impl FromWorld for CombatPanel {
-    /// FIXME: Too Soon on the setup (no ally nor enemy)
     fn from_world(
         world: &mut World,
     ) -> Self {
@@ -320,8 +380,8 @@ impl GlobalFighterStats {
 /// Default = { alive: 0, total: 0 }
 #[derive(Default, Reflect, Debug, Clone)]
 pub struct FightersCount{
-    alive: usize, 
-    total: usize
+    pub alive: usize, 
+    pub total: usize
 }
 
 impl FightersCount {

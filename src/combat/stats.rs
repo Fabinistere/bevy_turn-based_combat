@@ -20,21 +20,6 @@ pub struct StatBundle {
     pub defense_spe: DefenseSpe,
 }
 
-// impl Default for StatBundle {
-//     fn default() -> Self {
-//         StatBundle {
-//             hp: Hp::default(),
-//             mana: Mana::default(),
-//             shield: Shield::default(),
-//             initiative: Initiative::default(),
-//             attack: Attack::default(),
-//             attack_spe: AttackSpe::default(),
-//             defense: Defense::default(),
-//             defense_spe: DefenseSpe::default(),
-//         }
-//     }
-// }
-
 /// ----------Hp----------
 ///
 /// Start of the Game: 50hp -> End of the Game: 1 000hp.

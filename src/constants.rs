@@ -61,7 +61,9 @@ pub mod combat {
         pub const BAM: i32 = 150;
     }
 
-    pub mod buff {}
+    pub mod alteration {
+        pub const SIZE_ALTERATION_ICON: f32 = 5.;
+    }
 }
 
 pub mod ui {

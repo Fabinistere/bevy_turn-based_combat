@@ -30,6 +30,7 @@ Assets are deported on a different cloud to stop wasting git use which is very c
     - [x] Place Fighters corresponding of their tactical position (diamond shape)
     - [x] Update fighters' transform % window's size
     - [ ] TODO: MustHave - Display all basic stats on the Fighting Hall (Hp/Mp under all entities)
+    - [x] CouldHave - Display alteration's icon
   - [x] Initiative Vertical Bar
     - [x] Display all action in the Initiative Vertical Bar
   - [ ] Character's Sheet

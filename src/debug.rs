@@ -10,7 +10,6 @@ use bevy_inspector_egui::quick::{
 
 use crate::{
     combat::{
-        // Alterations,
         // Action,
         alterations::{Alteration, AlterationAction},
         ActionCount,
@@ -57,7 +56,6 @@ impl Plugin for DebugPlugin {
                 /*                       --- Skills and Alterations ---                       */
                 /* -------------------------------------------------------------------------- */
 
-                // .register_type::<Alterations>()
                 .register_type::<Alteration>()
                 .register_type::<AlterationAction>()
                 .register_type::<TargetOption>()

@@ -62,22 +62,14 @@ impl Plugin for UiPlugin {
             /* -------------------------------------------------------------------------- */
             /*                            --- Limited Phase ---                           */
             /* -------------------------------------------------------------------------- */
-            .configure_set(
-                CombatState::SelectionCaster
-                    .run_if(in_caster_phase)
-            )
-            .configure_set(
-                CombatState::SelectionSkill
-                    .run_if(in_skill_phase)
-            )
-            .configure_set(
-                CombatState::SelectionTarget
-                    .run_if(in_target_phase)
-            )
             
             // .add_systems(
             //     ().run_if(in_initiation_phase)
             // )
+            .add_system(
+                // always run
+                combat_system::update_alterations_status.after(CombatState::AlterationsExecution)
+            )
             .add_systems(
                 (
                     combat_system::caster_selection,
@@ -119,9 +111,10 @@ impl Plugin for UiPlugin {
             // .add_systems(
             //     ().run_if(in_initiative_phase)
             // )
-            // .add_systems(
-            //     ().run_if(in_executive_phase)
-            // )
+            .add_system(
+                // always run
+                combat_system::update_alterations_status.after(CombatState::ExecuteSkills)
+            )
             // .add_systems(
             //     ().run_if(in_evasive_phase)
             // )

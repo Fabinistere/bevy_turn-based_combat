@@ -17,8 +17,6 @@ use super::skills::*;
 //     DamageSponge,
 // }
 
-// TODO: CouldHave - Display alteration's icon
-
 #[derive(Default, Debug, Clone, Reflect, PartialEq)]
 pub enum AlterationAction {
     #[default]

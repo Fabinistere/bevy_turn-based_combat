@@ -10,7 +10,7 @@ use crate::{
         skills::Skill,
         stats::{Attack, AttackSpe, Defense, DefenseSpe, Hp, Initiative, Mana, Shield},
         stuff::{Equipement, Equipements, Job, JobsMasteries, MasteryTier, SkillTiers, WeaponType},
-        ActionCount, Alterations, InCombat, Skills,
+        ActionCount, CurrentAlterations, InCombat, Skills,
     },
     constants::ui::dialogs::*,
     ui::{
@@ -108,7 +108,7 @@ pub fn update_caster_stats_panel(
             &AttackSpe,
             &Defense,
             &DefenseSpe,
-            &Alterations,
+            &CurrentAlterations,
             // &Equipements,
         ),
         (

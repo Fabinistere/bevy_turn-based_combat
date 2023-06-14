@@ -2,9 +2,10 @@ use bevy::prelude::*;
 
 use crate::{
     combat::{
-        phases::TransitionPhaseEvent, skills::TargetOption, CombatPanel, CombatState, InCombat,
-        Team,
+        phases::TransitionPhaseEvent, skills::TargetOption, AlterationStatus, CombatPanel,
+        CombatState, CurrentAlterations, InCombat, Team,
     },
+    constants::{character::npc::NPC_Z_BACK, combat::alteration::SIZE_ALTERATION_ICON},
     ui::{combat_panel::CombatStateDisplayer, player_interaction::Clicked},
 };
 
@@ -159,12 +160,12 @@ pub fn update_targeted_unit(
     mut event_query: EventReader<UpdateUnitTargetedEvent>,
 
     unit_selected_query: Query<(Entity, &Team), With<Selected>>,
-    combat_unit_query: Query<(Entity, &Name, &Team), With<InCombat>>,
+    combat_units_query: Query<(Entity, &Name, &Team), With<InCombat>>,
 
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
     for event in event_query.iter() {
-        match combat_unit_query.get(event.0) {
+        match combat_units_query.get(event.0) {
             Err(e) => warn!("The entity targeted is invalid: {:?}", e),
             Ok((character, target_name, target_team)) => {
                 let last_action = combat_panel.history.last_mut().unwrap();
@@ -249,6 +250,48 @@ pub fn update_targeted_unit(
                 };
             }
         }
+    }
+}
+
+/// TODO: Update Alterations' icons on characters
+///
+/// Changed for duration / Added and RemovalDetection for just anim
+pub fn update_alterations_status(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+
+    changed_alterations_query: Query<
+        (&CurrentAlterations, &Children, &Name),
+        (Changed<CurrentAlterations>, With<InCombat>),
+    >,
+) {
+    for (alterations, children, _name) in changed_alterations_query.iter() {
+        // info!("{} has some alterations change", _name);
+        // "Reset" all alt_displayer
+        commands.entity(children[0]).despawn_descendants();
+        commands.entity(children[0]).with_children(|parent| {
+            for (i, alteration) in alterations.iter().enumerate() {
+                parent.spawn((
+                    SpriteBundle {
+                        texture: asset_server.load(alteration.clone().path_icon),
+                        sprite: Sprite {
+                            // anchor: bevy::sprite::Anchor::TopCenter,
+                            custom_size: Some(Vec2::splat(SIZE_ALTERATION_ICON)),
+                            ..default()
+                        },
+                        transform: Transform::from_translation(Vec3::new(
+                            SIZE_ALTERATION_ICON * (i as f32)
+                                - SIZE_ALTERATION_ICON * (alterations.len() as f32 / 2.),
+                            -12.5,
+                            NPC_Z_BACK,
+                        )),
+                        ..default()
+                    },
+                    Name::new(alteration.clone().name),
+                    AlterationStatus,
+                ));
+            }
+        });
     }
 }
 

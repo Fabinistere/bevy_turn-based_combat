@@ -11,7 +11,7 @@ use crate::{
     ui::combat_system::ActionsLogs,
 };
 
-use super::Alterations;
+use super::CurrentAlterations;
 
 #[derive(Default, Debug, Clone, PartialEq, Reflect)]
 pub enum SkillType {
@@ -179,7 +179,7 @@ pub fn execute_skill(
             &AttackSpe,
             &Defense,
             &DefenseSpe,
-            &mut Alterations,
+            &mut CurrentAlterations,
             &Name,
         ),
         // Or<(With<Selected>, With<Targeted>)>
