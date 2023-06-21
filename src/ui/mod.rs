@@ -3,11 +3,8 @@ use bevy::{prelude::*, winit::WinitSettings};
 use crate::{
     characters::FabiensInfos,
     combat::{
-        in_caster_phase,
-        in_skill_phase, 
-        in_target_phase, 
-        // in_evasive_phase, in_executive_phase, in_initiation_phase, in_initiative_phase,
         CombatState,
+        tactical_position,
     },
 };
 
@@ -93,7 +90,6 @@ impl Plugin for UiPlugin {
                     character_sheet::update_weapon_displayer,
                 )
                     .in_set(CombatState::SelectionSkill)
-                    // .in_schedule(CoreSchedule::FixedUpdate)
             )
             .add_systems(
                 (
@@ -146,17 +142,27 @@ impl Plugin for UiPlugin {
                 character_sheet::skill_visibility
                     .in_set(UiLabel::Display)
                     .after(CombatState::SelectionCaster),
-                character_sheet::skill_color
-                    .after(UiLabel::Display),
             ))
 
             /* -------------------------------------------------------------------------- */
             /*                                --- COLOR ---                               */
             /* -------------------------------------------------------------------------- */
-            .add_system(player_interaction::button_system)
+            .add_systems(
+                (
+                    character_sheet::skill_color,
+                    player_interaction::button_system,
+                )
+                    .after(UiLabel::Display)
+            )
+
+            /* -------------------------------------------------------------------------- */
+            /*                                   Window                                   */
+            /* -------------------------------------------------------------------------- */
+            .add_systems((
+                tactical_position::detect_window_tactical_pos_change,
+                tactical_position::update_character_position
+                    .after(tactical_position::detect_window_tactical_pos_change)
+            ))
             ;
     }
 }
-
-#[derive(Component)]
-pub struct UiElement;

@@ -10,7 +10,7 @@ use crate::{
         skills::Skill,
         stats::{Attack, AttackSpe, Defense, DefenseSpe, Hp, Initiative, Mana, Shield},
         stuff::{Equipement, Equipements, Job, JobsMasteries, MasteryTier, SkillTiers, WeaponType},
-        ActionCount, CurrentAlterations, InCombat, Skills,
+        ActionCount, CombatResources, CurrentAlterations, InCombat, Skills,
     },
     constants::ui::dialogs::*,
     ui::{
@@ -611,7 +611,7 @@ pub fn skill_color(
 
     changed_selected_query: Query<
         (Entity, &Name, &ActionCount),
-        (With<Selected>, Changed<ActionCount>),
+        (With<Selected>, Or<(Added<Selected>, Changed<ActionCount>)>),
     >,
 ) {
     if let Ok((_, _, action_count)) = changed_selected_query.get_single() {

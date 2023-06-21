@@ -1,6 +1,7 @@
 //! Implement SKILLS
 
 use bevy::prelude::*;
+use bevy_ecs::query::QueryEntityError;
 // use bevy_inspector_egui::prelude::*;
 
 use crate::{
@@ -171,7 +172,6 @@ pub fn execute_skill(
     // >,
     mut combat_unit: Query<
         (
-            Entity,
             &mut Hp,
             &mut Mana,
             &mut Shield,
@@ -194,10 +194,17 @@ pub fn execute_skill(
     {
         match combat_unit.get_many_mut([*caster, *target]) {
             // REFACTOR: Handle SelfCast
-            Err(e) => warn!("SelfCast or: Caster and/or Target Invalid {:?}", e),
+            Err(e) => {
+                match e {
+                    // SelfCast
+                    QueryEntityError::AliasedMutability(_) => {
+                        warn!("TODO: SelfCast is currently not implemented  {:?}", e)
+                    }
+                    _ => warn!("Caster and/or Target Invalid {:?}", e),
+                }
+            }
             Ok(
                 [(
-                    _caster,
                     mut caster_hp,
                     mut caster_mp,
                     mut caster_shield,
@@ -208,7 +215,6 @@ pub fn execute_skill(
                     caster_alterations,
                     caster_name,
                 ), (
-                    _target,
                     mut target_hp,
                     mut target_mp,
                     mut target_shield,

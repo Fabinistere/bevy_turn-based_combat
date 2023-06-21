@@ -5,7 +5,7 @@ use bevy::prelude::*;
 
 use crate::{
     characters::{FabiensInfos, PersonalInfos},
-    combat::{CombatPanel, InCombat},
+    combat::{CombatResources, InCombat},
     // constants::character::npcs::FABIEN_STARTING_ANIM,
     ui::combat_panel::ActionDisplayer,
 };
@@ -18,7 +18,7 @@ use super::combat_panel::Portrait;
 ///
 /// Prevents checking a index in the action list.
 pub fn action_visibility(
-    combat_panel: Res<CombatPanel>,
+    combat_resources: Res<CombatResources>,
     mut action_button_query: Query<(&ActionDisplayer, &mut Visibility, &Children), With<Button>>,
     // mut action_sprite_query: Query<&mut TextureAtlasSprite, Without<InCombat>>,
     mut action_image_query: Query<&mut UiImage, (Without<Portrait>, Without<InCombat>)>,
@@ -28,7 +28,7 @@ pub fn action_visibility(
     asset_server: Res<AssetServer>,
     fabiens_infos: Res<FabiensInfos>,
 ) {
-    if combat_panel.is_changed() {
+    if combat_resources.is_changed() {
         for (action_number, mut visibility, action_children) in action_button_query.iter_mut() {
             // let mut action_sprite = action_sprite_query.get_mut(action_children[1]).unwrap();
             let mut action_image = action_image_query.get_mut(action_children[1]).unwrap();
@@ -37,9 +37,9 @@ pub fn action_visibility(
 
             let mut text = text_query.get_mut(action_children[0]).unwrap();
 
-            *visibility = if action_number.0 < combat_panel.history.len() {
+            *visibility = if action_number.0 < combat_resources.history.len() {
                 let (caster_name, _caster_sprite) = caster_name_query
-                    .get(combat_panel.history[action_number.0].caster)
+                    .get(combat_resources.history[action_number.0].caster)
                     .unwrap();
                 text.sections[0].value = caster_name.to_string();
 

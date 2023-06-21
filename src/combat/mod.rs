@@ -53,17 +53,11 @@ pub mod tactical_position;
 pub mod weapons_list;
 
 /// Just help to create a ordered system in the app builder
-#[derive(Default, SystemSet, PartialEq, Eq, Hash, Clone, Debug, Reflect)]
+#[derive(Default, SystemSet, PartialEq, Eq, Hash, Clone, Debug, Reflect, Resource)]
 pub enum CombatState {
     /// DOC: what the freak is this phase
     Initiation,
     AlterationsExecution,
-    /// Observation:
-    /// 
-    /// - ManageStuff
-    /// - Watch Knows infos/techs from enemies
-    /// - Watch yours
-    Observation,
     #[default]
     SelectionCaster,
     SelectionSkill,
@@ -80,7 +74,6 @@ impl fmt::Display for CombatState {
         match self {
             CombatState::Initiation => write!(f, "Initiation"),
             CombatState::AlterationsExecution => write!(f, "AlterationsExecution"),
-            CombatState::Observation => write!(f, "Observation"),
             CombatState::SelectionCaster => write!(f, "SelectionCaster"),
             CombatState::SelectionSkill => write!(f, "SelectionSkill"),
             CombatState::SelectionTarget => write!(f, "SelectionTarget"),
@@ -116,10 +109,14 @@ pub enum HUDCombatPanel {
 pub struct CombatPlugin;
 
 impl Plugin for CombatPlugin {
+    #[rustfmt::skip]
     fn build(&self, app: &mut App) {
         app
-            .init_resource::<CombatPanel>()
+            // REFACTOR: Implement State
+            
+            .init_resource::<CombatResources>()
             .init_resource::<JobsMasteries>()
+            .insert_resource(CombatState::default())
             
             .add_event::<phases::TransitionPhaseEvent>()
             .add_event::<skills::ExecuteSkillEvent>()
@@ -161,10 +158,6 @@ impl Plugin for CombatPlugin {
             .add_startup_system(stuff::spawn_stuff)
             
             .add_system(
-                phases::observation
-                    .in_set(CombatState::Observation)
-            )
-            .add_system(
                 phases::execute_alteration
                     .in_set(CombatState::AlterationsExecution)
             )
@@ -182,19 +175,6 @@ impl Plugin for CombatPlugin {
             ))
             .add_system(phases::phase_transition)
             .add_system(update_number_of_fighters)
-
-            // -- UI ? --
-
-            .add_system(tactical_position::detect_window_tactical_pos_change)
-            .add_system(
-                tactical_position::update_character_position
-                    .after(tactical_position::detect_window_tactical_pos_change)
-            )
-            // .add_systems(
-            //     (show_hp, show_mana)
-            //         .run_if(pressed_h)
-            //         .in_base_set(CoreSet::PostUpdate)
-            // )
             ;
     }
 }
@@ -333,14 +313,13 @@ impl Default for TacticalPosition {
 /* -------------------------------------------------------------------------- */
 
 #[derive(Resource, Reflect, Debug)]
-pub struct CombatPanel {
-    pub phase: CombatState,
+pub struct CombatResources {
     pub history: Vec<Action>,
     pub number_of_fighters: GlobalFighterStats,
     pub number_of_turn: usize,
 }
 
-impl FromWorld for CombatPanel {
+impl FromWorld for CombatResources {
     fn from_world(
         world: &mut World,
     ) -> Self {
@@ -350,8 +329,7 @@ impl FromWorld for CombatPanel {
         let mut enemies_query = world.query_filtered::<Entity, (Without<Recruted>, With<InCombat>)>();
         let enemies = enemies_query.iter(&world).collect::<Vec<Entity>>();
 
-        CombatPanel {
-            phase: CombatState::default(),
+        CombatResources {
             history: Vec::new(),
             number_of_fighters: GlobalFighterStats::new(allies.len(), enemies.len()),
             number_of_turn: 0
@@ -498,7 +476,7 @@ impl Eq for Action {}
 
 /// If there is any Hp change in the frame, update the number of fighter alive
 pub fn update_number_of_fighters(
-    mut combat_panel: ResMut<CombatPanel>,
+    mut combat_panel: ResMut<CombatResources>,
     updated_units_query: Query<Entity, (Changed<Hp>, With<InCombat>)>,
 
     player_query : Query<&Hp, (With<Player>, With<InCombat>)>,
@@ -515,7 +493,10 @@ pub fn update_number_of_fighters(
         // see the discord thread about [Fabien's Death](https://discord.com/channels/692439766485958767/990369916785930300/1114261607825019031)
         if player_hp.current > 0 {
             combat_panel.number_of_fighters.ally.alive += 1;
+        } else {
+            warn!("Player is Dead");
         }
+        combat_panel.number_of_fighters.ally.total += 1;
         
         for npc_hp in ally_units_query.iter() {
             if npc_hp.current > 0 {
@@ -538,34 +519,34 @@ pub fn update_number_of_fighters(
 
 // REFACTOR: Change CombatState to be GlobalState (in the world)
 
-pub fn in_initiation_phase(combat_panel: Res<CombatPanel>) -> bool {
-    combat_panel.phase == CombatState::Initiation
+pub fn in_initiation_phase(combat_state: Res<CombatState>) -> bool {
+    *combat_state == CombatState::Initiation
 }
 
-pub fn in_alteration_phase(combat_panel: Res<CombatPanel>) -> bool {
-    combat_panel.phase == CombatState::AlterationsExecution
+pub fn in_alteration_phase(combat_state: Res<CombatState>) -> bool {
+    *combat_state == CombatState::AlterationsExecution
 }
 
-pub fn in_caster_phase(combat_panel: Res<CombatPanel>) -> bool {
-    combat_panel.phase == CombatState::SelectionCaster
+pub fn in_caster_phase(combat_state: Res<CombatState>) -> bool {
+    *combat_state == CombatState::SelectionCaster
 }
 
-pub fn in_skill_phase(combat_panel: Res<CombatPanel>) -> bool {
-    combat_panel.phase == CombatState::SelectionSkill
+pub fn in_skill_phase(combat_state: Res<CombatState>) -> bool {
+    *combat_state == CombatState::SelectionSkill
 }
 
-pub fn in_target_phase(combat_panel: Res<CombatPanel>) -> bool {
-    combat_panel.phase == CombatState::SelectionTarget
+pub fn in_target_phase(combat_state: Res<CombatState>) -> bool {
+    *combat_state == CombatState::SelectionTarget
 }
 
-pub fn in_initiative_phase(combat_panel: Res<CombatPanel>) -> bool {
-    combat_panel.phase == CombatState::RollInitiative
+pub fn in_initiative_phase(combat_state: Res<CombatState>) -> bool {
+    *combat_state == CombatState::RollInitiative
 }
 
-pub fn in_executive_phase(combat_panel: Res<CombatPanel>) -> bool {
-    combat_panel.phase == CombatState::ExecuteSkills
+pub fn in_executive_phase(combat_state: Res<CombatState>) -> bool {
+    *combat_state == CombatState::ExecuteSkills
 }
 
-pub fn in_evasive_phase(combat_panel: Res<CombatPanel>) -> bool {
-    combat_panel.phase == CombatState::Evasion
+pub fn in_evasive_phase(combat_state: Res<CombatState>) -> bool {
+    *combat_state == CombatState::Evasion
 }

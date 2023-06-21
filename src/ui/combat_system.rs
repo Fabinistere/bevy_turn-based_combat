@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::{
     combat::{
-        phases::TransitionPhaseEvent, skills::TargetOption, AlterationStatus, CombatPanel,
+        phases::TransitionPhaseEvent, skills::TargetOption, AlterationStatus, CombatResources,
         CombatState, CurrentAlterations, InCombat, Team,
     },
     constants::{character::npc::NPC_Z_BACK, combat::alteration::SIZE_ALTERATION_ICON},
@@ -66,11 +66,11 @@ pub struct UpdateUnitTargetedEvent(pub Entity);
 pub fn caster_selection(
     mut commands: Commands,
 
-    selectable_unit_query: Query<(Entity, &Name), (With<Clicked>, With<InCombat>)>,
+    clicked_units_query: Query<(Entity, &Name), (With<Clicked>, With<InCombat>)>,
 
     mut update_unit_selected_event: EventWriter<UpdateUnitSelectedEvent>,
 ) {
-    for (entity, _name) in selectable_unit_query.iter() {
+    for (entity, _name) in clicked_units_query.iter() {
         update_unit_selected_event.send(UpdateUnitSelectedEvent(entity));
 
         commands.entity(entity).remove::<Clicked>();
@@ -155,7 +155,7 @@ pub fn update_selected_unit(
 /// Differentiation only when selecting a skill
 pub fn update_targeted_unit(
     mut commands: Commands,
-    mut combat_panel: ResMut<CombatPanel>,
+    mut combat_resources: ResMut<CombatResources>,
 
     mut event_query: EventReader<UpdateUnitTargetedEvent>,
 
@@ -168,7 +168,7 @@ pub fn update_targeted_unit(
         match combat_units_query.get(event.0) {
             Err(e) => warn!("The entity targeted is invalid: {:?}", e),
             Ok((character, target_name, target_team)) => {
-                let last_action = combat_panel.history.last_mut().unwrap();
+                let last_action = combat_resources.history.last_mut().unwrap();
 
                 // Is it a correct target ?
                 match last_action.skill.target_option {
@@ -305,13 +305,13 @@ pub fn update_alterations_status(
 ///
 /// DEBUG: update_combat_phase_displayer()
 pub fn update_combat_phase_displayer(
-    combat_panel: Res<CombatPanel>,
+    combat_state: Res<CombatState>,
     mut combat_state_displayer_query: Query<&mut Text, With<CombatStateDisplayer>>,
 ) {
     // FIXME: don't update afterwards if wasn't on the Logs Panel
-    if combat_panel.is_changed() {
+    if combat_state.is_changed() {
         if let Ok(mut text) = combat_state_displayer_query.get_single_mut() {
-            text.sections[0].value = format!("Combat Phase: {}", combat_panel.phase);
+            text.sections[0].value = format!("Combat Phase: {:?}", combat_state);
         }
     }
 }
@@ -348,15 +348,15 @@ pub fn actions_logs_displayer(
 ///
 /// IDEA: Atm each turn it resets
 pub fn current_action_formater(
-    combat_panel: Res<CombatPanel>,
+    combat_resources: Res<CombatResources>,
     mut action_history: ResMut<ActionHistory>,
 
     combat_units_query: Query<(Entity, &Name), With<InCombat>>,
 ) {
-    if combat_panel.is_changed() {
+    if combat_resources.is_changed() {
         action_history.0 = String::from("---------------\nActions:");
 
-        for (number, action) in combat_panel.history.iter().enumerate() {
+        for (number, action) in combat_resources.history.iter().enumerate() {
             if let Ok((_, caster_name)) = combat_units_query.get(action.caster) {
                 let mut targets_name = String::new();
                 match &action.targets {

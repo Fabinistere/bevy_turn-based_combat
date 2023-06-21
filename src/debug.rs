@@ -13,7 +13,7 @@ use crate::{
         // Action,
         alterations::{Alteration, AlterationAction},
         ActionCount,
-        // CombatPanel,
+        // CombatResources,
         CombatState,
         skills::{
             // Skill,
@@ -44,7 +44,7 @@ impl Plugin for DebugPlugin {
                 /* -------------------------------------------------------------------------- */
                 
                 .register_type::<CombatState>()
-                // .register_type::<CombatPanel>()
+                // .register_type::<CombatResources>()
                 // .register_type::<Action>()
                 
                 .register_type::<ActionCount>()

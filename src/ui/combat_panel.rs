@@ -45,7 +45,9 @@ pub enum SkillBar {
     Tier2,
     Tier1,
     Tier0,
-    /// TODO: Won'tHave (PostDemo) - Unlock by the Job XpTree
+    /// TODO: ShouldHave - Job's Skills
+    Job,
+    /// TODO: PostDemo - Unlock by the Job XpTree
     Extra,
 }
 
