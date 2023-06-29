@@ -10,7 +10,7 @@ use crate::{
         skills::Skill,
         stats::{Attack, AttackSpe, Defense, DefenseSpe, Hp, Initiative, Mana, Shield},
         stuff::{Equipement, Equipements, Job, JobsMasteries, MasteryTier, SkillTiers, WeaponType},
-        ActionCount, CombatResources, CurrentAlterations, InCombat, Skills,
+        ActionCount, CurrentAlterations, InCombat, Skills,
     },
     constants::ui::dialogs::*,
     ui::{

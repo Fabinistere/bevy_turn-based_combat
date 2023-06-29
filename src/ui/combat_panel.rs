@@ -7,12 +7,14 @@ use bevy::{
 };
 
 use crate::{
-    combat::{skills::Skill, stats::{Hp, Mana, Shield, Initiative, Attack, AttackSpe, Defense, DefenseSpe}, stuff::Job},
+    combat::{
+        skills::Skill,
+        stats::{Attack, AttackSpe, Defense, DefenseSpe, Hp, Initiative, Mana, Shield},
+        stuff::Job,
+    },
     constants::ui::{dialogs::*, style::*},
     ui::{
-        combat_system::{
-            HpMeter, MpMeter,
-        },
+        combat_system::{HpMeter, MpMeter},
         player_interaction::{EndOfTurnButton, ScrollingList},
     },
 };
@@ -66,7 +68,9 @@ pub struct Title;
 
 /// REFACTOR: Upgrade UiImage to spritesheet UI when [Available](https://github.com/bevyengine/bevy/pull/5070)
 pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    // Scene
+    /* -------------------------------------------------------------------------- */
+    /*                                  UI Scene                                  */
+    /* -------------------------------------------------------------------------- */
     commands
         .spawn((
             NodeBundle {

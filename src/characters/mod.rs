@@ -19,7 +19,7 @@ pub struct PersonalInfos {
 #[derive(Debug, Resource, Reflect, Deref, DerefMut, Clone)]
 pub struct FabiensInfos(pub HashMap<String, PersonalInfos>);
 
-/// Correspond with the default for the initiation of the resource
+/// Correspond with the default for the initialisation of the resource
 impl FromWorld for FabiensInfos {
     fn from_world(_world: &mut World) -> Self {
         let mut fabiens_infos = FabiensInfos(HashMap::new());

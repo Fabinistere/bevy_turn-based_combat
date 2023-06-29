@@ -4,7 +4,7 @@ use crate::{
     characters::FabiensInfos,
     combat::{
         CombatState,
-        tactical_position,
+        tactical_position, GameState,
     },
 };
 
@@ -18,8 +18,8 @@ pub mod player_interaction;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SystemSet)]
 enum UiLabel {
-    /// everything that handles textures
-    Textures,
+    // /// everything that handles textures
+    // Textures,
     /// everything that updates player state
     Player,
     ///
@@ -42,8 +42,7 @@ impl Plugin for UiPlugin {
             .add_event::<combat_system::UpdateUnitSelectedEvent>()
             .add_event::<combat_system::UpdateUnitTargetedEvent>()
 
-            .add_startup_system(combat_panel::setup.in_set(UiLabel::Textures))
-
+            
             /* -------------------------------------------------------------------------- */
             /*                         --- Player Input Global ---                        */
             /* -------------------------------------------------------------------------- */
@@ -60,9 +59,10 @@ impl Plugin for UiPlugin {
             /*                            --- Limited Phase ---                           */
             /* -------------------------------------------------------------------------- */
             
-            // .add_systems(
-            //     ().run_if(in_initiation_phase)
-            // )
+            .add_system(
+                combat_panel::setup
+                    .in_schedule(OnEnter(GameState::CombatWall))
+            )
             .add_system(
                 // always run
                 combat_system::update_alterations_status.after(CombatState::AlterationsExecution)

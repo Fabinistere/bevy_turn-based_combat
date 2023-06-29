@@ -45,6 +45,10 @@ Assets are deported on a different cloud to stop wasting git use which is very c
 
 // DOC
 
+## Notes
+
+- May replace all `if let Ok()/Some()/...` by the secure `match`
+
 ## Fun Facts
 
 Dans ce projet, il existe une erreur que je connais:

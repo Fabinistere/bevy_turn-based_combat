@@ -60,7 +60,7 @@ pub enum MasteryTier {
 #[derive(Resource, Reflect, Debug, Deref, DerefMut, Clone)]
 pub struct JobsMasteries(pub HashMap<(Job, WeaponType), MasteryTier>);
 
-/// Correspond with the default for the initiation of the resource
+/// Correspond with the default for the initialisation of the resource
 impl FromWorld for JobsMasteries {
     fn from_world(_world: &mut World) -> Self {
         let mut jobs_mastries = JobsMasteries(HashMap::new());

@@ -11,7 +11,7 @@ use crate::{
     ui::combat_system::{ActionHistory, ActionsLogs, LastTurnActionHistory, Selected, Targeted},
 };
 
-use super::{Recruted, Team};
+use super::Team;
 
 /* -------------------------------------------------------------------------- */
 /*                    ----- Transitions Between Phase -----                   */

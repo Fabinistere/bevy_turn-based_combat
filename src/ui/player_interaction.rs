@@ -370,7 +370,7 @@ pub fn cancel_last_input(
 ) {
     if keyboard_input.just_pressed(KeyCode::Escape) {
         let current_phase = combat_state.clone();
-        info!("Esc in {}", current_phase);
+        info!("Esc in {:?}", current_phase);
 
         match current_phase {
             CombatState::SelectionSkill => {

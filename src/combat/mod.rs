@@ -29,7 +29,7 @@
 //!     - Reward-s (gift or loot)
 //!   - Combat Evasion (quit)
 
-use std::{cmp::Ordering, fmt};
+use std::cmp::Ordering;
 
 use bevy::prelude::*;
 // use bevy_inspector_egui::prelude::*;
@@ -52,11 +52,25 @@ pub mod stuff;
 pub mod tactical_position;
 pub mod weapons_list;
 
+/// REFACTOR: Find a way to use States in our system
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Hash, Reflect, States)]
+pub enum GameState {
+    /// is also the Team's Inventory
+    #[default]
+    CombatWall,
+    // --- FTO related ---
+    TitleScreen,
+    DialogWall,
+    OptionsWall,
+    /// Game without any HUD
+    Exploration,
+}
+
 /// Just help to create a ordered system in the app builder
 #[derive(Default, SystemSet, PartialEq, Eq, Hash, Clone, Debug, Reflect, Resource)]
 pub enum CombatState {
-    /// DOC: what the freak is this phase
-    Initiation,
+    /// REFACTOR: Useless atm
+    Initialisation,
     AlterationsExecution,
     #[default]
     SelectionCaster,
@@ -64,46 +78,12 @@ pub enum CombatState {
     SelectionTarget,
     RollInitiative,
     ExecuteSkills,
+    
+    BrowseEnemySheet,
+    Logs,
 
     // ShowExecution,
     Evasion,
-}
-
-impl fmt::Display for CombatState {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            CombatState::Initiation => write!(f, "Initiation"),
-            CombatState::AlterationsExecution => write!(f, "AlterationsExecution"),
-            CombatState::SelectionCaster => write!(f, "SelectionCaster"),
-            CombatState::SelectionSkill => write!(f, "SelectionSkill"),
-            CombatState::SelectionTarget => write!(f, "SelectionTarget"),
-            CombatState::RollInitiative => write!(f, "RollInitiative"),
-            CombatState::ExecuteSkills => write!(f, "ExecuteSkills"),
-            CombatState::Evasion => write!(f, "Evasion"),
-        }
-    }
-}
-
-#[derive(SystemSet, PartialEq, Eq, Hash, Clone, Debug, Reflect)]
-pub enum HUDState {
-    CombatWall(HUDCombatPanel),
-    DialogWall,
-}
-
-impl Default for HUDState {
-    fn default() -> Self {
-        HUDState::CombatWall(HUDCombatPanel::default())
-    }
-}
-
-#[derive(Default, SystemSet, PartialEq, Eq, Hash, Clone, Debug, Reflect)]
-pub enum HUDCombatPanel {
-    /// is also the Team's Inventory
-    #[default]
-    Wall,
-    AllyCharacterSheet(usize),
-    EnemyCharacterSheet(usize),
-    Logs,
 }
 
 pub struct CombatPlugin;
@@ -112,47 +92,56 @@ impl Plugin for CombatPlugin {
     #[rustfmt::skip]
     fn build(&self, app: &mut App) {
         app
-            // REFACTOR: Implement State
+            
+            .add_state::<GameState>()
+            .insert_resource(CombatState::default())
             
             .init_resource::<CombatResources>()
             .init_resource::<JobsMasteries>()
-            .insert_resource(CombatState::default())
             
             .add_event::<phases::TransitionPhaseEvent>()
             .add_event::<skills::ExecuteSkillEvent>()
             .add_event::<tactical_position::UpdateCharacterPositionEvent>()
             
             .configure_set(
-                CombatState::Initiation
-                    .run_if(in_initiation_phase)
+                CombatState::Initialisation
+                    .run_if(in_initialisation_phase)
+                    .in_set(OnUpdate(GameState::CombatWall))
             )
             .configure_set(
                 CombatState::AlterationsExecution
                     .run_if(in_alteration_phase)
+                    .in_set(OnUpdate(GameState::CombatWall))
             )
             .configure_set(
                 CombatState::SelectionCaster
                     .run_if(in_caster_phase)
+                    .in_set(OnUpdate(GameState::CombatWall))
             )
             .configure_set(
                 CombatState::SelectionSkill
                     .run_if(in_skill_phase)
+                    .in_set(OnUpdate(GameState::CombatWall))
             )
             .configure_set(
                 CombatState::SelectionTarget
                     .run_if(in_target_phase)
+                    .in_set(OnUpdate(GameState::CombatWall))
             )
             .configure_set(
                 CombatState::RollInitiative
                     .run_if(in_initiative_phase)
+                    .in_set(OnUpdate(GameState::CombatWall))
             )
             .configure_set(
                 CombatState::ExecuteSkills
                     .run_if(in_executive_phase)
+                    .in_set(OnUpdate(GameState::CombatWall))
             )
             .configure_set(
                 CombatState::Evasion
                     .run_if(in_evasive_phase)
+                    .in_set(OnUpdate(GameState::CombatWall))
             )
 
             .add_startup_system(stuff::spawn_stuff)
@@ -165,14 +154,14 @@ impl Plugin for CombatPlugin {
                 phases::roll_initiative
                     .in_set(CombatState::RollInitiative)
             )
-            .add_systems((
-                phases::execution_phase
-                    .run_if(in_executive_phase)
-                    .in_set(CombatState::ExecuteSkills),
-                skills::execute_skill
-                    .run_if(in_executive_phase)
-                    .after(CombatState::ExecuteSkills)
-            ))
+            .add_systems(
+                (
+                    phases::execution_phase,
+                    skills::execute_skill
+                        .after(phases::execution_phase)
+                )
+                    .in_set(CombatState::ExecuteSkills)
+            )
             .add_system(phases::phase_transition)
             .add_system(update_number_of_fighters)
             ;
@@ -392,7 +381,7 @@ pub struct Action {
 
 //                     }
 //                 }
-//                 write!(f, "Initiation")
+//                 write!(f, "initialisation")
 //             }
 //         }
 //     }
@@ -519,8 +508,8 @@ pub fn update_number_of_fighters(
 
 // REFACTOR: Change CombatState to be GlobalState (in the world)
 
-pub fn in_initiation_phase(combat_state: Res<CombatState>) -> bool {
-    *combat_state == CombatState::Initiation
+pub fn in_initialisation_phase(combat_state: Res<CombatState>) -> bool {
+    *combat_state == CombatState::Initialisation
 }
 
 pub fn in_alteration_phase(combat_state: Res<CombatState>) -> bool {

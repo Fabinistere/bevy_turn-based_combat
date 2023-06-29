@@ -100,49 +100,35 @@ pub fn target_selection(
 
 /// Event Handler of UpdateUnitSelectedEvent
 ///
-/// There can only be one entity selected.
-/// After completed a action with one, you can reselect it.
+/// There can only be one entity (ally or enemy) selected.
 ///
 /// # Note
 ///
-/// FIXME: Multiple Entity can be selected if clicked simultaneous
+/// FIXME: Multiple Entity can be selected if clicked simultaneous (a break would work ?)
 /// REFACTOR: Directly Manage Clicked Entity in the update systems (instead of event)
 pub fn update_selected_unit(
-    mut commands: Commands,
-
     mut event_query: EventReader<UpdateUnitSelectedEvent>,
 
-    unselected_unit_query: Query<(Entity, &Name), (Without<Selected>, With<InCombat>)>,
-    selected_unit_query: Query<(Entity, &Name), (With<Selected>, With<InCombat>)>,
+    mut commands: Commands,
 
+    selected_unit_query: Query<Entity, (With<Selected>, With<InCombat>)>,
+    // combat_units_query: Query<(&InCombat, &Name)>,
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
     for event in event_query.iter() {
-        match unselected_unit_query.get(event.0) {
-            Err(e_unselect) => match selected_unit_query.get(event.0) {
-                Err(e_select) => warn!(
-                    "The entity selected is invalid: {:?} --//-- {:?}",
-                    e_unselect, e_select
-                ),
-                // Don't change the entity selected
-                // TOTEST: This case only happens when the player reselect a entity by his.her will
-                Ok(_) => {
-                    transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionSkill));
-                }
-            },
-            // Wasn't already selected
-            Ok((character, _name)) => {
-                commands.entity(character).insert(Selected);
-                info!("{} selected", _name);
-
-                // remove from previous entity the selected component
-                for (selected, _) in selected_unit_query.iter() {
-                    commands.entity(selected).remove::<Selected>();
-                }
-
-                transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionSkill));
+        if let Ok(selected) = selected_unit_query.get_single() {
+            if selected != event.0 {
+                commands.entity(selected).remove::<Selected>();
+                // info!("{:?} was selected", selected);
             }
         }
+        commands.entity(event.0).insert(Selected);
+        // info!("{:?} is now selected", event.0);
+
+        // let (id, name) = combat_units_query.get(event.0).unwrap();
+        // info!("{} selected", name);
+
+        transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionSkill));
     }
 }
 
