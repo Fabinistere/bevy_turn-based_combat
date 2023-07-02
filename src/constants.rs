@@ -70,40 +70,6 @@ pub mod ui {
 
     pub const DRAGGED_ENTITY_Z: f32 = 100.0;
 
-    pub mod fighting_hall_position {
-        /* -------------------------------------------------------------------------- */
-        /*                               Enemy Position                               */
-        /* -------------------------------------------------------------------------- */
-
-        pub const ENEMY_FRONTLINE_LEFT: (f32, f32) = (5., 8.);
-        pub const ENEMY_FRONTLINE_MIDDLE: (f32, f32) = (7., 10.);
-        pub const ENEMY_FRONTLINE_RIGHT: (f32, f32) = (9., 12.);
-
-        pub const ENEMY_MIDDLELINE_LEFT: (f32, f32) = (3., 10.);
-        pub const ENEMY_MIDDLELINE_MIDDLE: (f32, f32) = (5., 12.);
-        pub const ENEMY_MIDDLELINE_RIGHT: (f32, f32) = (7., 14.);
-
-        pub const ENEMY_BACKLINE_LEFT: (f32, f32) = (1., 12.);
-        pub const ENEMY_BACKLINE_MIDDLE: (f32, f32) = (3., 14.);
-        pub const ENEMY_BACKLINE_RIGHT: (f32, f32) = (5., 16.);
-
-        /* -------------------------------------------------------------------------- */
-        /*                                Ally Position                               */
-        /* -------------------------------------------------------------------------- */
-
-        pub const ALLY_FRONTLINE_LEFT: (f32, f32) = (9., 5.);
-        pub const ALLY_FRONTLINE_MIDDLE: (f32, f32) = (11., 7.);
-        pub const ALLY_FRONTLINE_RIGHT: (f32, f32) = (13., 9.);
-
-        pub const ALLY_MIDDLELINE_LEFT: (f32, f32) = (11., 3.);
-        pub const ALLY_MIDDLELINE_MIDDLE: (f32, f32) = (13., 5.);
-        pub const ALLY_MIDDLELINE_RIGHT: (f32, f32) = (15., 7.);
-
-        pub const ALLY_BACKLINE_LEFT: (f32, f32) = (13., 1.);
-        pub const ALLY_BACKLINE_MIDDLE: (f32, f32) = (15., 3.);
-        pub const ALLY_BACKLINE_RIGHT: (f32, f32) = (17., 5.);
-    }
-
     pub mod dialogs {
         use bevy::prelude::Color;
 
@@ -179,5 +145,59 @@ pub mod ui {
             position: UiRect::DEFAULT,
             ..Style::DEFAULT
         };
+    }
+
+    // Diamond Shape Formation
+    pub mod fighting_hall_position {
+        /* -------------------------------------------------------------------------- */
+        /*                               Enemy Position                               */
+        /* -------------------------------------------------------------------------- */
+
+        pub const ENEMY_FRONTLINE_LEFT: (f32, f32) = (5., 8.);
+        pub const ENEMY_FRONTLINE_MIDDLE: (f32, f32) = (7., 10.);
+        pub const ENEMY_FRONTLINE_RIGHT: (f32, f32) = (9., 12.);
+
+        pub const ENEMY_MIDDLELINE_LEFT: (f32, f32) = (3., 10.);
+        pub const ENEMY_MIDDLELINE_MIDDLE: (f32, f32) = (5., 12.);
+        pub const ENEMY_MIDDLELINE_RIGHT: (f32, f32) = (7., 14.);
+
+        pub const ENEMY_BACKLINE_LEFT: (f32, f32) = (1., 12.);
+        pub const ENEMY_BACKLINE_MIDDLE: (f32, f32) = (3., 14.);
+        pub const ENEMY_BACKLINE_RIGHT: (f32, f32) = (5., 16.);
+
+        /* -------------------------------------------------------------------------- */
+        /*                                Ally Position                               */
+        /* -------------------------------------------------------------------------- */
+
+        pub const ALLY_FRONTLINE_LEFT: (f32, f32) = (9., 5.);
+        pub const ALLY_FRONTLINE_MIDDLE: (f32, f32) = (11., 7.);
+        pub const ALLY_FRONTLINE_RIGHT: (f32, f32) = (13., 9.);
+
+        pub const ALLY_MIDDLELINE_LEFT: (f32, f32) = (11., 3.);
+        pub const ALLY_MIDDLELINE_MIDDLE: (f32, f32) = (13., 5.);
+        pub const ALLY_MIDDLELINE_RIGHT: (f32, f32) = (15., 7.);
+
+        pub const ALLY_BACKLINE_LEFT: (f32, f32) = (13., 1.);
+        pub const ALLY_BACKLINE_MIDDLE: (f32, f32) = (15., 3.);
+        pub const ALLY_BACKLINE_RIGHT: (f32, f32) = (17., 5.);
+    }
+
+    pub mod hud_wall {
+        pub mod combat {
+            pub const CHARACTER_SHEET_WIDTH: f32 = 74.5;
+            // (right, bottom) In Percent
+            pub const CHARACTER_SHEET_OFFSET_X: f32 = 22.;
+            pub const CHARACTER_SHEET_FIRST_ROW_Y: f32 = 33.;
+            pub const CHARACTER_SHEET_SECOND_ROW_Y: f32 = 4.;
+
+            // pub const CHARACTER_SHEET_POSITION_FIRST: (f32, f32) = (22., 33.);
+            // pub const CHARACTER_SHEET_POSITION_SECOND: (f32, f32) = (96.5, 33.);
+            // pub const CHARACTER_SHEET_POSITION_THIRD: (f32, f32) = (171., 33.);
+            // // --- Second Row of Characters' Sheet ---
+            // // REFACTOR: two ui groups, 3first and 3lasts
+            // pub const CHARACTER_SHEET_POSITION_FOURTH: (f32, f32) = (322., 4.);
+            // pub const CHARACTER_SHEET_POSITION_FIFTH: (f32, f32) = (396.5, 4.);
+            // pub const CHARACTER_SHEET_POSITION_SIXTH: (f32, f32) = (471.5, 4.);
+        }
     }
 }

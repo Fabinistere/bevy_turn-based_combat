@@ -10,10 +10,11 @@ use crate::{
     combat::{
         phases::TransitionPhaseEvent,
         skills::{Skill, TargetOption},
-        Action, ActionCount, CombatResources, CombatState,
+        Action, ActionCount, CombatResources, CombatState, InCombat,
     },
     constants::ui::dialogs::*,
     ui::{
+        character_sheet::UnFocusCharacterSheet,
         combat_panel::{ActionDisplayer, SkillDisplayer},
         combat_system::{Selected, Targeted},
     },
@@ -363,10 +364,11 @@ pub fn cancel_last_input(
     mut combat_resources: ResMut<CombatResources>,
     combat_state: Res<CombatState>,
 
-    selected_unit_query: Query<(Entity, &Name), With<Selected>>,
+    selected_unit_query: Query<(Entity, &InCombat, &Name), With<Selected>>,
     mut caster_query: Query<(Entity, &mut ActionCount)>,
 
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
+    mut unfocus_char_sheet_event: EventWriter<UnFocusCharacterSheet>,
 ) {
     if keyboard_input.just_pressed(KeyCode::Escape) {
         let current_phase = combat_state.clone();
@@ -374,12 +376,13 @@ pub fn cancel_last_input(
 
         match current_phase {
             CombatState::SelectionSkill => {
-                let (selected, name) = selected_unit_query.single();
+                let (selected, id, name) = selected_unit_query.single();
 
                 commands.entity(selected).remove::<Selected>();
                 info!("{} is no longer selected", name);
 
                 transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionCaster));
+                unfocus_char_sheet_event.send(UnFocusCharacterSheet(**id));
             }
             CombatState::SelectionCaster | CombatState::SelectionTarget => {
                 // Remove last targeted and modify the last action
@@ -396,7 +399,7 @@ pub fn cancel_last_input(
                     }
                     Some(ref mut last_action) => {
                         // give the last_action.caster the selected component
-                        if let Ok((selected, name)) = selected_unit_query.get_single() {
+                        if let Ok((selected, _, name)) = selected_unit_query.get_single() {
                             if selected != last_action.caster {
                                 commands.entity(selected).remove::<Selected>();
                                 info!(

@@ -6,7 +6,10 @@ use crate::{
         CombatState, CurrentAlterations, InCombat, Team,
     },
     constants::{character::npc::NPC_Z_BACK, combat::alteration::SIZE_ALTERATION_ICON},
-    ui::{combat_panel::CombatStateDisplayer, player_interaction::Clicked},
+    ui::{
+        character_sheet::FocusCharacterSheet, combat_panel::CombatStateDisplayer,
+        player_interaction::Clicked,
+    },
 };
 
 /* -------------------------------------------------------------------------- */
@@ -112,7 +115,9 @@ pub fn update_selected_unit(
     mut commands: Commands,
 
     selected_unit_query: Query<Entity, (With<Selected>, With<InCombat>)>,
-    // combat_units_query: Query<(&InCombat, &Name)>,
+    combat_units_query: Query<(&InCombat, &Name)>,
+
+    mut focus_char_sheet_event: EventWriter<FocusCharacterSheet>,
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
     for event in event_query.iter() {
@@ -125,10 +130,12 @@ pub fn update_selected_unit(
         commands.entity(event.0).insert(Selected);
         // info!("{:?} is now selected", event.0);
 
-        // let (id, name) = combat_units_query.get(event.0).unwrap();
-        // info!("{} selected", name);
+        let (id, name) = combat_units_query.get(event.0).unwrap();
+        info!("{} selected", name);
 
         transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionSkill));
+        // REFACTOR: May be handle by selection detection
+        focus_char_sheet_event.send(FocusCharacterSheet(**id));
     }
 }
 
@@ -294,7 +301,6 @@ pub fn update_combat_phase_displayer(
     combat_state: Res<CombatState>,
     mut combat_state_displayer_query: Query<&mut Text, With<CombatStateDisplayer>>,
 ) {
-    // FIXME: don't update afterwards if wasn't on the Logs Panel
     if combat_state.is_changed() {
         if let Ok(mut text) = combat_state_displayer_query.get_single_mut() {
             text.sections[0].value = format!("Combat Phase: {:?}", combat_state);

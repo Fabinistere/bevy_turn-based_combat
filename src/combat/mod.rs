@@ -74,7 +74,9 @@ pub enum CombatState {
     AlterationsExecution,
     #[default]
     SelectionCaster,
+    /// There is one (ally or enemy) selected, and a CS focused
     SelectionSkill,
+    /// There is at least one action in the history
     SelectionTarget,
     RollInitiative,
     ExecuteSkills,
@@ -94,7 +96,7 @@ impl Plugin for CombatPlugin {
         app
             
             .add_state::<GameState>()
-            .insert_resource(CombatState::default())
+            .insert_resource(CombatState::Initialisation)
             
             .init_resource::<CombatResources>()
             .init_resource::<JobsMasteries>()
@@ -258,8 +260,13 @@ pub struct AlterationStatus;
 #[derive(Component, Deref, DerefMut)]
 pub struct Skills(pub Vec<Skill>);
 
-#[derive(Component)]
-pub struct InCombat;
+// Supposed to be immutable: no DerefMut
+/// Contains the unique fighter identifier
+/// 
+/// 0 <= id <= 5: Ally
+/// 6 <= id <= 11: Enemy
+#[derive(Component, Hash, Copy, Clone, PartialEq, Eq, Deref)]
+pub struct InCombat(pub usize);
 
 #[derive(Clone, Copy, Component)]
 pub struct Leader;
