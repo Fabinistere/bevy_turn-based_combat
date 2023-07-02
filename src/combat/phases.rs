@@ -8,7 +8,10 @@ use crate::{
         stats::{Hp, Initiative, Mana, Shield},
         Action, ActionCount, CombatResources, CombatState, CurrentAlterations, InCombat,
     },
-    ui::combat_system::{ActionHistory, ActionsLogs, LastTurnActionHistory, Selected, Targeted},
+    ui::{
+        combat_panel::{CharacterSheet, CharacterSheetElements},
+        combat_system::{ActionHistory, ActionsLogs, LastTurnActionHistory, Selected, Targeted},
+    },
 };
 
 use super::Team;
@@ -43,6 +46,9 @@ pub fn phase_transition(
     mut actions_logs: ResMut<ActionsLogs>,
     action_history: Res<ActionHistory>,
     mut last_action_history: ResMut<LastTurnActionHistory>,
+
+    character_sheet_elements: Res<CharacterSheetElements>,
+    mut character_sheet_query: Query<&mut Visibility, With<CharacterSheet>>,
 ) {
     for TransitionPhaseEvent(phase_requested) in transition_phase_event.iter() {
         let mut next_phase = phase_requested;
@@ -231,6 +237,18 @@ pub fn phase_transition(
             }
             _ => {}
         }
+
+        // TODO: CouldHave - Dynamic Input: AutoSwitch Selection to avoid repetitive inpleasant task ("go to next caster")
+        let mut character_sheet_visibility = character_sheet_query
+            .get_mut(character_sheet_elements.character_sheet.unwrap())
+            .unwrap();
+        *character_sheet_visibility = if next_phase == &CombatState::SelectionCaster {
+            Visibility::Hidden
+        } else if combat_state.clone() == CombatState::SelectionCaster {
+            Visibility::Inherited
+        } else {
+            *character_sheet_visibility
+        };
 
         // info!(
         //     "Phase: {:?} to {:?} (was requested: {:?})",

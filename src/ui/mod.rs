@@ -8,7 +8,7 @@ use crate::{
     },
 };
 
-use self::{combat_system::{ActionHistory, ActionsLogs, LastTurnActionHistory}};
+use self::{combat_system::{ActionHistory, ActionsLogs, LastTurnActionHistory}, combat_panel::{CharacterSheetElements, CombatWallResources, CharacterSheetAssetsResources}};
 
 pub mod character_sheet;
 pub mod combat_panel;
@@ -28,16 +28,26 @@ enum UiLabel {
 pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
+    /// # Note
+    /// 
+    /// `.in_set(OnUpdate(GameState::CombatWall))` is implied by any
+    /// `.in_set(CombatState::...)`
+    /// 
+    /// REFACTOR: Add everywhere it's not implied `.in_set(OnUpdate(GameState::CombatWall))` 
     #[rustfmt::skip]
     fn build(&self, app: &mut App) {
         app
             // OPTIMIZE: Only run the app when there is user input. This will significantly reduce CPU/GPU use.
             .insert_resource(WinitSettings::game())
 
+            // will be initialized in ui::combat_panel::setup()
             .insert_resource(ActionsLogs(String::from("---------------\nActions Logs:")))
             .insert_resource(ActionHistory(String::from("---------------\nActions:")))
             .insert_resource(LastTurnActionHistory(String::from("---------------\nLast Turn Actions:")))
+            .insert_resource(CharacterSheetElements::default())
             .init_resource::<FabiensInfos>()
+            .init_resource::<CombatWallResources>()
+            .init_resource::<CharacterSheetAssetsResources>()
 
             .add_event::<combat_system::UpdateUnitSelectedEvent>()
             .add_event::<combat_system::UpdateUnitTargetedEvent>()
@@ -56,15 +66,19 @@ impl Plugin for UiPlugin {
             .add_system(player_interaction::action_button.after(initiative_bar::action_visibility))
             
             /* -------------------------------------------------------------------------- */
-            /*                            --- Limited Phase ---                           */
+            /*                                   States                                   */
             /* -------------------------------------------------------------------------- */
-            
+
             .add_system(
                 combat_panel::setup
                     .in_schedule(OnEnter(GameState::CombatWall))
             )
+
+            /* -------------------------------------------------------------------------- */
+            /*                            --- Limited Phase ---                           */
+            /* -------------------------------------------------------------------------- */
+            
             .add_system(
-                // always run
                 combat_system::update_alterations_status.after(CombatState::AlterationsExecution)
             )
             .add_systems(
@@ -74,7 +88,6 @@ impl Plugin for UiPlugin {
                     player_interaction::end_of_turn_button,
                 )
                     .in_set(CombatState::SelectionCaster)
-                    // .distributive_run_if(in_caster_phase)
             )
             // in SkillPhase: There is one selected
             .add_systems(
@@ -82,7 +95,7 @@ impl Plugin for UiPlugin {
                     combat_system::caster_selection,
                     combat_system::update_selected_unit.after(UiLabel::Player),
                     player_interaction::select_skill,
-                    // FIXME: In SelectionSkill, the end_of_turn trigger twice
+                    // FIXME: In SelectionSkill, the end_of_turn trigger twice, CombatStates -> derive States could fix that but having so much States might not be so cool
                     // cancel the current action if imcomplete -----vvv
                     player_interaction::end_of_turn_button,
                     character_sheet::update_headers,
@@ -98,9 +111,9 @@ impl Plugin for UiPlugin {
                     // switch to a new action ----vvv
                     player_interaction::select_skill,
                     player_interaction::end_of_turn_button,
-                    character_sheet::update_headers,
+                    // character_sheet::update_headers,
                     character_sheet::update_caster_stats_panel.after(UiLabel::Player),
-                    character_sheet::update_weapon_displayer,
+                    // character_sheet::update_weapon_displayer,
                 )
                     .in_set(CombatState::SelectionTarget)
             )
@@ -118,13 +131,23 @@ impl Plugin for UiPlugin {
             /* -------------------------------------------------------------------------- */
             /*                            -- DEBUG DISPLAYER --                           */
             /* -------------------------------------------------------------------------- */
-            .add_systems((
-                combat_system::update_combat_phase_displayer
-                    .in_set(UiLabel::Display),
-                combat_system::current_action_formater
+            .add_systems(
+                (
+                    combat_system::update_combat_phase_displayer,
+                    combat_system::current_action_formater
+                        .after(CombatState::RollInitiative)
+                        .before(CombatState::ExecuteSkills),
+                    character_sheet::update_target_stats_panel
+                        .after(UiLabel::Player),
+                    initiative_bar::action_visibility
+                        .after(CombatState::SelectionSkill)
+                        .after(CombatState::SelectionTarget),
+                    character_sheet::skill_visibility
+                        .after(CombatState::SelectionCaster),
+                )
                     .in_set(UiLabel::Display)
-                    .after(CombatState::RollInitiative)
-                    .before(CombatState::ExecuteSkills),
+            )
+            .add_systems((
                 combat_system::current_action_displayer
                     .after(combat_system::current_action_formater),
                 combat_system::last_action_displayer
@@ -132,16 +155,6 @@ impl Plugin for UiPlugin {
                 combat_system::actions_logs_displayer
                     .after(CombatState::RollInitiative)
                     .after(CombatState::ExecuteSkills),
-                character_sheet::update_target_stats_panel
-                    .in_set(UiLabel::Display)
-                    .after(UiLabel::Player),
-                initiative_bar::action_visibility
-                    .in_set(UiLabel::Display)
-                    .after(CombatState::SelectionSkill)
-                    .after(CombatState::SelectionTarget),
-                character_sheet::skill_visibility
-                    .in_set(UiLabel::Display)
-                    .after(CombatState::SelectionCaster),
             ))
 
             /* -------------------------------------------------------------------------- */

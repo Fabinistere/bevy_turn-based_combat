@@ -2,7 +2,7 @@
 //!
 //! Handle
 //!   - Combat Initialisation
-//!   - Comabt System / Phases
+//!   - Combat System / Phases
 //!     - Stand On
 //!     - Open HUD
 //!       - Display potential npc's catchphrase (*opening*)
@@ -74,7 +74,10 @@ pub enum CombatState {
     AlterationsExecution,
     #[default]
     SelectionCaster,
+    /// There is one (ally or enemy) selected, and a CS focused
     SelectionSkill,
+    /// There is at least one action in the history
+    /// The one selected is the exact same one from SelectionSkill
     SelectionTarget,
     RollInitiative,
     ExecuteSkills,
@@ -162,7 +165,7 @@ impl Plugin for CombatPlugin {
                 )
                     .in_set(CombatState::ExecuteSkills)
             )
-            .add_system(phases::phase_transition)
+            .add_system(phases::phase_transition.in_set(OnUpdate(GameState::CombatWall)))
             .add_system(update_number_of_fighters)
             ;
     }

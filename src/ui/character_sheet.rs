@@ -19,72 +19,97 @@ use crate::{
     },
 };
 
-use super::combat_panel::{FabienName, Portrait, Title, WeaponDisplayer};
+use super::combat_panel::{CharacterSheetElements, Portrait, WeaponDisplayer};
+
+/* -------------------------------------------------------------------------- */
+/*                               Character Sheet                              */
+/* -------------------------------------------------------------------------- */
+
+// /// TODO: Zoom in on characterSheet (or just focus)
+// /// TODO: create a cross button to close it with the mouse
+// pub fn ally_character_sheet_interact(
+//     allies_character_sheet_interaction_query: Query<
+//         (&Interaction, &AllyCharacterSheet),
+//         (Changed<Interaction>, Without<Button>),
+//     >,
+//     char_sheet_associations: Res<CharacterSheetElements>,
+//     mut select_event: EventWriter<UpdateUnitSelectedEvent>,
+// ) {
+//     for (interaction, sheet_number) in allies_character_sheet_interaction_query.iter() {
+//         match interaction {
+//             Interaction::Clicked => {
+//                 match char_sheet_associations.get(sheet_number) {
+//                     None => info!("{} is not in the hashmap", sheet_number.0),
+//                     Some(sheet_table) => {
+//                         info!("{} is in the hashmap", sheet_number.0);
+//                         match sheet_table.fighter {
+//                             None => info!("No fighter associated with {}", sheet_number.0),
+//                             Some(fighter) => select_event.send(UpdateUnitSelectedEvent(fighter)),
+//                         }
+//                     }
+//                 }
+//                 // let combat_unit: Entity = char_sheet_associations
+//                 //     .get(sheet_number)
+//                 //     .unwrap()
+//                 //     .fighter
+//                 //     .unwrap();
+//                 // select_event.send(UpdateUnitSelectedEvent(combat_unit));
+//             }
+//             Interaction::Hovered => {
+//                 // TODO: smooth slight zoom
+//             }
+//             Interaction::None => {}
+//         }
+//     }
+// }
 
 /* -------------------------------------------------------------------------- */
 /*                                   Headers                                  */
 /* -------------------------------------------------------------------------- */
 
-/// Update the character's sheet with the current selected, name, sprite.
+/// Update all character's sheet with the infos of each ally
+/// (Name, Sprite, Title, Job).
+///
+/// Only run once at the start of the combat.
+/// These infos won't change afterwards
+/// TODO: unless the sprite? - can be deadge too
 pub fn update_headers(
     asset_server: Res<AssetServer>,
     fabiens_infos: Res<FabiensInfos>,
 
-    caster_name_query: Query<
+    selected_unit_query: Query<
         (&Job, &Name, &TextureAtlasSprite),
-        (Changed<Selected>, With<InCombat>),
+        (Added<Selected>, With<InCombat>),
     >,
+    character_sheet: Res<CharacterSheetElements>,
 
-    mut portrait_query: Query<(&mut UiImage, &mut Visibility), (With<Portrait>, Without<InCombat>)>,
-    mut fabine_name_query: Query<
-        &mut Text,
-        (
-            With<FabienName>,
-            Without<Title>,
-            Without<Job>,
-            Without<InCombat>,
-        ),
-    >,
-    mut title_query: Query<
-        &mut Text,
-        (
-            With<Title>,
-            Without<Job>,
-            Without<FabienName>,
-            Without<InCombat>,
-        ),
-    >,
-    mut job_text_query: Query<
-        &mut Text,
-        (
-            With<Job>,
-            Without<Title>,
-            Without<FabienName>,
-            Without<InCombat>,
-        ),
-    >,
+    mut portrait_query: Query<&mut UiImage, With<Portrait>>,
+    mut text_query: Query<&mut Text>,
 ) {
-    if let Ok((caster_job, caster_name, _caster_sprite)) = caster_name_query.get_single() {
-        let (mut portrait, mut portrait_visibility) = portrait_query.single_mut();
-        let mut fabien_name_text = fabine_name_query.single_mut();
-        let mut title_text = title_query.single_mut();
-        let mut job_text = job_text_query.single_mut();
+    // sort recruted by Recruted(usize) to keep the order straight
+    for (job, name, _sprite) in selected_unit_query.iter() {
+        let mut portrait = portrait_query
+            .get_mut(character_sheet.portrait.unwrap())
+            .unwrap();
+        let [mut fabien_name_text, mut title_text, mut job_text] = text_query
+            .get_many_mut([
+                character_sheet.name.unwrap(),
+                character_sheet.title.unwrap(),
+                character_sheet.job.unwrap(),
+            ])
+            .unwrap();
 
-        // portrait.index = caster_sprite.index;
-        if let Some(PersonalInfos { title, sprite_path }) =
-            fabiens_infos.get(&caster_name.to_string())
-        {
+        // portrait.index = sprite.index;
+        if let Some(PersonalInfos { title, sprite_path }) = fabiens_infos.get(&name.to_string()) {
             title_text.sections[0].value = title.to_string();
-            job_text.sections[0].value = format!("{:?}", caster_job);
             portrait.texture = asset_server.load(sprite_path);
         } else {
-            warn!("{} Not Found/Associated in the FabienDataBase", caster_name);
+            warn!("{} Not Found/Associated in the FabienDataBase", name);
             title_text.sections[0].value = "Fabien".to_string();
-            job_text.sections[0].value = "Chill".to_string();
             portrait.texture = asset_server.load("textures/character/idle/idle_Fabien_Loyal.png");
         };
-        fabien_name_text.sections[0].value = caster_name.replace("NPC ", "").replace("Player ", "");
-        *portrait_visibility = Visibility::Inherited;
+        job_text.sections[0].value = format!("{:?}", job);
+        fabien_name_text.sections[0].value = name.replace("NPC ", "").replace("Player ", "");
     }
 }
 
@@ -94,11 +119,11 @@ pub fn update_headers(
 
 /// # Note
 ///
-/// DEBUG
-/// REFACTOR: XXX: Stats Displayer
 /// TODO: Add Damage Multiplier (Suffered/Inflicted)
 pub fn update_caster_stats_panel(
-    selected_query: Query<
+    character_sheet: Res<CharacterSheetElements>,
+
+    selected_unit_query: Query<
         (
             &Hp,
             &Mana,
@@ -112,188 +137,77 @@ pub fn update_caster_stats_panel(
             // &Equipements,
         ),
         (
-            Or<(Changed<Selected>, Changed<Hp>, Changed<Mana>)>,
+            Or<(Changed<Hp>, Changed<Mana>)>,
             With<Selected>,
             With<InCombat>,
         ),
     >,
 
-    mut select_removals: RemovedComponents<Selected>,
-
-    mut hp_text_query: Query<
-        &mut Text,
-        (
-            With<Hp>,
-            Without<Mana>,
-            Without<Shield>,
-            Without<Initiative>,
-            Without<Attack>,
-            Without<AttackSpe>,
-            Without<Defense>,
-            Without<DefenseSpe>,
-        ),
-    >,
-    mut mp_text_query: Query<
-        &mut Text,
-        (
-            With<Mana>,
-            Without<Hp>,
-            Without<Shield>,
-            Without<Initiative>,
-            Without<Attack>,
-            Without<AttackSpe>,
-            Without<Defense>,
-            Without<DefenseSpe>,
-        ),
-    >,
-    mut shield_text_query: Query<
-        &mut Text,
-        (
-            With<Shield>,
-            Without<Hp>,
-            Without<Mana>,
-            Without<Initiative>,
-            Without<Attack>,
-            Without<AttackSpe>,
-            Without<Defense>,
-            Without<DefenseSpe>,
-        ),
-    >,
-    mut initiative_text_query: Query<
-        &mut Text,
-        (
-            With<Initiative>,
-            Without<Hp>,
-            Without<Mana>,
-            Without<Shield>,
-            Without<Attack>,
-            Without<AttackSpe>,
-            Without<Defense>,
-            Without<DefenseSpe>,
-        ),
-    >,
-    mut attack_text_query: Query<
-        &mut Text,
-        (
-            With<Attack>,
-            Without<Hp>,
-            Without<Mana>,
-            Without<Shield>,
-            Without<Initiative>,
-            Without<AttackSpe>,
-            Without<Defense>,
-            Without<DefenseSpe>,
-        ),
-    >,
-    mut attack_spe_text_query: Query<
-        &mut Text,
-        (
-            With<AttackSpe>,
-            Without<Hp>,
-            Without<Mana>,
-            Without<Shield>,
-            Without<Initiative>,
-            Without<Attack>,
-            Without<Defense>,
-            Without<DefenseSpe>,
-        ),
-    >,
-    mut defense_text_query: Query<
-        &mut Text,
-        (
-            With<Defense>,
-            Without<Hp>,
-            Without<Mana>,
-            Without<Shield>,
-            Without<Initiative>,
-            Without<Attack>,
-            Without<AttackSpe>,
-            Without<DefenseSpe>,
-        ),
-    >,
-    mut defense_spe_text_query: Query<
-        &mut Text,
-        (
-            With<DefenseSpe>,
-            Without<Hp>,
-            Without<Mana>,
-            Without<Shield>,
-            Without<Initiative>,
-            Without<Attack>,
-            Without<AttackSpe>,
-            Without<Defense>,
-        ),
-    >,
+    mut text_query: Query<&mut Text>,
 ) {
-    let mut hp_text = hp_text_query.single_mut();
-    let mut mp_text = mp_text_query.single_mut();
-    let mut shield_text = shield_text_query.single_mut();
-    let mut initiative_text = initiative_text_query.single_mut();
-    let mut attack_text = attack_text_query.single_mut();
-    let mut attack_spe_text = attack_spe_text_query.single_mut();
-    let mut defense_text = defense_text_query.single_mut();
-    let mut defense_spe_text = defense_spe_text_query.single_mut();
-
-    for _ in select_removals.iter() {
-        hp_text.sections[0].value = String::from("Health: ???/???");
-        mp_text.sections[0].value = String::from("Mana: ???/???");
-        shield_text.sections[0].value = String::from("Shield: ???");
-        initiative_text.sections[0].value = String::from("Initiative: ???/???");
-        attack_text.sections[0].value = String::from("Attack: ???/???");
-        attack_spe_text.sections[0].value = String::from("AttackSpe: ???/???");
-        defense_text.sections[0].value = String::from("Defense: ???/???");
-        defense_spe_text.sections[0].value = String::from("DefenseSpe: ???/???");
-    }
-
     if let Ok((
-        caster_hp,
-        caster_mp,
-        caster_shield,
-        caster_initiative,
-        caster_attack,
-        caster_attack_spe,
-        caster_defense,
-        caster_defense_spe,
-        caster_alterations,
-        // caster_equipments,
-    )) = selected_query.get_single()
+        hp,
+        mp,
+        shield,
+        initiative,
+        attack,
+        attack_spe,
+        defense,
+        defense_spe,
+        alterations,
+        // equipments,
+    )) = selected_unit_query.get_single()
     {
-        let mut attack_multiplier: f32 = 100.;
-        let mut attack_spe_multiplier: f32 = 100.;
-        let mut defense_multiplier: f32 = 100.;
-        let mut defense_spe_multiplier: f32 = 100.;
+        let [mut hp_text, mut mp_text, mut shield_text, mut initiative_text, mut attack_text, mut attack_spe_text, mut defense_text, mut defense_spe_text] =
+            text_query
+                .get_many_mut([
+                    character_sheet.health.unwrap(),
+                    character_sheet.mana.unwrap(),
+                    character_sheet.shield.unwrap(),
+                    character_sheet.initiative.unwrap(),
+                    character_sheet.attack.unwrap(),
+                    character_sheet.attack_spe.unwrap(),
+                    character_sheet.defense.unwrap(),
+                    character_sheet.defense_spe.unwrap(),
+                ])
+                .unwrap();
 
-        for alt in caster_alterations.iter() {
+        let mut attack_percentage: f32 = 100.;
+        let mut attack_spe_percentage: f32 = 100.;
+        let mut defense_percentage: f32 = 100.;
+        let mut defense_spe_percentage: f32 = 100.;
+
+        for alt in alterations.iter() {
             match alt.action {
                 AlterationAction::StatsPercentage | AlterationAction::StatsFlat => {
-                    attack_multiplier += alt.attack as f32;
-                    attack_spe_multiplier += alt.attack_spe as f32;
-                    defense_multiplier += alt.defense as f32;
-                    defense_spe_multiplier += alt.defense_spe as f32;
+                    attack_percentage += alt.attack as f32;
+                    attack_spe_percentage += alt.attack_spe as f32;
+                    defense_percentage += alt.defense as f32;
+                    defense_spe_percentage += alt.defense_spe as f32;
                 }
                 _ => {}
             }
         }
 
-        hp_text.sections[0].value = format!("Health: {}/{}", caster_hp.current, caster_hp.max);
-        mp_text.sections[0].value = format!("Mana: {}/{}", caster_mp.current, caster_mp.max);
-        shield_text.sections[0].value = format!("Shield: {}", caster_shield.0);
-        initiative_text.sections[0].value = format!("Initiative: {}", (caster_initiative.0 as f32));
+        hp_text.sections[0].value = format!("Health: {}/{}", hp.current, hp.max);
+        mp_text.sections[0].value = format!("Mana: {}/{}", mp.current, mp.max);
+        shield_text.sections[0].value = format!("Shield: {}", shield.0);
+        initiative_text.sections[0].value = format!("Initiative: {}", (initiative.0 as f32));
         attack_text.sections[0].value = format!(
             "Attack: {}",
-            (caster_attack.base as f32) * attack_multiplier / 100.
+            (attack.base as f32) * attack_percentage / 100.
         );
         attack_spe_text.sections[0].value = format!(
             "AttackSpe: {}",
-            (caster_attack_spe.base as f32) * attack_spe_multiplier / 100.
+            (attack_spe.base as f32) * attack_spe_percentage / 100.
         );
         defense_text.sections[0].value = format!(
             "Defense: {}",
-            (caster_defense.base as f32) * defense_multiplier / 100.
+            (defense.base as f32) * defense_percentage / 100.
         );
         defense_spe_text.sections[0].value = format!(
             "DefenseSpe: {}",
-            (caster_defense_spe.base as f32) * defense_spe_multiplier / 100.
+            (defense_spe.base as f32) * defense_spe_percentage / 100.
         );
     }
 }
@@ -344,23 +258,30 @@ pub fn update_target_stats_panel(
 /*                               Weapon Section                               */
 /* -------------------------------------------------------------------------- */
 
-/// Update the sprite with the weapon of the Selected
+/// Update the sprite with the weapon of the Selected,
+/// at each equipement change.
+///
+/// REFACTOR: ? - Only run once at the start of the combat. These infos won't change afterwards (Demo)
 pub fn update_weapon_displayer(
     asset_server: Res<AssetServer>,
 
-    selected_query: Query<
+    selected_unit_query: Query<
         &Equipements,
         (
-            Or<(Added<Selected>, Changed<Equipements>)>,
+            Or<(Changed<Equipements>, Added<Selected>)>,
             With<Selected>,
             With<InCombat>,
         ),
     >,
+    character_sheet: Res<CharacterSheetElements>,
+
     mut weapon_displayer_query: Query<(&mut UiImage, &mut Visibility), With<WeaponDisplayer>>,
     weapon_query: Query<&Equipement, With<WeaponType>>,
 ) {
-    if let Ok(Equipements { weapon, armor: _ }) = selected_query.get_single() {
-        let (mut weapon_image, mut visibility) = weapon_displayer_query.single_mut();
+    if let Ok(Equipements { weapon, armor: _ }) = selected_unit_query.get_single() {
+        let (mut weapon_image, mut visibility) = weapon_displayer_query
+            .get_mut(character_sheet.weapon.unwrap())
+            .unwrap();
 
         match weapon {
             None => *visibility = Visibility::Hidden,
@@ -388,91 +309,76 @@ pub fn update_weapon_displayer(
 /// # Note
 ///
 /// REFACTOR: Maybe find some new ways to sequence these affectations better
+/// OPTIMIZE: Trigger Only one time
 pub fn skill_visibility(
     mut selection_removal_query: RemovedComponents<Selected>,
-    caster_query: Query<
-        (&Equipements, &Skills, &Job),
-        (With<Selected>, With<InCombat>, Added<Selected>),
-    >,
+    selected_unit_query: Query<(&Equipements, &Skills, &Job), (Added<Selected>, With<InCombat>)>,
+    character_sheet: Res<CharacterSheetElements>,
+
     weapon_query: Query<(&WeaponType, &SkillTiers), With<Equipement>>,
 
     jobs_masteries_resource: Res<JobsMasteries>,
 
-    mut skill_bar_query: Query<(
-        Entity,
-        &SkillDisplayer,
-        &SkillBar,
-        &mut Skill,
-        &mut Visibility,
-        &Children,
-    )>,
+    skill_menu: Query<&Children>,
+    mut skill_bar_query: Query<
+        (&SkillDisplayer, &mut Skill, &mut Visibility, &Children),
+        With<SkillBar>,
+    >,
     mut text_query: Query<&mut Text>,
 ) {
-    // If there was a transition, a changement in the one being Selected
-    // ------ Reset all Skill ------
     for _ in selection_removal_query.iter() {
-        for (_, _, _, mut skill, mut visibility, children) in skill_bar_query.iter_mut() {
+        // ------ Reset all Skill ------
+        for (_, mut skill, mut visibility, children) in skill_bar_query.iter_mut() {
             // --- Text ---
             let mut text = text_query.get_mut(children[0]).unwrap();
             text.sections[0].value = "Pass".to_string();
             *skill = Skill::pass();
 
             // --- Visibility ---
-            // let old_visibility = visibility.clone();
             *visibility = Visibility::Hidden;
-
-            // // --- Logs ---
-            // if old_visibility != *visibility {
-            //     // DEBUG: Skills' Visibility switcher
-            //     info!(
-            //         "{:?} °{} visibility switch: {:?}",
-            //         skill_bar_type, skill_number.0, *visibility
-            //     );
-            // }
         }
     }
 
     // ------ Set the visibility w.r.t. the newly selected caster ------
-    if let Ok((Equipements { weapon, armor: _ }, skills, job)) = caster_query.get_single() {
-        // OPTIMIZE: Iterate over all skilldisplayer one time and for each non base_skill_displayer get the weapon_skills?
-        // ----- Base Skill Bar -----
-        for (_, skill_number, skill_bar_type, mut skill, mut visibility, children) in
-            skill_bar_query.iter_mut()
-        {
-            if SkillBar::Base == *skill_bar_type {
-                // let old_visibility = visibility.clone();
-                // --- Text ---
-                let mut text = text_query.get_mut(children[0]).unwrap();
+    if let Ok((Equipements { weapon, armor: _ }, skills, job)) = selected_unit_query.get_single() {
+        let base_skills = skill_menu
+            .get(character_sheet.base_skills.unwrap())
+            .unwrap();
 
-                if skill_number.0 < skills.len() {
-                    // --- Visibility ---
-                    *visibility = Visibility::Inherited;
+        /* -------------------------------------------------------------------------- */
+        /*                               Base Skill Bar                               */
+        /* -------------------------------------------------------------------------- */
 
-                    text.sections[0].value = skills[skill_number.0].clone().name;
-                    *skill = skills[skill_number.0].clone();
-                } else {
-                    // --- Visibility ---
-                    *visibility = Visibility::Hidden;
+        for entity in base_skills.iter() {
+            let (skill_number, mut skill, mut visibility, children) =
+                skill_bar_query.get_mut(*entity).unwrap();
 
-                    // vv-- "useless" --vv
-                    text.sections[0].value = "Pass".to_string();
-                    *skill = Skill::pass();
-                };
+            // --- Text ---
+            let mut text = text_query.get_mut(children[0]).unwrap();
 
-                // // --- Logs ---
-                // if old_visibility != *visibility {
-                //     // DEBUG: Skills' Visibility switcher
-                //     info!(
-                //         "{:?} °{} visibility switch: {:?}",
-                //         *skill_bar_type, skill_number.0, *visibility
-                //     );
-                // }
+            if skill_number.0 < skills.len() {
+                // --- Visibility ---
+                *visibility = Visibility::Inherited;
+
+                text.sections[0].value = skills[skill_number.0].clone().name;
+                *skill = skills[skill_number.0].clone();
+            } else {
+                // --- Visibility ---
+                *visibility = Visibility::Hidden;
+
+                // vv-- "useless" --vv
+                text.sections[0].value = "Pass".to_string();
+                *skill = Skill::pass();
             }
         }
 
+        /* -------------------------------------------------------------------------- */
+        /*                              Weapon Skill Bar                              */
+        /* -------------------------------------------------------------------------- */
+
         match weapon {
             None => {
-                info!("No weapon on the entity")
+                // info!("No weapon on the entity")
             }
             Some(weapon_entity) => {
                 if let Ok((
@@ -484,6 +390,16 @@ pub fn skill_visibility(
                     },
                 )) = weapon_query.get(*weapon_entity)
                 {
+                    let tier_2_skills = skill_menu
+                        .get(character_sheet.tier_2_skills.unwrap())
+                        .unwrap();
+                    let tier_1_skills = skill_menu
+                        .get(character_sheet.tier_1_skills.unwrap())
+                        .unwrap();
+                    let tier_0_skills = skill_menu
+                        .get(character_sheet.tier_0_skills.unwrap())
+                        .unwrap();
+
                     let mastery_tier: Option<&MasteryTier> =
                         jobs_masteries_resource.get(&(*job, *weapon_type));
 
@@ -492,108 +408,84 @@ pub fn skill_visibility(
                         *job, mastery_tier, *weapon_type
                     );
 
-                    for (
-                        _skill_displayer_entity,
-                        skill_number,
-                        skill_bar_type,
-                        mut skill,
-                        mut visibility,
-                        children,
-                    ) in skill_bar_query.iter_mut()
-                    {
-                        if SkillBar::Base != *skill_bar_type {
-                            // info!("skill displayer: {:?}", *skill_bar_type);
+                    if None == mastery_tier {
+                        info!("Job {:?} is not associated with {:?}", *job, *weapon_type);
+                    }
 
-                            // let old_visibility = visibility.clone();
+                    if Some(MasteryTier::Two) == mastery_tier.copied() {
+                        for tier_2_displayer in tier_2_skills.iter() {
+                            let (skill_number, mut skill, mut visibility, children) =
+                                skill_bar_query.get_mut(*tier_2_displayer).unwrap();
                             // --- Text ---
                             let mut text = text_query.get_mut(children[0]).unwrap();
 
-                            // match jobs_masteries_resource.get(&(*job, *weapon_type)) {
-                            //     None => warn!("There is no combinaison between {:?} and {:?}", job, weapon_type),
-                            //     Some(MasteryTier::Two) => {}
-                            //     Some(MasteryTier::One) => {}
-                            //     Some(MasteryTier::Zero) => {}
-                            // }
+                            if skill_number.0 < tier_2.len() {
+                                // --- Visibility ---
+                                *visibility = Visibility::Inherited;
 
-                            if Some(MasteryTier::Two) == mastery_tier.copied() {
-                                // ----- Tier2 Skill Bar -----
-                                if SkillBar::Tier2 == *skill_bar_type {
-                                    if skill_number.0 < tier_2.len() {
-                                        // --- Visibility ---
-                                        *visibility = Visibility::Inherited;
+                                text.sections[0].value = tier_2[skill_number.0].clone().name;
+                                *skill = tier_2[skill_number.0].clone();
+                            } else {
+                                // --- Visibility ---
+                                *visibility = Visibility::Hidden;
 
-                                        text.sections[0].value =
-                                            tier_2[skill_number.0].clone().name;
-                                        *skill = tier_2[skill_number.0].clone();
-                                    } else {
-                                        // --- Visibility ---
-                                        *visibility = Visibility::Hidden;
-
-                                        // vv-- "useless" --vv
-                                        text.sections[0].value = "Pass".to_string();
-                                        *skill = Skill::pass();
-                                    };
-                                }
-                            }
-
-                            // if and not else if cause MasteryTier::Two = all tier2 and tier1 and tier0 (resp with MasteryTier::One except tier2)
-                            if Some(MasteryTier::Two) == mastery_tier.copied()
-                                || Some(MasteryTier::One) == mastery_tier.copied()
-                            {
-                                // ----- Tier1 Skill Bar -----
-                                if SkillBar::Tier1 == *skill_bar_type {
-                                    if skill_number.0 < tier_1.len() {
-                                        // --- Visibility ---
-                                        *visibility = Visibility::Inherited;
-
-                                        text.sections[0].value =
-                                            tier_1[skill_number.0].clone().name;
-                                        *skill = tier_1[skill_number.0].clone();
-                                    } else {
-                                        // --- Visibility ---
-                                        *visibility = Visibility::Hidden;
-
-                                        // vv-- "useless" --vv
-                                        text.sections[0].value = "Pass".to_string();
-                                        *skill = Skill::pass();
-                                    };
-                                }
-                            }
-
-                            // Two, One, Zero or None
-                            // None => warn!("There is no combinaison between {:?} and {:?}", job, weapon_type),
-                            // if _ == mastery_tier {
-                            // ----- Tier0 Skill Bar -----
-                            if SkillBar::Tier0 == *skill_bar_type {
-                                if skill_number.0 < tier_0.len() {
-                                    // --- Visibility ---
-                                    *visibility = Visibility::Inherited;
-
-                                    text.sections[0].value = tier_0[skill_number.0].clone().name;
-                                    *skill = tier_0[skill_number.0].clone();
-                                } else {
-                                    // --- Visibility ---
-                                    *visibility = Visibility::Hidden;
-
-                                    // vv-- "useless" --vv
-                                    text.sections[0].value = "Pass".to_string();
-                                    *skill = Skill::pass();
-                                };
-                            }
-                            // }
-                            if None == mastery_tier {
-                                info!("Job {:?} is not associated with {:?}", *job, *weapon_type);
-                            }
-
-                            // // --- Logs ---
-                            // if old_visibility != *visibility {
-                            //     // DEBUG: Skills' Visibility switcher
-                            //     info!(
-                            //         "{:?} °{} visibility switch: {:?}",
-                            //         *skill_bar_type, skill_number.0, *visibility
-                            //     );
-                            // }
+                                // vv-- "useless" --vv
+                                text.sections[0].value = "Pass".to_string();
+                                *skill = Skill::pass();
+                            };
                         }
+                    }
+
+                    if Some(MasteryTier::Two) == mastery_tier.copied()
+                        || Some(MasteryTier::One) == mastery_tier.copied()
+                    {
+                        for tier_1_displayer in tier_1_skills.iter() {
+                            let (skill_number, mut skill, mut visibility, children) =
+                                skill_bar_query.get_mut(*tier_1_displayer).unwrap();
+                            // --- Text ---
+                            let mut text = text_query.get_mut(children[0]).unwrap();
+
+                            if skill_number.0 < tier_1.len() {
+                                // --- Visibility ---
+                                *visibility = Visibility::Inherited;
+
+                                text.sections[0].value = tier_1[skill_number.0].clone().name;
+                                *skill = tier_1[skill_number.0].clone();
+                            } else {
+                                // --- Visibility ---
+                                *visibility = Visibility::Hidden;
+
+                                // vv-- "useless" --vv
+                                text.sections[0].value = "Pass".to_string();
+                                *skill = Skill::pass();
+                            };
+                        }
+                    }
+
+                    // Two, One, Zero or None
+                    // None => warn!("There is no combinaison between {:?} and {:?}", job, weapon_type),
+                    // if _ == mastery_tier {
+                    // ----- Tier0 Skill Bar -----
+                    for tier_0_displayer in tier_0_skills.iter() {
+                        let (skill_number, mut skill, mut visibility, children) =
+                            skill_bar_query.get_mut(*tier_0_displayer).unwrap();
+                        // --- Text ---
+                        let mut text = text_query.get_mut(children[0]).unwrap();
+
+                        if skill_number.0 < tier_0.len() {
+                            // --- Visibility ---
+                            *visibility = Visibility::Inherited;
+
+                            text.sections[0].value = tier_0[skill_number.0].clone().name;
+                            *skill = tier_0[skill_number.0].clone();
+                        } else {
+                            // --- Visibility ---
+                            *visibility = Visibility::Hidden;
+
+                            // vv-- "useless" --vv
+                            text.sections[0].value = "Pass".to_string();
+                            *skill = Skill::pass();
+                        };
                     }
                 }
             }

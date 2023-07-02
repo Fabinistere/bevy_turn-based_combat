@@ -112,7 +112,6 @@ pub fn update_selected_unit(
     mut commands: Commands,
 
     selected_unit_query: Query<Entity, (With<Selected>, With<InCombat>)>,
-    // combat_units_query: Query<(&InCombat, &Name)>,
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
     for event in event_query.iter() {
@@ -124,9 +123,6 @@ pub fn update_selected_unit(
         }
         commands.entity(event.0).insert(Selected);
         // info!("{:?} is now selected", event.0);
-
-        // let (id, name) = combat_units_query.get(event.0).unwrap();
-        // info!("{} selected", name);
 
         transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionSkill));
     }
@@ -154,6 +150,7 @@ pub fn update_targeted_unit(
         match combat_units_query.get(event.0) {
             Err(e) => warn!("The entity targeted is invalid: {:?}", e),
             Ok((character, target_name, target_team)) => {
+                // BUG: ?
                 let last_action = combat_resources.history.last_mut().unwrap();
 
                 // Is it a correct target ?
