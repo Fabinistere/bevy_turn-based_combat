@@ -34,7 +34,7 @@ use std::cmp::Ordering;
 use bevy::prelude::*;
 // use bevy_inspector_egui::prelude::*;
 
-use crate::constants::combat::BASE_ACTION_COUNT;
+use crate::{constants::combat::BASE_ACTION_COUNT, ui};
 
 use self::{
     alterations::Alteration, skills::{Skill, TargetOption}, stats::{StatBundle, Hp},
@@ -148,7 +148,15 @@ impl Plugin for CombatPlugin {
             )
 
             .add_startup_system(stuff::spawn_stuff)
-            
+            .add_system(update_number_of_fighters.before(ui::combat_panel::setup).in_schedule(OnEnter(GameState::CombatWall)))
+
+            .add_systems(
+                (
+                    phases::phase_transition,
+                    update_number_of_fighters,
+                )
+                    .in_set(OnUpdate(GameState::CombatWall))
+            )
             .add_system(
                 phases::execute_alteration
                     .in_set(CombatState::AlterationsExecution)
@@ -165,8 +173,6 @@ impl Plugin for CombatPlugin {
                 )
                     .in_set(CombatState::ExecuteSkills)
             )
-            .add_system(phases::phase_transition.in_set(OnUpdate(GameState::CombatWall)))
-            .add_system(update_number_of_fighters)
             ;
     }
 }
@@ -261,8 +267,10 @@ pub struct AlterationStatus;
 #[derive(Component, Deref, DerefMut)]
 pub struct Skills(pub Vec<Skill>);
 
-#[derive(Component)]
-pub struct InCombat;
+/// Contains the fighter's id.
+/// Used to Select a unit using the character sheet in the combat HUD.
+#[derive(Component, Reflect, Default, Clone, Copy, Deref)]
+pub struct InCombat(pub usize);
 
 #[derive(Clone, Copy, Component)]
 pub struct Leader;
@@ -469,16 +477,19 @@ impl Eq for Action {}
 /// If there is any Hp change in the frame, update the number of fighter alive
 pub fn update_number_of_fighters(
     mut combat_panel: ResMut<CombatResources>,
+
+    // REFACTOR: Change these triggers to send an event in another system to update this one
+    // Triggers
+    created_units_query: Query<Entity, Added<InCombat>>,
     updated_units_query: Query<Entity, (Changed<Hp>, With<InCombat>)>,
 
     player_query : Query<&Hp, (With<Player>, With<InCombat>)>,
     ally_units_query: Query<&Hp, (With<Recruted>, Without<Player>, With<InCombat>)>,
     enemy_units_query: Query<&Hp, (Without<Recruted>, Without<Player>, With<InCombat>)>,
 ) {
-    if !updated_units_query.is_empty() {
+    if !updated_units_query.is_empty() || created_units_query.is_empty() {
         let player_hp = player_query.single();
 
-        // Do we have to reset/update the total ? (no)
         combat_panel.number_of_fighters.ally = FightersCount::default();
         combat_panel.number_of_fighters.enemy = FightersCount::default();
 

@@ -11,8 +11,12 @@ use crate::{
         skills::Skill,
         stats::{Attack, AttackSpe, Defense, DefenseSpe, Hp, Initiative, Mana, Shield},
         stuff::Job,
+        CombatResources,
     },
-    constants::ui::{dialogs::*, style::*},
+    constants::{
+        combat::skill::MAX_PARTY,
+        ui::{dialogs::*, style::*},
+    },
     ui::{
         combat_system::{HpMeter, MpMeter},
         player_interaction::{EndOfTurnButton, ScrollingList},
@@ -29,16 +33,26 @@ pub struct CombatWallResources {
     pub base_combat_wall: Handle<Image>,
     pub pack_of_scroll: Handle<Image>,
     pub weapons: Handle<Image>,
+    pub allies_scroll: Vec<Handle<Image>>,
 }
 
 impl FromWorld for CombatWallResources {
     fn from_world(world: &mut World) -> Self {
         let asset_server = world.get_resource::<AssetServer>().unwrap();
 
+        let mut allies_scroll = Vec::new();
+        for i in 0..6 {
+            allies_scroll.push(asset_server.load(format!(
+                "textures/UI/HUD/combat/wall/sheets/sheet_{}.png",
+                i
+            )));
+        }
+
         CombatWallResources {
             base_combat_wall: asset_server.load("textures/UI/HUD/combat/wall/base_combat_wall.png"),
-            pack_of_scroll: asset_server.load("textures/UI/HUD/combat/wall/pack_of_scroll.png"),
+            pack_of_scroll: asset_server.load("textures/UI/HUD/combat/wall/scrolls_pack.png"),
             weapons: asset_server.load("textures/UI/HUD/combat/wall/stuffs.png"),
+            allies_scroll,
         }
     }
 }
@@ -81,18 +95,18 @@ pub struct CombatStateDisplayer;
 pub struct ActionDisplayer(pub usize);
 
 /* -------------------------------------------------------------------------- */
-/*                              Character's Sheet                             */
+/*                               Character Sheet                              */
 /* -------------------------------------------------------------------------- */
 
 #[derive(Component)]
 pub struct CharacterSheet;
 
-// /// REFACTOR: Is the id still needed ? Associate entities at the Combat Initiation - no, we want to get from the CSh and from the fighter.
-// ///
-// /// Blank image that represent a full CharacterSheet
-// /// Contains its id
-// #[derive(Default, Component, Reflect, Deref, DerefMut)]
-// pub struct AllyCharacterSheet(pub usize);
+/// REFACTOR: Is the id still needed ? Associate entities at the Combat Initiation - no, we want to get from the CSh and from the fighter.
+///
+/// Still image showing a mini character sheet. (6 of allies and the pack of scrolls)
+/// Contains its id
+#[derive(Default, Component, Reflect, Deref, DerefMut)]
+pub struct MiniCharacterSheet(pub usize);
 
 #[derive(Default, Component, Reflect, Deref, DerefMut)]
 pub struct SkillDisplayer(pub usize);
@@ -160,6 +174,9 @@ pub struct CharacterSheetElements {
 pub fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+
+    combat_resources: Res<CombatResources>,
+
     character_sheet_resources: Res<CharacterSheetAssetsResources>,
     combat_wall_resources: Res<CombatWallResources>,
     mut character_sheet_elements: ResMut<CharacterSheetElements>,
@@ -520,12 +537,14 @@ pub fn setup(
                 style: Style {
                     size: Size::height(Val::Percent(100.)),
                     flex_direction: FlexDirection::Column,
+                    flex_shrink: 0.,
+                    position: UiRect::bottom(Val::Percent(100.)),
                     ..default()
                 },
                 visibility: Visibility::Hidden,
                 ..default()
             },
-            Name::new(format!("Character's Sheet")),
+            Name::new("Character Sheet"),
             Interaction::default(),
             CharacterSheet,
         ))
@@ -985,16 +1004,6 @@ pub fn setup(
             /* -------------------------------------------------------------------------- */
             parent
                 .spawn((
-                    // NodeBundle {
-                    //     style: Style {
-                    //         size: Size::width(Val::Percent(36.)),
-                    //         // REFACTOR: For multiple charsheet, Row could be better
-                    //         flex_direction: FlexDirection::Column,
-                    //         ..default()
-                    //     },
-                    //     background_color: Color::ANTIQUE_WHITE.into(),
-                    //     ..default()
-                    // },
                     ImageBundle {
                         image: combat_wall_resources.base_combat_wall.clone().into(),
                         style: Style {
@@ -1006,10 +1015,9 @@ pub fn setup(
                     },
                     Name::new("HUD Wall"),
                 ))
-                .add_child(character_sheet)
-                .with_children(|_| {
+                .with_children(|parent| {
                     /* First Side of the HUD Wall
-                     * - TODO: Each Ally CharacterSheet (SubPanels)
+                     * - Each Allied CharacterSheet (SubPanels) (Fixed Image)
                      *   - First Sub-Panel
                      *     - Headers: Sprite, Name, Title, Job
                      *     - Stats, Weapon Equiped
@@ -1017,7 +1025,151 @@ pub fn setup(
                      * - TODO: "Bestiary" (Book of Enemy's characterSheet)
                      * - TODO: Logs
                      * - TODO: Team's Inventory
+                     * - IDEA: If we block access to a certain number of members - Show empty sheets (with no text) to represent free space
                      */
+
+                    parent
+                        .spawn((
+                            NodeBundle {
+                                // background_color: Color::DARK_GRAY.into(),
+                                style: Style {
+                                    flex_shrink: 0.,
+                                    flex_direction: FlexDirection::Row,
+                                    size: Size::height(Val::Percent(100.)),
+
+                                    ..default()
+                                },
+                                ..default()
+                            },
+                            Name::new("Interactive scrolls"),
+                        ))
+                        .with_children(|parent| {
+                            parent
+                                .spawn((
+                                    NodeBundle {
+                                        style: Style {
+                                            flex_shrink: 0.,
+                                            flex_direction: FlexDirection::Column,
+                                            size: Size::new(Val::Percent(100.), Val::Percent(44.8)),
+                                            // gap between the two rows
+                                            gap: Size::height(Val::Percent(14.5)),
+                                            position: UiRect {
+                                                left: Val::Percent(16.8),
+                                                top: Val::Percent(4.2),
+                                                ..default()
+                                            },
+                                            ..default()
+                                        },
+                                        ..default()
+                                    },
+                                    Name::new("Allies' Scroll"),
+                                ))
+                                .with_children(|parent| {
+                                    parent
+                                        .spawn((
+                                            NodeBundle {
+                                                style: Style {
+                                                    flex_shrink: 0.,
+                                                    flex_direction: FlexDirection::Row,
+                                                    size: Size::height(Val::Percent(50.)),
+                                                    // gap between the three scrolls
+                                                    gap: Size::width(Val::Percent(2.7)),
+                                                    ..default()
+                                                },
+                                                ..default()
+                                            },
+                                            Name::new("First Row of Scrolls"),
+                                        ))
+                                        .with_children(|parent| {
+                                            for i in 0..3 {
+                                                parent.spawn((
+                                                    ImageBundle {
+                                                        image: combat_wall_resources.allies_scroll
+                                                            [i]
+                                                            .clone()
+                                                            .into(),
+                                                        visibility: if i < combat_resources
+                                                            .number_of_fighters
+                                                            .ally
+                                                            .total
+                                                        {
+                                                            Visibility::Inherited
+                                                        } else {
+                                                            Visibility::Hidden
+                                                        },
+                                                        ..default()
+                                                    },
+                                                    Name::new(format!("Ally's Scroll {}", i)),
+                                                    Interaction::default(),
+                                                    MiniCharacterSheet(i),
+                                                ));
+                                            }
+                                        });
+
+                                    parent
+                                        .spawn((
+                                            NodeBundle {
+                                                style: Style {
+                                                    flex_shrink: 0.,
+                                                    flex_direction: FlexDirection::Row,
+                                                    size: Size::height(Val::Percent(50.)),
+                                                    // gap between the three scrolls
+                                                    gap: Size::width(Val::Percent(2.7)),
+                                                    ..default()
+                                                },
+                                                ..default()
+                                            },
+                                            Name::new("Second Row of Scrolls"),
+                                        ))
+                                        .with_children(|parent| {
+                                            for i in 3..6 {
+                                                parent.spawn((
+                                                    ImageBundle {
+                                                        image: combat_wall_resources.allies_scroll
+                                                            [i]
+                                                            .clone()
+                                                            .into(),
+                                                        visibility: if i < combat_resources
+                                                            .number_of_fighters
+                                                            .ally
+                                                            .total
+                                                        {
+                                                            Visibility::Inherited
+                                                        } else {
+                                                            Visibility::Hidden
+                                                        },
+                                                        ..default()
+                                                    },
+                                                    Name::new(format!("Ally's Scroll {}", i)),
+                                                    Interaction::default(),
+                                                    MiniCharacterSheet(i),
+                                                ));
+                                            }
+                                        });
+                                });
+
+                            parent.spawn((
+                                ImageBundle {
+                                    image: combat_wall_resources.pack_of_scroll.clone().into(),
+                                    style: Style {
+                                        flex_shrink: 0.,
+                                        size: Size::height(Val::Percent(7.)),
+                                        position: UiRect {
+                                            top: Val::Percent(77.),
+                                            left: Val::Percent(-45.), // 54.5
+                                            ..default()
+                                        },
+                                        ..default()
+                                    },
+                                    ..default()
+                                },
+                                // DOC: Pack of scrolls = "Bestiary"
+                                Name::new("Scrolls Pack"),
+                                Interaction::default(),
+                                // points to the first enemy
+                                MiniCharacterSheet(MAX_PARTY),
+                            ));
+                        });
 
                     /*
                     parent
@@ -1174,6 +1326,7 @@ pub fn setup(
                                 });
                         });
                         */
-                });
+                })
+                .push_children(&[character_sheet]);
         });
 }

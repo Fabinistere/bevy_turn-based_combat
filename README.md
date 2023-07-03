@@ -33,13 +33,14 @@ Assets are deported on a different cloud to stop wasting git use which is very c
     - [x] CouldHave - Display alteration's icon
   - [x] Initiative Vertical Bar
     - [x] Display all action in the Initiative Vertical Bar
-  - [ ] Character's Sheet
+  - [ ] Character Sheet
     - [x] Display all skill per entity (when selected)
     - [x] Scrolling Logs
     - [x] Display Job, Title, Stats
     - [x] Display current stuff
     - [ ] TODO: CouldHave - Stuff Tab, Equip from Team's Inventory, Desequip
-    - [ ] TODO: CouldHave - Display somewhere else the catalogue
+    - [ ] TODO: CouldHave - Display somewhere else the skill catalogue
+    - [ ] TODO: MustHave - Browse among sheets (arrows)
 
 ## Example
 

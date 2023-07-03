@@ -22,52 +22,10 @@ use crate::{
 use super::combat_panel::{CharacterSheetElements, Portrait, WeaponDisplayer};
 
 /* -------------------------------------------------------------------------- */
-/*                               Character Sheet                              */
-/* -------------------------------------------------------------------------- */
-
-// /// TODO: Zoom in on characterSheet (or just focus)
-// /// TODO: create a cross button to close it with the mouse
-// pub fn ally_character_sheet_interact(
-//     allies_character_sheet_interaction_query: Query<
-//         (&Interaction, &AllyCharacterSheet),
-//         (Changed<Interaction>, Without<Button>),
-//     >,
-//     char_sheet_associations: Res<CharacterSheetElements>,
-//     mut select_event: EventWriter<UpdateUnitSelectedEvent>,
-// ) {
-//     for (interaction, sheet_number) in allies_character_sheet_interaction_query.iter() {
-//         match interaction {
-//             Interaction::Clicked => {
-//                 match char_sheet_associations.get(sheet_number) {
-//                     None => info!("{} is not in the hashmap", sheet_number.0),
-//                     Some(sheet_table) => {
-//                         info!("{} is in the hashmap", sheet_number.0);
-//                         match sheet_table.fighter {
-//                             None => info!("No fighter associated with {}", sheet_number.0),
-//                             Some(fighter) => select_event.send(UpdateUnitSelectedEvent(fighter)),
-//                         }
-//                     }
-//                 }
-//                 // let combat_unit: Entity = char_sheet_associations
-//                 //     .get(sheet_number)
-//                 //     .unwrap()
-//                 //     .fighter
-//                 //     .unwrap();
-//                 // select_event.send(UpdateUnitSelectedEvent(combat_unit));
-//             }
-//             Interaction::Hovered => {
-//                 // TODO: smooth slight zoom
-//             }
-//             Interaction::None => {}
-//         }
-//     }
-// }
-
-/* -------------------------------------------------------------------------- */
 /*                                   Headers                                  */
 /* -------------------------------------------------------------------------- */
 
-/// Update all character's sheet with the infos of each ally
+/// Update all character sheet with the infos of each ally
 /// (Name, Sprite, Title, Job).
 ///
 /// Only run once at the start of the combat.
@@ -77,7 +35,7 @@ pub fn update_headers(
     asset_server: Res<AssetServer>,
     fabiens_infos: Res<FabiensInfos>,
 
-    selected_unit_query: Query<
+    newly_selected_unit_query: Query<
         (&Job, &Name, &TextureAtlasSprite),
         (Added<Selected>, With<InCombat>),
     >,
@@ -87,7 +45,7 @@ pub fn update_headers(
     mut text_query: Query<&mut Text>,
 ) {
     // sort recruted by Recruted(usize) to keep the order straight
-    for (job, name, _sprite) in selected_unit_query.iter() {
+    for (job, name, _sprite) in newly_selected_unit_query.iter() {
         let mut portrait = portrait_query
             .get_mut(character_sheet.portrait.unwrap())
             .unwrap();

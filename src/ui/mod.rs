@@ -69,10 +69,7 @@ impl Plugin for UiPlugin {
             /*                                   States                                   */
             /* -------------------------------------------------------------------------- */
 
-            .add_system(
-                combat_panel::setup
-                    .in_schedule(OnEnter(GameState::CombatWall))
-            )
+            .add_system(combat_panel::setup.in_schedule(OnEnter(GameState::CombatWall)))
 
             /* -------------------------------------------------------------------------- */
             /*                            --- Limited Phase ---                           */
@@ -86,6 +83,8 @@ impl Plugin for UiPlugin {
                     combat_system::caster_selection,
                     combat_system::update_selected_unit.after(UiLabel::Player),
                     player_interaction::end_of_turn_button,
+                    // prevent clicking a MiniCharSheet while already in "Character Sheet Focused", which cover the MiniCS.   
+                    player_interaction::mini_character_sheet_interact.in_set(UiLabel::Player),
                 )
                     .in_set(CombatState::SelectionCaster)
             )

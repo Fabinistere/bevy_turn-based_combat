@@ -70,7 +70,7 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
             Name::new("Player Morgan"),
             Player,
             // -- Combat Components --
-            InCombat,
+            InCombat(0),
             Recruted,
             CombatBundle {
                 team: Team(Some(TEAM_MC)),
@@ -122,7 +122,7 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
             Name::new("NPC Admiral"),
             NPC,
             // -- Combat Components --
-            InCombat,
+            InCombat(1),
             Recruted,
             CombatBundle {
                 team: Team(Some(TEAM_MC)),
@@ -175,7 +175,7 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
             Name::new("NPC Hugo"),
             NPC,
             // -- Combat Components --
-            InCombat,
+            InCombat(2),
             Recruted,
             CombatBundle {
                 team: Team(Some(TEAM_MC)),
@@ -221,7 +221,7 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
             Name::new("NPC Olf"),
             NPC,
             // -- Combat Components --
-            InCombat,
+            InCombat(6),
             CombatBundle {
                 team: Team(Some(TEAM_OLF)),
                 karma: Karma(-100),
@@ -269,7 +269,7 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
                 Name::new(name),
                 NPC,
                 // -- Combat Components --
-                InCombat,
+                InCombat(7 + i),
                 CombatBundle {
                     team: Team(Some(TEAM_OLF)),
                     karma: Karma(-100),

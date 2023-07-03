@@ -8,6 +8,7 @@ use crate::combat::skills::{Skill, SkillType, TargetOption};
 use super::alterations::Alteration;
 
 impl Skill {
+    /// TOTEST: Maybe don't allow multiple ways to pass: select all pass or click EndOfTurn ? - Force to press EndOfTurn
     pub fn pass() -> Self {
         Skill {
             skill_type: SkillType::Pass,

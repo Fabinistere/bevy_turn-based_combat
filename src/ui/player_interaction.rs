@@ -10,7 +10,7 @@ use crate::{
     combat::{
         phases::TransitionPhaseEvent,
         skills::{Skill, TargetOption},
-        Action, ActionCount, CombatResources, CombatState,
+        Action, ActionCount, CombatResources, CombatState, InCombat,
     },
     constants::ui::dialogs::*,
     ui::{
@@ -19,10 +19,14 @@ use crate::{
     },
 };
 
+use super::{combat_panel::MiniCharacterSheet, combat_system::UpdateUnitSelectedEvent};
+
 /* -------------------------------------------------------------------------- */
 /*                          ----- UI Components -----                         */
 /* -------------------------------------------------------------------------- */
 
+/// BUG: Must Adapt to resolution (see bug in `ui::player_interaction::select_unit_by_mouse()`)
+/// REFACTOR: Put this const into `constants.rs`
 pub const SPRITE_SIZE: (f32, f32) = (25.0, 40.0);
 
 #[derive(Component)]
@@ -129,7 +133,7 @@ pub fn mouse_scroll(
 /*                       ----- Specific UI systems -----                      */
 /* -------------------------------------------------------------------------- */
 
-// /// TODO: couldhave - Hover Unit = Preview Combat Page
+// /// TODO: couldhave - Hover Unit = Preview Combat Page (even in SelectionTarget?)
 // /// Give Hovered which is prioritized to be displayed if it exists
 // pub fn hover_unit_by_mouse() {}
 
@@ -138,6 +142,8 @@ pub fn mouse_scroll(
 /// # Note
 ///
 /// TODO: couldhave - can drag unit just to cancel the click = avoid missclick by dragging
+/// BUG: In smaller resolution, units might overlaps and you may click severals entities
+/// \----> cause a block when the update of selection and absurd situation: No Selected in SelectionSkill (crash potential)
 pub fn select_unit_by_mouse(
     mut commands: Commands,
 
@@ -538,4 +544,47 @@ pub fn action_button(
     }
 }
 
-// TODO: equip stuffs
+/* -------------------------------------------------------------------------- */
+/*                               Character Sheet                              */
+/* -------------------------------------------------------------------------- */
+
+/// TODO: CouldHave - Visual - Zoom in on characterSheet (or just focus)
+/// TODO: CouldHave - create a cross button to close it with the mouse (atm there the cancel input: `Esc`)
+pub fn mini_character_sheet_interact(
+    mini_character_sheets_interaction_query: Query<
+        (&Interaction, &MiniCharacterSheet),
+        (Changed<Interaction>, Without<Button>),
+    >,
+    combat_units_query: Query<(Entity, &InCombat)>,
+    mut select_event: EventWriter<UpdateUnitSelectedEvent>,
+) {
+    for (interaction, sheet_number) in mini_character_sheets_interaction_query.iter() {
+        match interaction {
+            Interaction::Clicked => {
+                let mut found = false;
+                // OPTIMIZE: the id search (a hash table ? (separated from CharacterSheetElements which represent the unique big CS))
+                for (fighter, id) in combat_units_query.iter() {
+                    // TOTEST: Should it deref auto ?
+                    if id.0 == sheet_number.0 {
+                        select_event.send(UpdateUnitSelectedEvent(fighter));
+                        found = true;
+                        break;
+                    }
+                }
+                // cause no .len() for query
+                // or use `let allies = allies_query.iter(&world).collect::<Vec<Entity>>();`
+                if !found {
+                    // DEBUG: Write a better log (link with the charactersheet entity) = zzzz
+                    warn!("No fighter associated with {}", sheet_number.0);
+                }
+            }
+            Interaction::Hovered => {
+                // TODO: smooth slight zoom
+            }
+            Interaction::None => {}
+        }
+    }
+}
+
+// TODO: Browse among sheets (arrows), especially for Enemy Sheets
+// TODO: PostDemo - equip stuffs
