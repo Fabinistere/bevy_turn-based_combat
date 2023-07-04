@@ -2,7 +2,7 @@
 //!
 //! Handle
 //!   - Combat Initialisation
-//!   - Comabt System / Phases
+//!   - Combat System / Phases
 //!     - Stand On
 //!     - Open HUD
 //!       - Display potential npc's catchphrase (*opening*)
@@ -29,15 +29,15 @@
 //!     - Reward-s (gift or loot)
 //!   - Combat Evasion (quit)
 
-use std::{cmp::Ordering, fmt};
+use std::cmp::Ordering;
 
 use bevy::prelude::*;
 // use bevy_inspector_egui::prelude::*;
 
-use crate::constants::combat::BASE_ACTION_COUNT;
+use crate::{constants::combat::BASE_ACTION_COUNT, ui};
 
 use self::{
-    alterations::Alteration, phases::observation, skills::{Skill, TargetOption}, stats::StatBundle,
+    alterations::Alteration, skills::{Skill, TargetOption}, stats::{StatBundle, Hp},
     stuff::{Equipements, JobsMasteries, Job},
 };
 
@@ -50,101 +50,134 @@ pub mod skills;
 pub mod stats;
 pub mod stuff;
 pub mod tactical_position;
+pub mod weapons_list;
+
+/// REFACTOR: Find a way to use States in our system
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Hash, Reflect, States)]
+pub enum GameState {
+    /// is also the Team's Inventory
+    #[default]
+    CombatWall,
+    // --- FTO related ---
+    TitleScreen,
+    DialogWall,
+    OptionsWall,
+    /// Game without any HUD
+    Exploration,
+}
 
 /// Just help to create a ordered system in the app builder
-#[derive(Default, SystemSet, PartialEq, Eq, Hash, Clone, Debug, Reflect)]
+#[derive(Default, SystemSet, PartialEq, Eq, Hash, Clone, Debug, Reflect, Resource)]
 pub enum CombatState {
-    /// DOC: what the freak is this phase
-    Initiation,
+    /// REFACTOR: Useless atm
+    Initialisation,
     AlterationsExecution,
-    /// Observation:
-    /// 
-    /// - ManageStuff
-    /// - Watch Knows infos/techs from enemies
-    /// - Watch yours
-    Observation,
     #[default]
     SelectionCaster,
+    /// There is one (ally or enemy) selected, and a CS focused
     SelectionSkill,
+    /// There is at least one action in the history
+    /// The one selected is the exact same one from SelectionSkill
     SelectionTarget,
     RollInitiative,
     ExecuteSkills,
+    
+    BrowseEnemySheet,
+    Logs,
 
     // ShowExecution,
     Evasion,
 }
 
-impl fmt::Display for CombatState {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            CombatState::Initiation => write!(f, "Initiation"),
-            CombatState::AlterationsExecution => write!(f, "AlterationsExecution"),
-            CombatState::Observation => write!(f, "Observation"),
-            CombatState::SelectionCaster => write!(f, "SelectionCaster"),
-            CombatState::SelectionSkill => write!(f, "SelectionSkill"),
-            CombatState::SelectionTarget => write!(f, "SelectionTarget"),
-            CombatState::RollInitiative => write!(f, "RollInitiative"),
-            CombatState::ExecuteSkills => write!(f, "ExecuteSkills"),
-            CombatState::Evasion => write!(f, "Evasion"),
-        }
-    }
-}
-
 pub struct CombatPlugin;
 
 impl Plugin for CombatPlugin {
+    #[rustfmt::skip]
     fn build(&self, app: &mut App) {
         app
-            .init_resource::<CombatPanel>()
+            
+            .add_state::<GameState>()
+            .insert_resource(CombatState::default())
+            
+            .init_resource::<CombatResources>()
             .init_resource::<JobsMasteries>()
             
             .add_event::<phases::TransitionPhaseEvent>()
             .add_event::<skills::ExecuteSkillEvent>()
             .add_event::<tactical_position::UpdateCharacterPositionEvent>()
-
+            
+            .configure_set(
+                CombatState::Initialisation
+                    .run_if(in_initialisation_phase)
+                    .in_set(OnUpdate(GameState::CombatWall))
+            )
+            .configure_set(
+                CombatState::AlterationsExecution
+                    .run_if(in_alteration_phase)
+                    .in_set(OnUpdate(GameState::CombatWall))
+            )
+            .configure_set(
+                CombatState::SelectionCaster
+                    .run_if(in_caster_phase)
+                    .in_set(OnUpdate(GameState::CombatWall))
+            )
+            .configure_set(
+                CombatState::SelectionSkill
+                    .run_if(in_skill_phase)
+                    .in_set(OnUpdate(GameState::CombatWall))
+            )
+            .configure_set(
+                CombatState::SelectionTarget
+                    .run_if(in_target_phase)
+                    .in_set(OnUpdate(GameState::CombatWall))
+            )
+            .configure_set(
+                CombatState::RollInitiative
+                    .run_if(in_initiative_phase)
+                    .in_set(OnUpdate(GameState::CombatWall))
+            )
+            .configure_set(
+                CombatState::ExecuteSkills
+                    .run_if(in_executive_phase)
+                    .in_set(OnUpdate(GameState::CombatWall))
+            )
+            .configure_set(
+                CombatState::BrowseEnemySheet
+                    .run_if(in_browsing_enemy_sheet_phase)
+                    .in_set(OnUpdate(GameState::CombatWall))
+            )
+            .configure_set(
+                CombatState::Evasion
+                    .run_if(in_evasive_phase)
+                    .in_set(OnUpdate(GameState::CombatWall))
+            )
 
             .add_startup_system(stuff::spawn_stuff)
-            
-            .add_system(
-                observation
-                    // .run_if(in_observation_phase)
-                    .in_set(CombatState::Observation)
+            .add_system(update_number_of_fighters.before(ui::combat_panel::setup).in_schedule(OnEnter(GameState::CombatWall)))
+
+            .add_systems(
+                (
+                    phases::phase_transition,
+                    update_number_of_fighters,
+                )
+                    .in_set(OnUpdate(GameState::CombatWall))
             )
             .add_system(
                 phases::execute_alteration
-                    .run_if(in_alteration_phase)
                     .in_set(CombatState::AlterationsExecution)
             )
             .add_system(
                 phases::roll_initiative
-                // FixedTimestep::step(FIXED_TIME_STEP as f64)
-                .run_if(in_initiative_phase)
-                .in_set(CombatState::RollInitiative)
+                    .in_set(CombatState::RollInitiative)
             )
-            .add_system(
-                phases::execution_phase
-                .run_if(in_executive_phase)
-                .in_set(CombatState::ExecuteSkills)
+            .add_systems(
+                (
+                    phases::execution_phase,
+                    skills::execute_skill
+                        .after(phases::execution_phase)
+                )
+                    .in_set(CombatState::ExecuteSkills)
             )
-            .add_system(
-                skills::execute_skill
-                .run_if(in_executive_phase)
-                .after(CombatState::ExecuteSkills)
-            )
-            .add_system(phases::phase_transition)
-
-            // -- UI ? --
-
-            .add_system(tactical_position::detect_window_tactical_pos_change)
-            .add_system(
-                tactical_position::update_character_position
-                .after(tactical_position::detect_window_tactical_pos_change)
-            )
-            // .add_systems(
-            //     (show_hp, show_mana)
-            //         .run_if(pressed_h)
-            //         .in_base_set(CoreSet::PostUpdate)
-            // )
             ;
     }
 }
@@ -158,7 +191,7 @@ pub struct CombatBundle {
     pub karma: Karma,
     pub team: Team,
     pub job: Job,
-    pub alterations: Alterations,
+    pub alterations: CurrentAlterations,
     pub skills: Skills,
     pub equipements: Equipements,
     pub action_count: ActionCount,
@@ -174,7 +207,7 @@ impl Default for CombatBundle {
             karma: Karma(0),
             team: Team(None),
             job: Job::default(),
-            alterations: Alterations(Vec::new()),
+            alterations: CurrentAlterations::default(),
             skills: Skills(Vec::new()),
             equipements: Equipements { weapon: None, armor: None },
             action_count: ActionCount::default(),
@@ -209,29 +242,50 @@ impl Default for ActionCount {
 /// The team an entity is assigned to.
 /// 
 /// `None` being Neutral
+/// 
+/// # Note
+/// 
+/// REFACTOR: Just an enum...
+/// Listing all possible teams (cause its fixed)
+/// IDEA: Or An reputation meter for each ?
 #[derive(Copy, Clone, PartialEq, Eq, Component, Deref, DerefMut)]
 pub struct Team(pub Option<i32>);
 
 /// Ongoing alterations, Debuff or Buff
+/// 
+/// DOC: The "Current" was added to Differenciate with the simple "Alteration" - new name ?
 #[derive(Default, Component, Deref, DerefMut)]
-pub struct Alterations(pub Vec<Alteration>);
+pub struct CurrentAlterations(Vec<Alteration>);
+
+
+/// Marker: Child of a fighter, has as child all the alteration's icon of the fighter
+/// 
+/// Can be removed
+#[derive(Component)]
+pub struct AllAlterationStatuses;
+
+/// Alterations are also put into an entity which is fighter's child (+ its icon)
+#[derive(Component)]
+pub struct AlterationStatus;
 
 /// Basic/Natural skills own by the entity  
 #[derive(Component, Deref, DerefMut)]
 pub struct Skills(pub Vec<Skill>);
 
-#[derive(Component)]
-pub struct InCombat;
+/// Contains the fighter's id.
+/// Used to Select a unit using the character sheet in the combat HUD.
+#[derive(Component, Reflect, Default, Clone, Copy, Deref)]
+pub struct InCombat(pub usize);
 
 #[derive(Clone, Copy, Component)]
 pub struct Leader;
 
 /// The player can recruted some friendly npc
 /// Can be called, TeamPlayer
-#[derive(Copy, Clone, PartialEq, Eq, Component)]
+#[derive(Component)]
 pub struct Recruted;
 
-#[derive(Copy, Clone, PartialEq, Eq, Component)]
+#[derive(Component)]
 pub struct Player;
 
 /* -------------------------------------------------------------------------- */
@@ -264,13 +318,13 @@ impl Default for TacticalPosition {
 /* -------------------------------------------------------------------------- */
 
 #[derive(Resource, Reflect, Debug)]
-pub struct CombatPanel {
-    pub phase: CombatState,
+pub struct CombatResources {
     pub history: Vec<Action>,
     pub number_of_fighters: GlobalFighterStats,
+    pub number_of_turn: usize,
 }
 
-impl FromWorld for CombatPanel {
+impl FromWorld for CombatResources {
     fn from_world(
         world: &mut World,
     ) -> Self {
@@ -280,10 +334,10 @@ impl FromWorld for CombatPanel {
         let mut enemies_query = world.query_filtered::<Entity, (Without<Recruted>, With<InCombat>)>();
         let enemies = enemies_query.iter(&world).collect::<Vec<Entity>>();
 
-        CombatPanel {
-            phase: CombatState::default(),
+        CombatResources {
             history: Vec::new(),
-            number_of_fighters: GlobalFighterStats::new(allies.len(), enemies.len())
+            number_of_fighters: GlobalFighterStats::new(allies.len(), enemies.len()),
+            number_of_turn: 0
         }
     }
 }
@@ -292,16 +346,32 @@ impl FromWorld for CombatPanel {
 #[derive(Default, Reflect, Debug, Clone)]
 pub struct GlobalFighterStats {
     /// (alive, knockout)
-    pub ally: (usize, usize),
+    pub ally: FightersCount,
     /// (alive, knockout)
-    pub enemy: (usize, usize),
+    pub enemy: FightersCount,
 }
 
 impl GlobalFighterStats {
     pub fn new(number_of_allies: usize, number_of_enemies: usize) -> Self {
         GlobalFighterStats {
-            ally: (number_of_allies, number_of_allies),
-            enemy: (number_of_enemies, number_of_enemies),
+            ally: FightersCount::new(number_of_allies),
+            enemy: FightersCount::new(number_of_enemies),
+        }
+    }
+}
+
+/// Default = { alive: 0, total: 0 }
+#[derive(Default, Reflect, Debug, Clone)]
+pub struct FightersCount{
+    pub alive: usize, 
+    pub total: usize
+}
+
+impl FightersCount {
+    pub fn new(total: usize) -> Self {
+        FightersCount {
+            alive: total,
+            total,
         }
     }
 }
@@ -327,7 +397,7 @@ pub struct Action {
 
 //                     }
 //                 }
-//                 write!(f, "Initiation")
+//                 write!(f, "initialisation")
 //             }
 //         }
 //     }
@@ -352,19 +422,19 @@ impl Action {
         match self.skill.target_option {
             TargetOption::All => {
                 match &self.targets {
-                    Some(targets) => targets.len() == (number_of_fighters.enemy.0 + number_of_fighters.ally.0),
+                    Some(targets) => targets.len() == (number_of_fighters.enemy.alive + number_of_fighters.ally.alive),
                     None => false
                 }
             }
             TargetOption::AllEnemy => {
                 match &self.targets {
-                    Some(targets) => targets.len() == number_of_fighters.enemy.0,
+                    Some(targets) => targets.len() == number_of_fighters.enemy.alive,
                     None => false
                 }
             }
             TargetOption::AllAlly => {
                 match &self.targets {
-                    Some(targets) => targets.len() == number_of_fighters.ally.0,
+                    Some(targets) => targets.len() == number_of_fighters.ally.alive,
                     None => false
                 }
             }
@@ -406,39 +476,89 @@ impl PartialEq for Action {
 impl Eq for Action {}
 
 /* -------------------------------------------------------------------------- */
+/*                               Systems Update                               */
+/* -------------------------------------------------------------------------- */
+
+/// If there is any Hp change in the frame, update the number of fighter alive
+pub fn update_number_of_fighters(
+    mut combat_panel: ResMut<CombatResources>,
+
+    // REFACTOR: Change these triggers to send an event in another system to update this one
+    // Triggers
+    created_units_query: Query<Entity, Added<InCombat>>,
+    updated_units_query: Query<Entity, (Changed<Hp>, With<InCombat>)>,
+
+    player_query : Query<&Hp, (With<Player>, With<InCombat>)>,
+    ally_units_query: Query<&Hp, (With<Recruted>, Without<Player>, With<InCombat>)>,
+    enemy_units_query: Query<&Hp, (Without<Recruted>, Without<Player>, With<InCombat>)>,
+) {
+    if !updated_units_query.is_empty() || created_units_query.is_empty() {
+        let player_hp = player_query.single();
+
+        combat_panel.number_of_fighters.ally = FightersCount::default();
+        combat_panel.number_of_fighters.enemy = FightersCount::default();
+
+        // see the discord thread about [Fabien's Death](https://discord.com/channels/692439766485958767/990369916785930300/1114261607825019031)
+        if player_hp.current > 0 {
+            combat_panel.number_of_fighters.ally.alive += 1;
+        } else {
+            warn!("Player is Dead");
+        }
+        combat_panel.number_of_fighters.ally.total += 1;
+        
+        for npc_hp in ally_units_query.iter() {
+            if npc_hp.current > 0 {
+                combat_panel.number_of_fighters.ally.alive += 1;
+            }
+            combat_panel.number_of_fighters.ally.total += 1;
+        }
+        for npc_hp in enemy_units_query.iter() {
+            if npc_hp.current > 0 {
+                combat_panel.number_of_fighters.enemy.alive += 1;
+            }
+            combat_panel.number_of_fighters.enemy.total += 1;
+        }
+    }
+}
+
+/* -------------------------------------------------------------------------- */
 /*                             -- Run Criteria --                             */
 /* -------------------------------------------------------------------------- */
 
 // REFACTOR: Change CombatState to be GlobalState (in the world)
 
-pub fn in_initiation_phase(combat_panel: Res<CombatPanel>) -> bool {
-    combat_panel.phase == CombatState::Initiation
+pub fn in_initialisation_phase(combat_state: Res<CombatState>) -> bool {
+    *combat_state == CombatState::Initialisation
 }
 
-pub fn in_alteration_phase(combat_panel: Res<CombatPanel>) -> bool {
-    combat_panel.phase == CombatState::AlterationsExecution
+pub fn in_alteration_phase(combat_state: Res<CombatState>) -> bool {
+    *combat_state == CombatState::AlterationsExecution
 }
 
-pub fn in_caster_phase(combat_panel: Res<CombatPanel>) -> bool {
-    combat_panel.phase == CombatState::SelectionCaster
+pub fn in_caster_phase(combat_state: Res<CombatState>) -> bool {
+    *combat_state == CombatState::SelectionCaster
 }
 
-pub fn in_skill_phase(combat_panel: Res<CombatPanel>) -> bool {
-    combat_panel.phase == CombatState::SelectionSkill
+pub fn in_skill_phase(combat_state: Res<CombatState>) -> bool {
+    *combat_state == CombatState::SelectionSkill
 }
 
-pub fn in_target_phase(combat_panel: Res<CombatPanel>) -> bool {
-    combat_panel.phase == CombatState::SelectionTarget
+pub fn in_target_phase(combat_state: Res<CombatState>) -> bool {
+    *combat_state == CombatState::SelectionTarget
 }
 
-pub fn in_initiative_phase(combat_panel: Res<CombatPanel>) -> bool {
-    combat_panel.phase == CombatState::RollInitiative
+pub fn in_initiative_phase(combat_state: Res<CombatState>) -> bool {
+    *combat_state == CombatState::RollInitiative
 }
 
-pub fn in_executive_phase(combat_panel: Res<CombatPanel>) -> bool {
-    combat_panel.phase == CombatState::ExecuteSkills
+pub fn in_executive_phase(combat_state: Res<CombatState>) -> bool {
+    *combat_state == CombatState::ExecuteSkills
 }
 
-pub fn in_evasive_phase(combat_panel: Res<CombatPanel>) -> bool {
-    combat_panel.phase == CombatState::Evasion
+pub fn in_browsing_enemy_sheet_phase(combat_state: Res<CombatState>) -> bool {
+    *combat_state == CombatState::BrowseEnemySheet
+}
+
+pub fn in_evasive_phase(combat_state: Res<CombatState>) -> bool {
+    *combat_state == CombatState::Evasion
 }
