@@ -17,7 +17,7 @@ use super::{skills::Skill, stats::StatBundle};
 /// # Note
 ///
 /// See [Jobs' skills](https://github.com/Fabinistere/FABIENs_Brain/blob/main/FTO/Combat/FTO_Jobs.md#jobs-skills)
-#[derive(Component, Default, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect, EnumIter)]
+#[derive(Component, Reflect, Default, PartialEq, Eq, Hash, Clone, Copy, Debug, EnumIter)]
 pub enum Job {
     /// The perfect job
     ///
@@ -37,9 +37,11 @@ pub enum Job {
     Logician,
     /// SwordsMaster / Sword Fighter
     Fencer,
+    // Fabien's Army
+    Fabicurion,
 }
 
-#[derive(Default, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect)]
+#[derive(Reflect, Default, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub enum MasteryTier {
     /// Will use it upsidedown
     #[default]
@@ -55,10 +57,10 @@ pub enum MasteryTier {
 /// # Note
 ///
 /// This aHashMap is not designed for cryptoSecurity but for performance (from bevy)
-#[derive(Debug, Resource, Reflect, Deref, DerefMut, Clone)]
+#[derive(Resource, Reflect, Debug, Deref, DerefMut, Clone)]
 pub struct JobsMasteries(pub HashMap<(Job, WeaponType), MasteryTier>);
 
-/// Correspond with the default for the initiation of the resource
+/// Correspond with the default for the initialisation of the resource
 impl FromWorld for JobsMasteries {
     fn from_world(_world: &mut World) -> Self {
         let mut jobs_mastries = JobsMasteries(HashMap::new());
@@ -75,6 +77,10 @@ impl FromWorld for JobsMasteries {
             (Job::Technomancian, WeaponType::Instrument),
             MasteryTier::One,
         );
+        // --- Fabicurion ---
+        jobs_mastries.insert((Job::Fabicurion, WeaponType::Club), MasteryTier::Two);
+        jobs_mastries.insert((Job::Fabicurion, WeaponType::Improvised), MasteryTier::Two);
+        jobs_mastries.insert((Job::Fabicurion, WeaponType::Sword), MasteryTier::One);
 
         // forall not implied/inserted, create the association with MasteryTier::Zero
         for job in Job::iter() {
@@ -106,13 +112,26 @@ pub struct WeaponBundle {
     pub equipement: Equipement,
     pub weapon_type: WeaponType,
     pub skill_tiers: SkillTiers,
+    /// TODO: Link these stats with something (weapon skill / owner's stats / etc)
     pub stats: StatBundle,
     pub name: Name,
 }
 
 /// Contains the user if in use (in case of weapons are droped in the floor)
-#[derive(Default, Component)]
-pub struct Equipement(pub Option<Entity>);
+#[derive(Component)]
+pub struct Equipement {
+    pub owner: Option<Entity>,
+    pub icon_path: String,
+}
+
+impl Default for Equipement {
+    fn default() -> Self {
+        Equipement {
+            owner: None,
+            icon_path: String::from("textures/icons/weapons/fish_01b.png"),
+        }
+    }
+}
 
 #[derive(Component, Default, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect, EnumIter)]
 pub enum WeaponType {
@@ -135,20 +154,10 @@ pub struct SkillTiers {
     pub tier_2: Vec<Skill>,
     pub tier_1: Vec<Skill>,
     pub tier_0: Vec<Skill>,
+    // pub extra: Vec<Skill>,
 }
 
 pub fn spawn_stuff(mut commands: Commands) {
     // Bocal à gros cornichons
-    commands.spawn(WeaponBundle {
-        name: Name::new("Bocal à gros cornichons"),
-        skill_tiers: SkillTiers {
-            tier_2: vec![Skill::jar_selfdestruction()],
-            tier_1: vec![Skill::eat_a_pickle()],
-            tier_0: vec![],
-        },
-        // weapon_type: WeaponType::Improvised,
-        // stats: StatBundle::default(),
-        // equipement: Equipement(None),
-        ..Default::default()
-    });
+    commands.spawn(WeaponBundle::pickle_jar());
 }

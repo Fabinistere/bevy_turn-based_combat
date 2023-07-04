@@ -7,15 +7,15 @@ use bevy_tweening::TweeningPlugin;
 use combat::CombatPlugin;
 use constants::{CLEAR, HEIGHT, RESOLUTION};
 
+pub mod characters;
 pub mod combat;
 pub mod constants;
 mod debug;
-pub mod npc;
 pub mod spritesheet;
 pub mod ui;
 
+use characters::npcs::NPCPlugin;
 use debug::DebugPlugin;
-use npc::NPCPlugin;
 use spritesheet::FabienPlugin;
 use ui::UiPlugin;
 

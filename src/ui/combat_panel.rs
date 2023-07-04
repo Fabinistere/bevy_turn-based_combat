@@ -7,43 +7,789 @@ use bevy::{
 };
 
 use crate::{
-    combat::skills::Skill,
-    constants::ui::{dialogs::*, style::*},
+    combat::{
+        skills::Skill,
+        stats::{Attack, AttackSpe, Defense, DefenseSpe, Hp, Initiative, Mana, Shield},
+        stuff::Job,
+        CombatResources,
+    },
+    constants::{
+        combat::MAX_PARTY,
+        ui::{dialogs::*, style::*},
+    },
     ui::{
-        combat_system::{
-            ActionHistoryDisplayer, ActionsLogs, CombatStateDisplayer, HpMeter,
-            LastActionHistoryDisplayer, MpMeter,
-        },
+        combat_system::{HpMeter, MpMeter},
         player_interaction::{EndOfTurnButton, ScrollingList},
     },
 };
+
+/* -------------------------------------------------------------------------- */
+/*                                UI Components                               */
+/* -------------------------------------------------------------------------- */
+
+/// DOC : new name ? CombatWallAssetsResources
+#[derive(Resource)]
+pub struct CombatWallResources {
+    pub base_combat_wall: Handle<Image>,
+    pub pack_of_scroll: Handle<Image>,
+    pub weapons: Handle<Image>,
+    pub allies_scroll: Vec<Handle<Image>>,
+}
+
+impl FromWorld for CombatWallResources {
+    fn from_world(world: &mut World) -> Self {
+        let asset_server = world.get_resource::<AssetServer>().unwrap();
+
+        let mut allies_scroll = Vec::new();
+        for i in 0..6 {
+            allies_scroll.push(asset_server.load(format!(
+                "textures/UI/HUD/combat/wall/sheets/sheet_{}.png",
+                i
+            )));
+        }
+
+        CombatWallResources {
+            base_combat_wall: asset_server.load("textures/UI/HUD/combat/wall/base_combat_wall.png"),
+            pack_of_scroll: asset_server.load("textures/UI/HUD/combat/wall/scrolls_pack.png"),
+            weapons: asset_server.load("textures/UI/HUD/combat/wall/stuffs.png"),
+            allies_scroll,
+        }
+    }
+}
+
+/// DOC : new name ? CharacterSheetAssetsResources
+#[derive(Resource)]
+pub struct CharacterSheetAssetsResources {
+    // pub base_scroll: Handle<Image>,
+    // pub base_headers: Handle<Image>,
+    /// DOC: rename to base_scroll
+    pub base_full_scroll: Handle<Image>,
+    pub top_left_corner: Handle<Image>,
+    pub weapon_frame: Handle<Image>,
+}
+
+impl FromWorld for CharacterSheetAssetsResources {
+    fn from_world(world: &mut World) -> Self {
+        let asset_server = world.get_resource::<AssetServer>().unwrap();
+
+        CharacterSheetAssetsResources {
+            // base_scroll: asset_server.load("textures/UI/HUD/combat/character_sheet/base_scroll.png"),
+            // base_headers: asset_server.load("textures/UI/HUD/combat/character_sheet/base_headers.png"),
+            base_full_scroll: asset_server
+                .load("textures/UI/HUD/combat/character_sheet/base_full_scroll.png"),
+            top_left_corner: asset_server
+                .load("textures/UI/HUD/combat/character_sheet/top_left_corner.png"),
+            weapon_frame: asset_server.load("textures/UI/border/border_05_nobackground.png"),
+        }
+    }
+}
 
 /// XXX: Useless component used to differentiate Hp/MpMeters of a target or a caster
 #[derive(Component)]
 pub struct TargetMeter;
 
-/// XXX: Useless component used to differentiate Hp/MpMeters of a target or a caster
 #[derive(Component)]
-pub struct CasterMeter;
+pub struct CombatStateDisplayer;
 
 #[derive(Default, Component, Reflect, Deref, DerefMut)]
 pub struct ActionDisplayer(pub usize);
 
+/* -------------------------------------------------------------------------- */
+/*                               Character Sheet                              */
+/* -------------------------------------------------------------------------- */
+
+#[derive(Component)]
+pub struct CharacterSheet;
+
+/// REFACTOR: Is the id still needed ? Associate entities at the Combat Initiation - no, we want to get from the CSh and from the fighter.
+///
+/// Still image showing a mini character sheet. (6 of allies and the pack of scrolls)
+/// Contains its id
+#[derive(Default, Component, Reflect, Deref, DerefMut)]
+pub struct MiniCharacterSheet(pub usize);
+
 #[derive(Default, Component, Reflect, Deref, DerefMut)]
 pub struct SkillDisplayer(pub usize);
 
-// REFACTOR: SkillBar Structure
+#[derive(Component)]
+pub struct WeaponDisplayer;
 
-#[derive(Component, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect)]
+/// REFACTOR: SkillBar Structure
+#[derive(Component, Reflect, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub enum SkillBar {
     Base,
     Tier2,
     Tier1,
     Tier0,
+    /// TODO: ShouldHave - Job's Skills
+    Job,
+    /// TODO: PostDemo - Unlock by the Job XpTree
+    Extra,
 }
 
-pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    // Scene
+#[derive(Component)]
+pub struct Portrait;
+
+#[derive(Component)]
+pub struct FabienName;
+
+#[derive(Component)]
+pub struct Title;
+
+/// # Note
+///
+/// I have to insert the resource
+/// (init from_world is a bad idea: it's stupid to have a character sheet outside of the hud combat)
+/// and to avoid abstract one level up with `CharacterSheetResource(Option<CharacterSheetElements>)`
+/// (but in a case of a HashMap association to implement minis charsheets, it's mandatory to abstract)
+/// I choose to put all field to `Option<Entity>`.
+#[derive(Resource, Default, PartialEq, Eq, Hash, Clone, Debug, Reflect)]
+pub struct CharacterSheetElements {
+    pub character_sheet: Option<Entity>,
+
+    pub portrait: Option<Entity>,
+    pub name: Option<Entity>,
+    pub title: Option<Entity>,
+    pub job: Option<Entity>,
+    pub weapon: Option<Entity>,
+    pub health: Option<Entity>,
+    pub mana: Option<Entity>,
+    pub shield: Option<Entity>,
+    pub initiative: Option<Entity>,
+    pub attack: Option<Entity>,
+    pub attack_spe: Option<Entity>,
+    pub defense: Option<Entity>,
+    pub defense_spe: Option<Entity>,
+    pub base_skills: Option<Entity>,
+    pub tier_2_skills: Option<Entity>,
+    pub tier_1_skills: Option<Entity>,
+    pub tier_0_skills: Option<Entity>,
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                  UI Setup                                  */
+/* -------------------------------------------------------------------------- */
+
+/// REFACTOR: Upgrade UiImage to spritesheet UI when [Available](https://github.com/bevyengine/bevy/pull/5070)
+pub fn setup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+
+    combat_resources: Res<CombatResources>,
+
+    character_sheet_resources: Res<CharacterSheetAssetsResources>,
+    combat_wall_resources: Res<CombatWallResources>,
+    mut character_sheet_elements: ResMut<CharacterSheetElements>,
+) {
+    // TODO: add UILocation::CharacterSheet(Ally | Enemy) | Logs | CombatHUB | etc
+    // TODO: Hide Panels on the right side (and add anim)
+    /* -------------------------------------------------------------------------- */
+    /*                                 UI Elements                                */
+    /* -------------------------------------------------------------------------- */
+
+    // TODO: Upgrade when Available - use Spritesheet
+    // TODO: Apply a mask to conceal the legs of the portrait (or simply change asset but meh.)
+    // Or put the portrait between the baseScroll and the base Header (but doesn't work)
+    let portrait = commands
+        .spawn((ImageBundle::default(), Name::new("Portrait"), Portrait))
+        .id();
+
+    let name = commands
+        .spawn((
+            TextBundle::from_section(format!("Name"), get_text_style(&asset_server, 40.))
+                .with_style(TEXT_STYLE),
+            Label,
+            Name::new("Name"),
+            FabienName,
+        ))
+        .id();
+
+    let title = commands
+        .spawn((
+            TextBundle::from_section(format!("Fabien"), get_text_style(&asset_server, 20.))
+                .with_style(TEXT_STYLE),
+            Label,
+            Name::new("Title"),
+            Title,
+        ))
+        .id();
+
+    let job = commands
+        .spawn((
+            TextBundle::from_section(format!("Chill"), get_text_style(&asset_server, 20.))
+                .with_style(TEXT_STYLE),
+            Label,
+            Name::new("Job"),
+            Job::default(),
+        ))
+        .id();
+
+    let health = commands
+        .spawn((
+            TextBundle::from_section(
+                format!("Health: ???/???"),
+                get_text_style(&asset_server, 20.),
+            )
+            .with_style(TEXT_STYLE),
+            Label,
+            Name::new("Health"),
+            Hp::default(),
+        ))
+        .id();
+
+    let mana = commands
+        .spawn((
+            TextBundle::from_section(format!("Mana: ???/???"), get_text_style(&asset_server, 20.))
+                .with_style(TEXT_STYLE),
+            Label,
+            Name::new("Mana"),
+            Mana::default(),
+        ))
+        .id();
+
+    let shield = commands
+        .spawn((
+            TextBundle::from_section(format!("Shield: ???"), get_text_style(&asset_server, 20.))
+                .with_style(TEXT_STYLE),
+            Label,
+            Name::new("Shield"),
+            Shield::default(),
+        ))
+        .id();
+
+    let initiative = commands
+        .spawn((
+            TextBundle::from_section(
+                format!("Initiative: ???"),
+                get_text_style(&asset_server, 20.),
+            )
+            .with_style(TEXT_STYLE),
+            Label,
+            Name::new("Initiative"),
+            Initiative::default(),
+        ))
+        .id();
+
+    let attack = commands
+        .spawn((
+            TextBundle::from_section(format!("Attack: ???"), get_text_style(&asset_server, 20.))
+                .with_style(TEXT_STYLE),
+            Label,
+            Name::new("Attack"),
+            Attack::default(),
+        ))
+        .id();
+
+    let attack_spe = commands
+        .spawn((
+            TextBundle::from_section(
+                format!("AttackSpe: ???"),
+                get_text_style(&asset_server, 20.),
+            )
+            .with_style(TEXT_STYLE),
+            Label,
+            Name::new("AttackSpe"),
+            AttackSpe::default(),
+        ))
+        .id();
+
+    let defense = commands
+        .spawn((
+            TextBundle::from_section(format!("Defense: ???"), get_text_style(&asset_server, 20.))
+                .with_style(TEXT_STYLE),
+            Label,
+            Name::new("Defense"),
+            Defense::default(),
+        ))
+        .id();
+
+    let defense_spe = commands
+        .spawn((
+            TextBundle::from_section(
+                format!("DefenseSpe: ???"),
+                get_text_style(&asset_server, 20.),
+            )
+            .with_style(TEXT_STYLE),
+            Label,
+            Name::new("DefenseSpe"),
+            DefenseSpe::default(),
+        ))
+        .id();
+
+    let weapon = commands
+        .spawn((
+            ImageBundle {
+                style: Style {
+                    size: Size::all(Val::Px(50.)),
+                    align_self: AlignSelf::Center,
+                    ..default()
+                },
+                visibility: Visibility::Hidden,
+                ..default()
+            },
+            Name::new("Weapon"),
+            WeaponDisplayer,
+        ))
+        .id();
+
+    let base_skills = commands
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    // size: Size::height(Val::Percent(42.)),
+                    flex_direction: FlexDirection::Row,
+                    ..default()
+                },
+                ..default()
+            },
+            Name::new("Base Skills"),
+        ))
+        .with_children(|parent| {
+            // 6 Base skill max
+
+            for skill_count in 0..6 {
+                parent
+                    .spawn((
+                        ButtonBundle {
+                            style: SKILL_BUTTON_STYLE,
+                            background_color: NORMAL_BUTTON.into(),
+                            visibility: Visibility::Hidden,
+                            ..default()
+                        },
+                        Name::new(format!("Skill {}", skill_count)),
+                        Skill::pass(),
+                        // --- UI ---
+                        SkillDisplayer(skill_count),
+                        SkillBar::Base,
+                        // Draggable,
+                    ))
+                    .with_children(|parent| {
+                        parent.spawn(TextBundle::from_section(
+                            format!("Skill {}", skill_count),
+                            get_text_style(&asset_server, 20.),
+                        ));
+                    });
+            }
+        })
+        .id();
+
+    let tier_2_skills = commands
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    // size: Size::height(Val::Percent(42.)),
+                    flex_direction: FlexDirection::Row,
+                    ..default()
+                },
+                ..default()
+            },
+            Name::new("Tier2 Skills"),
+        ))
+        .with_children(|parent| {
+            // 3 Tier2 skill max
+
+            for skill_count in 0..3 {
+                parent
+                    .spawn((
+                        ButtonBundle {
+                            style: Style {
+                                size: Size::new(Val::Px(150.0), Val::Px(65.0)),
+                                // center button
+                                margin: UiRect::all(Val::Auto),
+                                // horizontally center child text
+                                justify_content: JustifyContent::Center,
+                                // vertically center child text
+                                align_items: AlignItems::Center,
+                                position: UiRect::default(),
+                                ..default()
+                            },
+                            background_color: NORMAL_BUTTON.into(),
+                            visibility: Visibility::Hidden,
+                            ..default()
+                        },
+                        Name::new(format!("Skill {}", skill_count)),
+                        Skill::pass(),
+                        // --- UI ---
+                        SkillDisplayer(skill_count),
+                        SkillBar::Tier2,
+                        // Draggable,
+                    ))
+                    .with_children(|parent| {
+                        parent.spawn(TextBundle::from_section(
+                            format!("Skill {}", skill_count),
+                            get_text_style(&asset_server, 20.),
+                        ));
+                    });
+            }
+        })
+        .id();
+
+    let tier_1_skills = commands
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    // size: Size::height(Val::Percent(42.)),
+                    flex_direction: FlexDirection::Row,
+                    ..default()
+                },
+                ..default()
+            },
+            Name::new("Tier1 Skills"),
+        ))
+        .with_children(|parent| {
+            // 3 Tier1 skill max
+
+            for skill_count in 0..3 {
+                parent
+                    .spawn((
+                        ButtonBundle {
+                            style: Style {
+                                size: Size::new(Val::Px(150.0), Val::Px(65.0)),
+                                // center button
+                                margin: UiRect::all(Val::Auto),
+                                // horizontally center child text
+                                justify_content: JustifyContent::Center,
+                                // vertically center child text
+                                align_items: AlignItems::Center,
+                                position: UiRect::default(),
+                                ..default()
+                            },
+                            background_color: NORMAL_BUTTON.into(),
+                            visibility: Visibility::Hidden,
+                            ..default()
+                        },
+                        Name::new(format!("Skill {}", skill_count)),
+                        Skill::pass(),
+                        // --- UI ---
+                        SkillDisplayer(skill_count),
+                        SkillBar::Tier1,
+                        // Draggable,
+                    ))
+                    .with_children(|parent| {
+                        parent.spawn(TextBundle::from_section(
+                            format!("Skill {}", skill_count),
+                            get_text_style(&asset_server, 20.),
+                        ));
+                    });
+            }
+        })
+        .id();
+
+    let tier_0_skills = commands
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    // size: Size::height(Val::Percent(42.)),
+                    flex_direction: FlexDirection::Row,
+                    ..default()
+                },
+                ..default()
+            },
+            Name::new("Tier0 Skills"),
+        ))
+        .with_children(|parent| {
+            // 3 Tier0 skill max
+
+            for skill_count in 0..3 {
+                parent
+                    .spawn((
+                        ButtonBundle {
+                            style: Style {
+                                size: Size::new(Val::Px(150.0), Val::Px(65.0)),
+                                // center button
+                                margin: UiRect::all(Val::Auto),
+                                // horizontally center child text
+                                justify_content: JustifyContent::Center,
+                                // vertically center child text
+                                align_items: AlignItems::Center,
+                                position: UiRect::default(),
+                                ..default()
+                            },
+                            background_color: NORMAL_BUTTON.into(),
+                            visibility: Visibility::Hidden,
+                            ..default()
+                        },
+                        Name::new(format!("Skill {}", skill_count)),
+                        Skill::pass(),
+                        // --- UI ---
+                        SkillDisplayer(skill_count),
+                        SkillBar::Tier0,
+                        // Draggable,
+                    ))
+                    .with_children(|parent| {
+                        parent.spawn(TextBundle::from_section(
+                            format!("Skill {}", skill_count),
+                            get_text_style(&asset_server, 20.),
+                        ));
+                    });
+            }
+        })
+        .id();
+
+    /* -------------------------------------------------------------------------- */
+    /*                              Character' Sheet                              */
+    /* -------------------------------------------------------------------------- */
+
+    let character_sheet = commands
+        .spawn((
+            NodeBundle {
+                // image: character_sheet_resources.base_full_scroll.clone().into(),
+                style: Style {
+                    size: Size::height(Val::Percent(100.)),
+                    flex_direction: FlexDirection::Column,
+                    flex_shrink: 0.,
+                    position: UiRect::bottom(Val::Percent(100.)),
+                    ..default()
+                },
+                visibility: Visibility::Hidden,
+                ..default()
+            },
+            Name::new("Character Sheet"),
+            Interaction::default(),
+            CharacterSheet,
+        ))
+        .with_children(|parent| {
+            // Headers
+            parent
+                .spawn((
+                    NodeBundle {
+                        style: Style {
+                            size: Size::height(Val::Percent(20.)),
+                            flex_direction: FlexDirection::Row,
+                            ..default()
+                        },
+                        background_color: Color::DARK_GRAY.into(),
+                        ..default()
+                    },
+                    Name::new("Headers"),
+                ))
+                .with_children(|parent| {
+                    parent
+                        .spawn((
+                            NodeBundle {
+                                style: Style {
+                                    size: Size::width(Val::Percent(30.)),
+                                    justify_content: JustifyContent::Center,
+                                    ..default()
+                                },
+                                background_color: Color::CRIMSON.into(),
+                                ..default()
+                            },
+                            Name::new("Sprite Border"),
+                        ))
+                        .push_children(&[portrait]);
+
+                    parent
+                        .spawn((
+                            NodeBundle {
+                                style: Style {
+                                    size: Size::width(Val::Percent(70.)),
+                                    flex_direction: FlexDirection::Column,
+                                    ..default()
+                                },
+                                background_color: Color::GRAY.into(),
+                                ..default()
+                            },
+                            Name::new("Titles"),
+                        ))
+                        .with_children(|parent| {
+                            // TODO: Update Titles
+                            parent
+                                .spawn((
+                                    NodeBundle {
+                                        style: Style {
+                                            size: Size::height(Val::Percent(50.)),
+                                            flex_direction: FlexDirection::Row,
+                                            ..default()
+                                        },
+                                        ..default()
+                                    },
+                                    Name::new("Full Name"),
+                                ))
+                                .push_children(&[name, title]);
+
+                            parent
+                                .spawn((
+                                    NodeBundle {
+                                        style: Style {
+                                            size: Size::height(Val::Percent(50.)),
+                                            flex_direction: FlexDirection::Row,
+                                            ..default()
+                                        },
+                                        ..default()
+                                    },
+                                    Name::new("Job Section"),
+                                ))
+                                .push_children(&[job]);
+                        });
+                });
+
+            // Stats + weapon
+            parent
+                .spawn((
+                    NodeBundle {
+                        style: Style {
+                            size: Size::height(Val::Percent(40.)),
+                            flex_direction: FlexDirection::Row,
+                            ..default()
+                        },
+                        background_color: Color::CRIMSON.into(),
+                        ..default()
+                    },
+                    Name::new("Scanner"),
+                ))
+                .with_children(|parent| {
+                    // TODO: Update Stats and Weapon equiped
+                    parent
+                        .spawn((
+                            NodeBundle {
+                                style: Style {
+                                    size: Size::width(Val::Percent(60.)),
+                                    flex_direction: FlexDirection::Column,
+                                    justify_content: JustifyContent::Center,
+                                    ..default()
+                                },
+                                background_color: Color::GRAY.into(),
+                                ..default()
+                            },
+                            Name::new("Stats"),
+                        ))
+                        .push_children(&[
+                            health,
+                            mana,
+                            shield,
+                            initiative,
+                            attack,
+                            attack_spe,
+                            defense,
+                            defense_spe,
+                        ]);
+
+                    parent
+                        .spawn((
+                            NodeBundle {
+                                style: Style {
+                                    size: Size::width(Val::Percent(40.)),
+                                    justify_content: JustifyContent::Center,
+                                    ..default()
+                                },
+                                // background_color: Color::BISQUE.into(),
+                                ..default()
+                            },
+                            Name::new("Equipements Section"),
+                        ))
+                        .with_children(|parent| {
+                            // TODO: add frame underneath
+                            parent
+                                .spawn((
+                                    ImageBundle {
+                                        image: character_sheet_resources
+                                            .weapon_frame
+                                            .clone()
+                                            .into(),
+                                        style: Style {
+                                            size: Size::all(Val::Px(100.)),
+                                            align_self: AlignSelf::Center,
+                                            justify_content: JustifyContent::Center,
+                                            ..default()
+                                        },
+                                        ..default()
+                                    },
+                                    Name::new("Frame"),
+                                ))
+                                .push_children(&[weapon]);
+                        });
+                });
+
+            // Skill Menu
+            parent
+                .spawn((
+                    NodeBundle {
+                        style: Style {
+                            size: Size::height(Val::Percent(40.)),
+                            flex_direction: FlexDirection::Column,
+                            // align_content: AlignContent::SpaceAround,
+                            justify_content: JustifyContent::Center,
+                            ..default()
+                        },
+                        background_color: Color::AZURE.into(),
+                        ..default()
+                    },
+                    Name::new("Skill Menu"),
+                ))
+                // A catalogue, one row for basic skill, a row for tier2 ,etc (simplify a lot skill_visibility)
+                .push_children(&[base_skills, tier_2_skills, tier_1_skills, tier_0_skills]);
+
+            // parent
+            //     .spawn((
+            //         NodeBundle {
+            //             style: Style {
+            //                 flex_direction: FlexDirection::Column,
+            //                 // flex_wrap: FlexWrap::NoWrap,
+            //                 size: Size {
+            //                     height: Val::Percent(100.),
+            //                     width: Val::Percent(100.),
+            //                 },
+            //                 ..default()
+            //             },
+            //             ..default()
+            //         },
+            //         Name::new("Content"),
+            //     ))
+            //     .with_children(|parent| {
+
+            //     });
+
+            // TODO: Render Top Decoration
+            // parent
+            //     .spawn((NodeBundle::default(), Name::new("Top Decoration")))
+            //     .with_children(|parent| {
+            //         // Top Decoration
+            //         parent.spawn((
+            //             ImageBundle {
+            //                 image: character_sheet_resources
+            //                     .top_left_corner
+            //                     .clone()
+            //                     .into(),
+            //                 style: Style {
+            //                     size: Size {
+            //                         width: Val::Px(500.),
+            //                         height: Val::Percent(100.),
+            //                     },
+            //                     ..default()
+            //                 },
+            //                 ..default()
+            //             },
+            //             Name::new("Decoration - Top Left Corner"),
+            //         ));
+            //     });
+        })
+        .id();
+
+    *character_sheet_elements = CharacterSheetElements {
+        character_sheet: Some(character_sheet),
+        portrait: Some(portrait),
+        name: Some(name),
+        title: Some(title),
+        job: Some(job),
+        weapon: Some(weapon),
+        health: Some(health),
+        mana: Some(mana),
+        shield: Some(shield),
+        initiative: Some(initiative),
+        attack: Some(attack),
+        attack_spe: Some(attack_spe),
+        defense: Some(defense),
+        defense_spe: Some(defense_spe),
+        base_skills: Some(base_skills),
+        tier_2_skills: Some(tier_2_skills),
+        tier_1_skills: Some(tier_1_skills),
+        tier_0_skills: Some(tier_0_skills),
+    };
+
+    /* -------------------------------------------------------------------------- */
+    /*                                  UI Scene                                  */
+    /* -------------------------------------------------------------------------- */
     commands
         .spawn((
             NodeBundle {
@@ -58,7 +804,10 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             Name::new("UI Scene"),
         ))
         .with_children(|parent| {
-            // Fighting Hall - Where the npcs are
+            /* -------------------------------------------------------------------------- */
+            /*                                Fighting Hall                               */
+            /*                             Where the npcs are                             */
+            /* -------------------------------------------------------------------------- */
             parent
                 .spawn((
                     NodeBundle {
@@ -97,11 +846,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                         .with_children(|parent| {
                             parent.spawn(TextBundle::from_section(
                                 "End of Turn",
-                                TextStyle {
-                                    font: asset_server.load("fonts/dpcomic.ttf"),
-                                    font_size: 40.0,
-                                    color: Color::rgb(0.9, 0.9, 0.9),
-                                },
+                                get_text_style(&asset_server, 40.),
                             ));
                         });
 
@@ -126,74 +871,14 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                         .with_children(|parent| {
                             // List items
 
-                            // ----- Basic Stats -----
-                            parent.spawn((
-                                TextBundle::from_section(
-                                    format!("Caster hp: ???"),
-                                    TextStyle {
-                                        font: asset_server.load("fonts/dpcomic.ttf"),
-                                        font_size: 20.,
-                                        color: Color::WHITE,
-                                    },
-                                )
-                                .with_style(Style {
-                                    flex_shrink: 0.,
-                                    size: Size::new(Val::Undefined, Val::Px(20.)),
-                                    margin: UiRect {
-                                        left: Val::Auto,
-                                        right: Val::Auto,
-                                        ..default()
-                                    },
-                                    ..default()
-                                }),
-                                HpMeter,
-                                CasterMeter,
-                                Name::new("Caster Hp"),
-                            ));
-
-                            parent.spawn((
-                                TextBundle::from_section(
-                                    format!("Caster mp: ???"),
-                                    TextStyle {
-                                        font: asset_server.load("fonts/dpcomic.ttf"),
-                                        font_size: 20.,
-                                        color: Color::WHITE,
-                                    },
-                                )
-                                .with_style(Style {
-                                    flex_shrink: 0.,
-                                    size: Size::new(Val::Undefined, Val::Px(20.)),
-                                    margin: UiRect {
-                                        left: Val::Auto,
-                                        right: Val::Auto,
-                                        ..default()
-                                    },
-                                    ..default()
-                                }),
-                                MpMeter,
-                                CasterMeter,
-                                Name::new("Caster Mp"),
-                            ));
-
+                            // ----- DEBUG: Basic Stats -----
                             parent.spawn((
                                 TextBundle::from_section(
                                     format!("Target hp: ???"),
-                                    TextStyle {
-                                        font: asset_server.load("fonts/dpcomic.ttf"),
-                                        font_size: 20.,
-                                        color: Color::WHITE,
-                                    },
+                                    get_text_style(&asset_server, 20.),
                                 )
-                                .with_style(Style {
-                                    flex_shrink: 0.,
-                                    size: Size::new(Val::Undefined, Val::Px(20.)),
-                                    margin: UiRect {
-                                        left: Val::Auto,
-                                        right: Val::Auto,
-                                        ..default()
-                                    },
-                                    ..default()
-                                }),
+                                .with_style(TEXT_STYLE),
+                                Label,
                                 HpMeter,
                                 TargetMeter,
                                 Name::new("Target Hp"),
@@ -202,11 +887,19 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                             parent.spawn((
                                 TextBundle::from_section(
                                     format!("Target mp: ???"),
-                                    TextStyle {
-                                        font: asset_server.load("fonts/dpcomic.ttf"),
-                                        font_size: 20.,
-                                        color: Color::WHITE,
-                                    },
+                                    get_text_style(&asset_server, 20.),
+                                )
+                                .with_style(TEXT_STYLE),
+                                Label,
+                                MpMeter,
+                                TargetMeter,
+                                Name::new("Target Mp"),
+                            ));
+
+                            parent.spawn((
+                                TextBundle::from_section(
+                                    format!("Combat Phase: ???"),
+                                    get_text_style(&asset_server, 20.),
                                 )
                                 .with_style(Style {
                                     flex_shrink: 0.,
@@ -218,14 +911,20 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                     },
                                     ..default()
                                 }),
-                                MpMeter,
-                                TargetMeter,
-                                Name::new("Target Mp"),
+                                CombatStateDisplayer,
+                                Name::new("Combat Phase"),
+                                // -- UI --
+                                // Because this is a distinct label widget and
+                                // not button/list item text, this is necessary
+                                // for accessibility to treat the text accordingly.
+                                Label,
                             ));
                         });
                 });
 
-            // Initiative Bar Order
+            /* -------------------------------------------------------------------------- */
+            /*                            Initiative Bar Order                            */
+            /* -------------------------------------------------------------------------- */
             parent
                 .spawn((
                     NodeBundle {
@@ -284,316 +983,207 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                                     get_text_style(&asset_server, 20.),
                                                 ));
 
-                                                // TODO: Upgrade when Available - use Spritesheet
                                                 parent.spawn((
                                                     ImageBundle {
                                                         image: UiImage {
-                                                            texture: asset_server.load(
-                                                                "textures/character/idle/idle_Fabien_Loyal.png",
-                                                            ),
                                                             flip_x: true,
                                                             ..default()
                                                         },
                                                         ..default()
-                                                    } ,
+                                                    },
                                                     Name::new(format!("Sprite {}", action_count)),
                                                 ));
-
-                                                // REFACTOR: Not IN - SpriteSheet doesn't work with UIElement
-                                                // parent.spawn((
-                                                //     SpriteSheetBundle {
-                                                //         sprite: TextureAtlasSprite {
-                                                //             index: FABIEN_STARTING_ANIM,
-                                                //             flip_x: true,
-                                                //             ..default()
-                                                //         },
-                                                //         texture_atlas: fabien.0.clone(),
-                                                //         transform: Transform {
-                                                //             scale: Vec3::splat(NPC_SCALE),
-                                                //             ..default()
-                                                //         },
-                                                //         ..default()
-                                                //     },
-                                                //     Name::new(format!("Sprite {}", action_count)),
-                                                //     // --- Fake the UI ---
-                                                //     Style::default(),
-                                                //     CalculatedSize::default(),
-                                                //     Node::default(),
-                                                // ));
                                             });
                                     }
                                 });
                         });
                 });
 
-            // HUD Wall
+            /* -------------------------------------------------------------------------- */
+            /*                                  HUD Wall                                  */
+            /* -------------------------------------------------------------------------- */
             parent
                 .spawn((
-                    NodeBundle {
+                    ImageBundle {
+                        image: combat_wall_resources.base_combat_wall.clone().into(),
                         style: Style {
                             size: Size::width(Val::Percent(36.)),
                             flex_direction: FlexDirection::Column,
                             ..default()
                         },
-                        background_color: Color::SILVER.into(),
                         ..default()
                     },
                     Name::new("HUD Wall"),
                 ))
                 .with_children(|parent| {
-                    // Skill Menu
+                    /* First Side of the HUD Wall
+                     * - Each Allied CharacterSheet (SubPanels) (Fixed Image)
+                     *   - First Sub-Panel
+                     *     - Headers: Sprite, Name, Title, Job
+                     *     - Stats, Weapon Equiped
+                     *     - Skill Menu²
+                     * - TODO: "Bestiary" (Book of Enemy's characterSheet)
+                     * - TODO: Logs
+                     * - TODO: Team's Inventory
+                     * - IDEA: If we block access to a certain number of members - Show empty sheets (with no text) to represent free space
+                     */
 
                     parent
                         .spawn((
                             NodeBundle {
+                                // background_color: Color::DARK_GRAY.into(),
                                 style: Style {
-                                    size: Size::height(Val::Percent(42.)),
-                                    flex_direction: FlexDirection::Column,
-                                    // align_items: AlignItems::Center,
+                                    flex_shrink: 0.,
+                                    flex_direction: FlexDirection::Row,
+                                    size: Size::height(Val::Percent(100.)),
+
                                     ..default()
                                 },
-                                background_color: Color::AZURE.into(),
                                 ..default()
                             },
-                            Name::new("Skill Menu"),
+                            Name::new("Interactive scrolls"),
                         ))
                         .with_children(|parent| {
-                            // A catalogue, one row for basic skill, a row for tier2 ,etc (simplify a lot skill_visibility)
                             parent
                                 .spawn((
                                     NodeBundle {
                                         style: Style {
-                                            // size: Size::height(Val::Percent(42.)),
-                                            flex_direction: FlexDirection::Row,
+                                            flex_shrink: 0.,
+                                            flex_direction: FlexDirection::Column,
+                                            size: Size::new(Val::Percent(100.), Val::Percent(44.8)),
+                                            // gap between the two rows
+                                            gap: Size::height(Val::Percent(14.5)),
+                                            position: UiRect {
+                                                left: Val::Percent(16.8),
+                                                top: Val::Percent(4.2),
+                                                ..default()
+                                            },
                                             ..default()
                                         },
                                         ..default()
                                     },
-                                    Name::new("Base Skills"),
-                                    // A component to differenciation ? or just children[0]
-                                    // BaseSkillBar,
+                                    Name::new("Allies' Scroll"),
                                 ))
                                 .with_children(|parent| {
-                                    // 6 Base skill max
-
-                                    for skill_count in 0..6 {
-                                        parent
-                                            .spawn((
-                                                ButtonBundle {
-                                                    style: SKILL_BUTTON_STYLE,
-                                                    background_color: NORMAL_BUTTON.into(),
-                                                    visibility: Visibility::Hidden,
+                                    parent
+                                        .spawn((
+                                            NodeBundle {
+                                                style: Style {
+                                                    flex_shrink: 0.,
+                                                    flex_direction: FlexDirection::Row,
+                                                    size: Size::height(Val::Percent(50.)),
+                                                    // gap between the three scrolls
+                                                    gap: Size::width(Val::Percent(2.7)),
                                                     ..default()
                                                 },
-                                                Name::new(format!("Skill {}", skill_count)),
-                                                Skill::pass(),
-                                                // --- UI ---
-                                                SkillDisplayer(skill_count),
-                                                SkillBar::Base,
-                                                // Draggable,
-                                            ))
-                                            .with_children(|parent| {
-                                                parent.spawn(TextBundle::from_section(
-                                                    format!("Skill {}", skill_count),
-                                                    get_text_style(&asset_server, 40.),
-                                                ));
-                                            });
-                                    }
-                                });
-
-                            parent
-                                .spawn((
-                                    NodeBundle {
-                                        style: Style {
-                                            // size: Size::height(Val::Percent(42.)),
-                                            flex_direction: FlexDirection::Row,
-                                            ..default()
-                                        },
-                                        ..default()
-                                    },
-                                    Name::new("Tier2 Skills"),
-                                    // A component to differenciation ? or just children[1]
-                                    // Tier2SkillBar,
-                                ))
-                                .with_children(|parent| {
-                                    // 3 Tier2 skill max
-
-                                    for skill_count in 0..3 {
-                                        parent
-                                            .spawn((
-                                                ButtonBundle {
-                                                    style: Style {
-                                                        size: Size::new(
-                                                            Val::Px(150.0),
-                                                            Val::Px(65.0),
-                                                        ),
-                                                        // center button
-                                                        margin: UiRect::all(Val::Auto),
-                                                        // horizontally center child text
-                                                        justify_content: JustifyContent::Center,
-                                                        // vertically center child text
-                                                        align_items: AlignItems::Center,
-                                                        position: UiRect::default(),
+                                                ..default()
+                                            },
+                                            Name::new("First Row of Scrolls"),
+                                        ))
+                                        .with_children(|parent| {
+                                            for i in 0..3 {
+                                                parent.spawn((
+                                                    ImageBundle {
+                                                        image: combat_wall_resources.allies_scroll
+                                                            [i]
+                                                            .clone()
+                                                            .into(),
+                                                        visibility: if i < combat_resources
+                                                            .number_of_fighters
+                                                            .ally
+                                                            .total
+                                                        {
+                                                            Visibility::Inherited
+                                                        } else {
+                                                            Visibility::Hidden
+                                                        },
                                                         ..default()
                                                     },
-                                                    background_color: NORMAL_BUTTON.into(),
-                                                    visibility: Visibility::Hidden,
+                                                    Name::new(format!("Ally's Scroll {}", i)),
+                                                    Interaction::default(),
+                                                    MiniCharacterSheet(i),
+                                                ));
+                                            }
+                                        });
+
+                                    parent
+                                        .spawn((
+                                            NodeBundle {
+                                                style: Style {
+                                                    flex_shrink: 0.,
+                                                    flex_direction: FlexDirection::Row,
+                                                    size: Size::height(Val::Percent(50.)),
+                                                    // gap between the three scrolls
+                                                    gap: Size::width(Val::Percent(2.7)),
                                                     ..default()
                                                 },
-                                                Name::new(format!("Skill {}", skill_count)),
-                                                Skill::pass(),
-                                                // --- UI ---
-                                                SkillDisplayer(skill_count),
-                                                SkillBar::Tier2,
-                                                // Draggable,
-                                            ))
-                                            .with_children(|parent| {
-                                                parent.spawn(TextBundle::from_section(
-                                                    format!("Skill {}", skill_count),
-                                                    TextStyle {
-                                                        font: asset_server
-                                                            .load("fonts/dpcomic.ttf"),
-                                                        font_size: 40.0,
-                                                        color: Color::rgb(0.9, 0.9, 0.9),
+                                                ..default()
+                                            },
+                                            Name::new("Second Row of Scrolls"),
+                                        ))
+                                        .with_children(|parent| {
+                                            for i in 3..6 {
+                                                parent.spawn((
+                                                    ImageBundle {
+                                                        image: combat_wall_resources.allies_scroll
+                                                            [i]
+                                                            .clone()
+                                                            .into(),
+                                                        visibility: if i < combat_resources
+                                                            .number_of_fighters
+                                                            .ally
+                                                            .total
+                                                        {
+                                                            Visibility::Inherited
+                                                        } else {
+                                                            Visibility::Hidden
+                                                        },
+                                                        ..default()
                                                     },
+                                                    Name::new(format!("Ally's Scroll {}", i)),
+                                                    Interaction::default(),
+                                                    MiniCharacterSheet(i),
                                                 ));
-                                            });
-                                    }
+                                            }
+                                        });
                                 });
 
-                            parent
-                                .spawn((
-                                    NodeBundle {
-                                        style: Style {
-                                            // size: Size::height(Val::Percent(42.)),
-                                            flex_direction: FlexDirection::Row,
+                            parent.spawn((
+                                ImageBundle {
+                                    image: combat_wall_resources.pack_of_scroll.clone().into(),
+                                    style: Style {
+                                        flex_shrink: 0.,
+                                        size: Size::height(Val::Percent(7.)),
+                                        position: UiRect {
+                                            top: Val::Percent(77.),
+                                            left: Val::Percent(-45.), // 54.5
                                             ..default()
                                         },
                                         ..default()
                                     },
-                                    Name::new("Tier1 Skills"),
-                                    // A component to differenciation ? or just children[2]
-                                    // Tier1SkillBar,
-                                ))
-                                .with_children(|parent| {
-                                    // 3 Tier1 skill max
-
-                                    for skill_count in 0..3 {
-                                        parent
-                                            .spawn((
-                                                ButtonBundle {
-                                                    style: Style {
-                                                        size: Size::new(
-                                                            Val::Px(150.0),
-                                                            Val::Px(65.0),
-                                                        ),
-                                                        // center button
-                                                        margin: UiRect::all(Val::Auto),
-                                                        // horizontally center child text
-                                                        justify_content: JustifyContent::Center,
-                                                        // vertically center child text
-                                                        align_items: AlignItems::Center,
-                                                        position: UiRect::default(),
-                                                        ..default()
-                                                    },
-                                                    background_color: NORMAL_BUTTON.into(),
-                                                    visibility: Visibility::Hidden,
-                                                    ..default()
-                                                },
-                                                Name::new(format!("Skill {}", skill_count)),
-                                                Skill::pass(),
-                                                // --- UI ---
-                                                SkillDisplayer(skill_count),
-                                                SkillBar::Tier1,
-                                                // Draggable,
-                                            ))
-                                            .with_children(|parent| {
-                                                parent.spawn(TextBundle::from_section(
-                                                    format!("Skill {}", skill_count),
-                                                    TextStyle {
-                                                        font: asset_server
-                                                            .load("fonts/dpcomic.ttf"),
-                                                        font_size: 40.0,
-                                                        color: Color::rgb(0.9, 0.9, 0.9),
-                                                    },
-                                                ));
-                                            });
-                                    }
-                                });
-
-                            parent
-                                .spawn((
-                                    NodeBundle {
-                                        style: Style {
-                                            // size: Size::height(Val::Percent(42.)),
-                                            flex_direction: FlexDirection::Row,
-                                            ..default()
-                                        },
-                                        ..default()
-                                    },
-                                    Name::new("Tier0 Skills"),
-                                    // A component to differenciation ? or just children[3]
-                                    // Tier0SkillBar,
-                                ))
-                                .with_children(|parent| {
-                                    // 3 Tier0 skill max
-
-                                    for skill_count in 0..3 {
-                                        parent
-                                            .spawn((
-                                                ButtonBundle {
-                                                    style: Style {
-                                                        size: Size::new(
-                                                            Val::Px(150.0),
-                                                            Val::Px(65.0),
-                                                        ),
-                                                        // center button
-                                                        margin: UiRect::all(Val::Auto),
-                                                        // horizontally center child text
-                                                        justify_content: JustifyContent::Center,
-                                                        // vertically center child text
-                                                        align_items: AlignItems::Center,
-                                                        position: UiRect::default(),
-                                                        ..default()
-                                                    },
-                                                    background_color: NORMAL_BUTTON.into(),
-                                                    visibility: Visibility::Hidden,
-                                                    ..default()
-                                                },
-                                                Name::new(format!("Skill {}", skill_count)),
-                                                Skill::pass(),
-                                                // --- UI ---
-                                                SkillDisplayer(skill_count),
-                                                SkillBar::Tier0,
-                                                // Draggable,
-                                            ))
-                                            .with_children(|parent| {
-                                                parent.spawn(TextBundle::from_section(
-                                                    format!("Skill {}", skill_count),
-                                                    TextStyle {
-                                                        font: asset_server
-                                                            .load("fonts/dpcomic.ttf"),
-                                                        font_size: 40.0,
-                                                        color: Color::rgb(0.9, 0.9, 0.9),
-                                                    },
-                                                ));
-                                            });
-                                    }
-                                });
+                                    ..default()
+                                },
+                                // DOC: Pack of scrolls = "Bestiary"
+                                Name::new("Scrolls Pack"),
+                                Interaction::default(),
+                                // points to the first enemy
+                                MiniCharacterSheet(MAX_PARTY),
+                            ));
                         });
 
-                    // Logs - List with hidden overflow
+                    /*
                     parent
                         .spawn((
                             NodeBundle {
                                 style: Style {
-                                    size: Size::height(Val::Percent(58.)),
+                                    size: Size::height(Val::Percent(20.)),
                                     flex_direction: FlexDirection::Column,
                                     align_self: AlignSelf::Center,
                                     overflow: Overflow::Hidden,
                                     ..default()
                                 },
-                                background_color: Color::rgba(0.0, 0.0, 0.0, 0.0).into(),
+                                background_color: Color::GRAY.into(),
+                                visibility: Visibility::Hidden,
                                 ..default()
                             },
                             Name::new("Logs"),
@@ -611,6 +1201,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                     Name::new("Moving Panel"),
                                 ))
                                 .with_children(|parent| {
+                                    // TODO: UI - Title that's stick to the top while scrolling their section
                                     // List items
 
                                     parent.spawn((
@@ -708,7 +1299,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                                 ..default()
                                             },
                                         ),
-                                        ActionsLogs,
+                                        ActionsLogsDisplayer,
                                         Name::new("Actions Logs"),
                                         // -- UI --
                                         Label,
@@ -734,6 +1325,8 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                     ));
                                 });
                         });
-                });
+                        */
+                })
+                .push_children(&[character_sheet]);
         });
 }

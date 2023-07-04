@@ -3,33 +3,34 @@ use bevy::prelude::*;
 // RegisterInspectable, 
 use bevy_inspector_egui::quick::{
     // FilterQueryInspectorPlugin,
-    // ResourceInspectorPlugin,
+    ResourceInspectorPlugin,
     WorldInspectorPlugin,
 };
 // // use bevy_inspector_egui::prelude::*;
 
 use crate::{
     combat::{
-        // Alterations,
         // Action,
         alterations::{Alteration, AlterationAction},
         ActionCount,
-        // CombatPanel,
+        // CombatResources,
         CombatState,
         skills::{
             // Skill,
             SkillType,
             TargetOption,
         },
-        stats::{Hp, Mana, Shield, Initiative, Attack, AttackSpe, Defense, DefenseSpe}, stuff::{Equipements, WeaponType},
+        stats::{Hp, Mana, Shield, Initiative, Attack, AttackSpe, Defense, DefenseSpe},
+        stuff::{Equipements, WeaponType, MasteryTier, Job},
         TacticalPlace,
     },
-    npc::NPC,
+    characters::npcs::NPC, ui::combat_system::{ActionHistory, LastTurnActionHistory, ActionsLogs},
 };
 
 pub struct DebugPlugin;
 
 impl Plugin for DebugPlugin {
+    #[rustfmt::skip]
     fn build(&self, app: &mut App) {
         if cfg!(debug_assertions) {
             app.add_plugin(WorldInspectorPlugin::new())
@@ -43,7 +44,7 @@ impl Plugin for DebugPlugin {
                 /* -------------------------------------------------------------------------- */
                 
                 .register_type::<CombatState>()
-                // .register_type::<CombatPanel>()
+                // .register_type::<CombatResources>()
                 // .register_type::<Action>()
                 
                 .register_type::<ActionCount>()
@@ -55,7 +56,6 @@ impl Plugin for DebugPlugin {
                 /*                       --- Skills and Alterations ---                       */
                 /* -------------------------------------------------------------------------- */
 
-                // .register_type::<Alterations>()
                 .register_type::<Alteration>()
                 .register_type::<AlterationAction>()
                 .register_type::<TargetOption>()
@@ -69,6 +69,10 @@ impl Plugin for DebugPlugin {
                 
                 .register_type::<Equipements>()
                 .register_type::<WeaponType>()
+                
+                .register_type::<Job>()
+                .register_type::<MasteryTier>()
+                // .register_type::<JobsMasteries>()
                 
                 /* -------------------------------------------------------------------------- */
                 /*                                --- Stats ---                               */
@@ -86,6 +90,14 @@ impl Plugin for DebugPlugin {
                 /* -------------------------------------------------------------------------- */
                 /*                                 --- UI ---                                 */
                 /* -------------------------------------------------------------------------- */
+
+                .register_type::<ActionHistory>()
+                .register_type::<LastTurnActionHistory>()
+                .register_type::<ActionsLogs>()
+
+                .add_plugin(ResourceInspectorPlugin::<ActionHistory>::default())
+                .add_plugin(ResourceInspectorPlugin::<LastTurnActionHistory>::default())
+                .add_plugin(ResourceInspectorPlugin::<ActionsLogs>::default())
                 ;
         }
     }

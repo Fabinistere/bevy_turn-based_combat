@@ -10,19 +10,26 @@ use crate::{
     combat::{
         phases::TransitionPhaseEvent,
         skills::{Skill, TargetOption},
-        Action, ActionCount, CombatPanel, CombatState,
+        Action, ActionCount, CombatResources, CombatState, InCombat, Recruted,
     },
-    constants::ui::dialogs::*,
+    constants::{
+        combat::{FIRST_ALLY_ID, FIRST_ENEMY_ID, MAX_PARTY},
+        ui::dialogs::*,
+    },
     ui::{
         combat_panel::{ActionDisplayer, SkillDisplayer},
         combat_system::{Selected, Targeted},
     },
 };
 
+use super::{combat_panel::MiniCharacterSheet, combat_system::UpdateUnitSelectedEvent};
+
 /* -------------------------------------------------------------------------- */
 /*                          ----- UI Components -----                         */
 /* -------------------------------------------------------------------------- */
 
+/// BUG: Must Adapt to resolution (see bug in `ui::player_interaction::select_unit_by_mouse()`)
+/// REFACTOR: Put this const into `constants.rs`
 pub const SPRITE_SIZE: (f32, f32) = (25.0, 40.0);
 
 #[derive(Component)]
@@ -129,7 +136,7 @@ pub fn mouse_scroll(
 /*                       ----- Specific UI systems -----                      */
 /* -------------------------------------------------------------------------- */
 
-// /// TODO: couldhave - Hover Unit = Preview Combat Page
+// /// TODO: couldhave - Hover Unit = Preview Combat Page (even in SelectionTarget?)
 // /// Give Hovered which is prioritized to be displayed if it exists
 // pub fn hover_unit_by_mouse() {}
 
@@ -138,6 +145,8 @@ pub fn mouse_scroll(
 /// # Note
 ///
 /// TODO: couldhave - can drag unit just to cancel the click = avoid missclick by dragging
+/// BUG: In smaller resolution, units might overlaps and you may click severals entities
+/// \----> cause a block when the update of selection and absurd situation: No Selected in SelectionSkill (crash potential)
 pub fn select_unit_by_mouse(
     mut commands: Commands,
 
@@ -196,7 +205,8 @@ pub fn select_unit_by_mouse(
 ///   - To a possible target: Confirm
 ///   - To something else: Cancel (or just back to skill clicked)
 pub fn select_skill(
-    mut combat_panel: ResMut<CombatPanel>,
+    mut combat_resources: ResMut<CombatResources>,
+    combat_state: Res<CombatState>,
 
     mut interaction_query: Query<
         (&Interaction, &Skill, &mut BackgroundColor, &Children),
@@ -233,7 +243,7 @@ pub fn select_skill(
 
                 // BUG: XXX: Weird "Bug" Event/GameState related handle
                 // Prevent the Trigger of the "double press"
-                if let Some(last_action) = combat_panel.history.last() {
+                if let Some(last_action) = combat_resources.history.last() {
                     if last_action.skill == skill.clone() && last_action.targets == None {
                         // warn!("Same Skill Selected Event handled twice");
                         continue;
@@ -243,12 +253,15 @@ pub fn select_skill(
                 *color = PRESSED_BUTTON.into();
 
                 // Change last action saved to the new skill selected
-                if combat_panel.phase == CombatState::SelectionTarget {
+                if combat_state.clone() == CombatState::SelectionTarget {
                     info!("Skill changed for {}", skill.name);
                     // we already wrote the waiting skill in the actions history
                     // cause we're in the TargetSelection phase
 
-                    let last_action = combat_panel.history.last_mut().unwrap();
+                    let last_action = combat_resources.history.last_mut().unwrap();
+                    // FIXME: Select Bam/Swing instantly into select solo will create two action "solo"
+                    // caster stay the same
+                    last_action.skill = skill.clone();
                     last_action.targets = None;
 
                     // This transitionEvent will trigger all the verification about skill selected (selfcast, etc)
@@ -261,7 +274,7 @@ pub fn select_skill(
                     transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionTarget));
 
                     let action = Action::new(caster, skill.clone(), None);
-                    combat_panel.history.push(action);
+                    combat_resources.history.push(action);
 
                     // info!("DEBUG: action = {} do {} to None", _caster_name, skill.name);
                     // info!("new action");
@@ -304,7 +317,7 @@ pub struct EndOfTurnButton;
 /// BUG: End of turn in SelectionSkill: trigger a double press
 /// @see [`ui::player_interaction::confirm_action_button()`] to check: correct target number
 pub fn end_of_turn_button(
-    mut combat_panel: ResMut<CombatPanel>,
+    mut combat_resources: ResMut<CombatResources>,
 
     mut interaction_query: Query<
         (&Interaction, &Children),
@@ -319,9 +332,9 @@ pub fn end_of_turn_button(
         let mut text = text_query.get_mut(children[0]).unwrap();
         match *interaction {
             Interaction::Clicked => {
-                if let Some(last_action) = combat_panel.history.last() {
-                    if !last_action.is_correct(combat_panel.number_of_fighters.clone()) {
-                        combat_panel.history.pop();
+                if let Some(last_action) = combat_resources.history.last() {
+                    if !last_action.is_correct(combat_resources.number_of_fighters.clone()) {
+                        combat_resources.history.pop();
                     }
                 } else {
                     // allow pass with no action in the history
@@ -356,7 +369,8 @@ pub fn end_of_turn_button(
 pub fn cancel_last_input(
     mut commands: Commands,
     keyboard_input: Res<Input<KeyCode>>,
-    mut combat_panel: ResMut<CombatPanel>,
+    mut combat_resources: ResMut<CombatResources>,
+    combat_state: Res<CombatState>,
 
     selected_unit_query: Query<(Entity, &Name), With<Selected>>,
     mut caster_query: Query<(Entity, &mut ActionCount)>,
@@ -364,11 +378,11 @@ pub fn cancel_last_input(
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
     if keyboard_input.just_pressed(KeyCode::Escape) {
-        let current_phase = combat_panel.phase.clone();
-        info!("Esc in {}", current_phase);
+        let current_phase = combat_state.clone();
+        info!("Esc in {:?}", current_phase);
 
         match current_phase {
-            CombatState::SelectionSkill => {
+            CombatState::SelectionSkill | CombatState::BrowseEnemySheet => {
                 let (selected, name) = selected_unit_query.single();
 
                 commands.entity(selected).remove::<Selected>();
@@ -378,7 +392,7 @@ pub fn cancel_last_input(
             }
             CombatState::SelectionCaster | CombatState::SelectionTarget => {
                 // Remove last targeted and modify the last action
-                match combat_panel.history.last_mut() {
+                match combat_resources.history.last_mut() {
                     None => {
                         if current_phase == CombatState::SelectionTarget {
                             warn!("In TargetSelectionPhase, it should have at least one action");
@@ -410,7 +424,7 @@ pub fn cancel_last_input(
 
                         match &mut last_action.targets {
                             None => {
-                                combat_panel.history.pop();
+                                combat_resources.history.pop();
 
                                 transition_phase_event
                                     .send(TransitionPhaseEvent(CombatState::SelectionSkill));
@@ -434,7 +448,7 @@ pub fn cancel_last_input(
                                         | TargetOption::All
                                         | TargetOption::AllAlly
                                         | TargetOption::AllEnemy => {
-                                            combat_panel.history.pop();
+                                            combat_resources.history.pop();
 
                                             transition_phase_event.send(TransitionPhaseEvent(
                                                 CombatState::SelectionSkill,
@@ -464,7 +478,7 @@ pub fn cancel_last_input(
 /// # Behavior
 ///
 /// - Clicked
-/// swap the one clicked with the last (downward the action to be accessed easly)
+/// put the one clicked as last (downward the action to be accessed easly)
 /// - TODO: Hover Action
 /// Visualize action effect
 ///
@@ -472,36 +486,59 @@ pub fn cancel_last_input(
 ///
 /// TODO: feat UI - simplify deleting an action by adding a cross to do so.
 pub fn action_button(
-    mut combat_panel: ResMut<CombatPanel>,
+    mut commands: Commands,
+    mut combat_resources: ResMut<CombatResources>,
 
     mut interaction_query: Query<
         (&Interaction, &ActionDisplayer),
         (Changed<Interaction>, With<Button>),
     >,
+    selected_query: Query<Entity, With<Selected>>,
+    targeted_query: Query<Entity, With<Targeted>>,
+    mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
     for (interaction, action_displayer) in &mut interaction_query {
         match *interaction {
             Interaction::Clicked => {
                 info!("Action {} clicked", action_displayer.0);
 
-                if combat_panel.history.len() <= action_displayer.0 {
+                if combat_resources.history.len() <= action_displayer.0 {
                     warn!(
                         "Action {} is visible even if it shouldn't: {}/{}",
                         action_displayer.0,
                         action_displayer.0,
-                        combat_panel.history.len()
+                        combat_resources.history.len()
                     )
-                } else {
-                    if let Some(last_action) = combat_panel.history.last() {
-                        if !last_action.is_correct(combat_panel.number_of_fighters.clone()) {
+                } else if let Some(last_action) = combat_resources.history.last() {
+                    // don't bother to do anything if there is only one action
+                    // or if the action clicked was already the last
+                    if 1 != combat_resources.history.len()
+                        && action_displayer.0 + 1 != combat_resources.history.len()
+                    {
+                        if !last_action.is_correct(combat_resources.number_of_fighters.clone()) {
                             info!("Abort current action (wasn't complete)");
-                            combat_panel.history.pop();
+                            combat_resources.history.pop().unwrap();
+                        }
+
+                        // use of remove() to preserve order
+                        let action = combat_resources.history.remove(action_displayer.0);
+                        combat_resources.history.push(action.clone());
+
+                        // --- Clean Up ---
+                        if let Ok(selected) = selected_query.get_single() {
+                            if action.clone().caster != selected {
+                                commands.entity(selected).remove::<Selected>();
+                            }
+                        }
+                        commands.entity(action.clone().caster).insert(Selected);
+
+                        transition_phase_event
+                            .send(TransitionPhaseEvent(CombatState::SelectionSkill));
+
+                        for targeted in targeted_query.iter() {
+                            commands.entity(targeted).remove::<Targeted>();
                         }
                     }
-
-                    // use of remove() to preserve order
-                    let action = combat_panel.history.remove(action_displayer.0);
-                    combat_panel.history.push(action);
                 }
             }
             Interaction::Hovered => {}
@@ -510,4 +547,114 @@ pub fn action_button(
     }
 }
 
-// TODO: equip stuffs
+/* -------------------------------------------------------------------------- */
+/*                               Character Sheet                              */
+/* -------------------------------------------------------------------------- */
+
+/// TODO: CouldHave - Visual - Zoom in on characterSheet (or just focus)
+/// TODO: CouldHave - create a cross button to close it with the mouse (atm there the cancel input: `Esc`)
+pub fn mini_character_sheet_interact(
+    mini_character_sheets_interaction_query: Query<
+        (&Interaction, &MiniCharacterSheet),
+        (Changed<Interaction>, Without<Button>),
+    >,
+    combat_units_query: Query<(Entity, &InCombat)>,
+    mut select_event: EventWriter<UpdateUnitSelectedEvent>,
+) {
+    for (interaction, sheet_number) in mini_character_sheets_interaction_query.iter() {
+        match interaction {
+            Interaction::Clicked => {
+                let mut found = false;
+                // OPTIMIZE: the id search (a hash table ? (separated from CharacterSheetElements which represent the unique big CS))
+                for (fighter, id) in combat_units_query.iter() {
+                    // TOTEST: Should it deref auto ?
+                    if id.0 == sheet_number.0 {
+                        select_event.send(UpdateUnitSelectedEvent(fighter));
+                        found = true;
+                        break;
+                    }
+                }
+                // cause no .len() for query
+                // or use `let allies = allies_query.iter(&world).collect::<Vec<Entity>>();`
+                if !found {
+                    // DEBUG: Write a better log (link with the charactersheet entity) = zzzz
+                    warn!("No fighter associated with {}", sheet_number.0);
+                }
+            }
+            Interaction::Hovered => {
+                // TODO: smooth slight zoom
+            }
+            Interaction::None => {}
+        }
+    }
+}
+
+/// TODO: Browse among sheets (arrows), especially for Enemy Sheets
+pub fn browse_character_sheet(
+    keys: Res<Input<KeyCode>>,
+    combat_resources: Res<CombatResources>,
+    // DEBUG: Print the Phase if no selected
+    combat_phase: Res<CombatState>,
+
+    selected_unit_query: Query<&InCombat, With<Selected>>,
+    unselected_ally_units_query: Query<(Entity, &InCombat), (With<Recruted>, Without<Selected>)>,
+    unselected_enemy_units_query: Query<
+        (Entity, &InCombat),
+        (Without<Recruted>, Without<Selected>),
+    >,
+
+    mut select_event: EventWriter<UpdateUnitSelectedEvent>,
+) {
+    // XXX: Tempo the phase transi after cancel_input in SelectionSkill/BrowseEnemySheet
+    if let Err(_) = selected_unit_query.get_single() {
+        warn!("No Selected in {:?}", combat_phase);
+    }
+
+    // TODO: CouldHave - UI Inputs - Hold press handle: `.pressed()`
+    // IDEA: UI Inputs - The Pack Of Scrolls could keep the last enemy selected
+    if keys.any_just_pressed([KeyCode::Left, KeyCode::Right]) {
+        let selected_id = selected_unit_query.single();
+        let next_id = if keys.just_pressed(KeyCode::Right) {
+            if selected_id.0 == combat_resources.number_of_fighters.ally.total - 1 {
+                FIRST_ALLY_ID
+            } else if selected_id.0
+                == combat_resources.number_of_fighters.enemy.total + MAX_PARTY - 1
+            {
+                FIRST_ENEMY_ID
+            } else {
+                selected_id.0 + 1
+            }
+        } else {
+            if selected_id.0 == FIRST_ALLY_ID {
+                combat_resources.number_of_fighters.ally.total - 1
+            } else if selected_id.0 == FIRST_ENEMY_ID {
+                combat_resources.number_of_fighters.enemy.total + MAX_PARTY - 1
+            } else {
+                selected_id.0 - 1
+            }
+        };
+
+        if next_id == selected_id.0 {
+            return;
+        }
+
+        // OPTIMIZE: the id search (a hash table ? (separated from CharacterSheetElements which represent the unique big CS))
+        if next_id < MAX_PARTY {
+            for (fighter, id) in unselected_ally_units_query.iter() {
+                if id.0 == next_id {
+                    select_event.send(UpdateUnitSelectedEvent(fighter));
+                    break;
+                }
+            }
+        } else {
+            for (fighter, id) in unselected_enemy_units_query.iter() {
+                if id.0 == next_id {
+                    select_event.send(UpdateUnitSelectedEvent(fighter));
+                    break;
+                }
+            }
+        }
+    }
+}
+
+// TODO: PostDemo - equip stuffs

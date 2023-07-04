@@ -38,24 +38,20 @@ pub mod character {
         pub const NPC_Z_FRONT: f32 = 8.;
 
         pub const ADMIRAL_STARTING_ANIM: usize = 0;
+        pub const MORGAN_STARTING_ANIM: usize = 4;
         pub const FABIEN_STARTING_ANIM: usize = 8;
         pub const OLF_STARTING_ANIM: usize = 16;
         pub const HUGO_STARTING_ANIM: usize = 36;
         pub const FABICURION_STARTING_ANIM: usize = 40;
-
-        pub mod movement {
-
-            pub const ADMIRAL_POSITION: (f32, f32, f32) = (-30., 10., 2.);
-            pub const HUGO_POSITION: (f32, f32, f32) = (-30., -20., 2.);
-            pub const FABICURION_POSITION: (f32, f32, f32) = (-80., 10., 2.);
-            pub const OLF_POSITION: (f32, f32, f32) = (-80., -20., 2.);
-        }
     }
 }
 
 pub mod combat {
 
     pub const BASE_ACTION_COUNT: usize = 1;
+    pub const MAX_PARTY: usize = 6;
+    pub const FIRST_ALLY_ID: usize = 0;
+    pub const FIRST_ENEMY_ID: usize = MAX_PARTY;
 
     pub mod team {
         pub const TEAM_MC: i32 = 0;
@@ -64,11 +60,12 @@ pub mod combat {
     }
 
     pub mod skill {
-        pub const MAX_PARTY: i32 = 6;
         pub const BAM: i32 = 150;
     }
 
-    pub mod buff {}
+    pub mod alteration {
+        pub const SIZE_ALTERATION_ICON: f32 = 5.;
+    }
 }
 
 pub mod ui {
@@ -130,9 +127,20 @@ pub mod ui {
             TextStyle {
                 font: asset_server.load("fonts/dpcomic.ttf"),
                 font_size,
-                color: Color::rgb(0.9, 0.9, 0.9),
+                color: Color::WHITE, // rgb(0.9, 0.9, 0.9),
             }
         }
+
+        pub const TEXT_STYLE: Style = Style {
+            flex_shrink: 0.,
+            size: Size::new(Val::Undefined, Val::Px(20.)),
+            margin: UiRect {
+                left: Val::Auto,
+                right: Val::Auto,
+                ..UiRect::DEFAULT
+            },
+            ..Style::DEFAULT
+        };
 
         pub const LIST_HIDDEN_OVERFLOW_STYLE: Style = Style {
             flex_direction: FlexDirection::Column,
