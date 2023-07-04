@@ -49,6 +49,9 @@ pub mod character {
 pub mod combat {
 
     pub const BASE_ACTION_COUNT: usize = 1;
+    pub const MAX_PARTY: usize = 6;
+    pub const FIRST_ALLY_ID: usize = 0;
+    pub const FIRST_ENEMY_ID: usize = MAX_PARTY;
 
     pub mod team {
         pub const TEAM_MC: i32 = 0;
@@ -57,7 +60,6 @@ pub mod combat {
     }
 
     pub mod skill {
-        pub const MAX_PARTY: usize = 6;
         pub const BAM: i32 = 150;
     }
 

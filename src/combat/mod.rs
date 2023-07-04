@@ -142,6 +142,11 @@ impl Plugin for CombatPlugin {
                     .in_set(OnUpdate(GameState::CombatWall))
             )
             .configure_set(
+                CombatState::BrowseEnemySheet
+                    .run_if(in_browsing_enemy_sheet_phase)
+                    .in_set(OnUpdate(GameState::CombatWall))
+            )
+            .configure_set(
                 CombatState::Evasion
                     .run_if(in_evasive_phase)
                     .in_set(OnUpdate(GameState::CombatWall))
@@ -548,6 +553,10 @@ pub fn in_initiative_phase(combat_state: Res<CombatState>) -> bool {
 
 pub fn in_executive_phase(combat_state: Res<CombatState>) -> bool {
     *combat_state == CombatState::ExecuteSkills
+}
+
+pub fn in_browsing_enemy_sheet_phase(combat_state: Res<CombatState>) -> bool {
+    *combat_state == CombatState::BrowseEnemySheet
 }
 
 pub fn in_evasive_phase(combat_state: Res<CombatState>) -> bool {

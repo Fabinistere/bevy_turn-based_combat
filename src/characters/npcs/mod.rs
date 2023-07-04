@@ -11,7 +11,7 @@ use crate::{
     },
     constants::{
         character::{npc::*, CHAR_SCALE},
-        combat::team::*,
+        combat::{team::*, FIRST_ALLY_ID, FIRST_ENEMY_ID},
     },
     spritesheet::FabienSheet,
     ui::player_interaction::{Clickable, Hoverable, SpriteSize, SPRITE_SIZE},
@@ -70,7 +70,7 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
             Name::new("Player Morgan"),
             Player,
             // -- Combat Components --
-            InCombat(0),
+            InCombat(FIRST_ALLY_ID),
             Recruted,
             CombatBundle {
                 team: Team(Some(TEAM_MC)),
@@ -122,7 +122,7 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
             Name::new("NPC Admiral"),
             NPC,
             // -- Combat Components --
-            InCombat(1),
+            InCombat(FIRST_ALLY_ID + 1),
             Recruted,
             CombatBundle {
                 team: Team(Some(TEAM_MC)),
@@ -175,7 +175,7 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
             Name::new("NPC Hugo"),
             NPC,
             // -- Combat Components --
-            InCombat(2),
+            InCombat(FIRST_ALLY_ID + 2),
             Recruted,
             CombatBundle {
                 team: Team(Some(TEAM_MC)),
@@ -221,7 +221,7 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
             Name::new("NPC Olf"),
             NPC,
             // -- Combat Components --
-            InCombat(6),
+            InCombat(FIRST_ENEMY_ID),
             CombatBundle {
                 team: Team(Some(TEAM_OLF)),
                 karma: Karma(-100),
@@ -269,7 +269,7 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
                 Name::new(name),
                 NPC,
                 // -- Combat Components --
-                InCombat(7 + i),
+                InCombat(FIRST_ENEMY_ID + 1 + i),
                 CombatBundle {
                     team: Team(Some(TEAM_OLF)),
                     karma: Karma(-100),

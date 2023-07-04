@@ -5,7 +5,10 @@ use crate::{
         phases::TransitionPhaseEvent, skills::TargetOption, AlterationStatus, CombatResources,
         CombatState, CurrentAlterations, InCombat, Team,
     },
-    constants::{character::npc::NPC_Z_BACK, combat::alteration::SIZE_ALTERATION_ICON},
+    constants::{
+        character::npc::NPC_Z_BACK,
+        combat::{alteration::SIZE_ALTERATION_ICON, MAX_PARTY},
+    },
     ui::{combat_panel::CombatStateDisplayer, player_interaction::Clicked},
 };
 
@@ -105,13 +108,14 @@ pub fn target_selection(
 /// # Note
 ///
 /// FIXME: Multiple Entity can be selected if clicked simultaneous (a break would work ?)
-/// REFACTOR: Directly Manage Clicked Entity in the update systems (instead of event)
+/// REFACTOR: Directly Manage Clicked Entity in the update systems (instead of event) (replacing straight forward didn't work)
 pub fn update_selected_unit(
     mut event_query: EventReader<UpdateUnitSelectedEvent>,
 
     mut commands: Commands,
 
     selected_unit_query: Query<Entity, (With<Selected>, With<InCombat>)>,
+    combat_units_query: Query<&InCombat>,
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
     for event in event_query.iter() {
@@ -124,7 +128,13 @@ pub fn update_selected_unit(
         commands.entity(event.0).insert(Selected);
         // info!("{:?} is now selected", event.0);
 
-        transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionSkill));
+        // REFACTOR: ? - test ID or test if Recruted or not
+        let id = combat_units_query.get(event.0).unwrap();
+        if id.0 < MAX_PARTY {
+            transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionSkill));
+        } else {
+            transition_phase_event.send(TransitionPhaseEvent(CombatState::BrowseEnemySheet));
+        }
     }
 }
 

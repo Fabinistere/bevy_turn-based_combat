@@ -14,7 +14,7 @@ use crate::{
         CombatResources,
     },
     constants::{
-        combat::skill::MAX_PARTY,
+        combat::MAX_PARTY,
         ui::{dialogs::*, style::*},
     },
     ui::{

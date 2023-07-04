@@ -10,9 +10,12 @@ use crate::{
     combat::{
         phases::TransitionPhaseEvent,
         skills::{Skill, TargetOption},
-        Action, ActionCount, CombatResources, CombatState, InCombat,
+        Action, ActionCount, CombatResources, CombatState, InCombat, Recruted,
     },
-    constants::ui::dialogs::*,
+    constants::{
+        combat::{FIRST_ALLY_ID, FIRST_ENEMY_ID, MAX_PARTY},
+        ui::dialogs::*,
+    },
     ui::{
         combat_panel::{ActionDisplayer, SkillDisplayer},
         combat_system::{Selected, Targeted},
@@ -379,7 +382,7 @@ pub fn cancel_last_input(
         info!("Esc in {:?}", current_phase);
 
         match current_phase {
-            CombatState::SelectionSkill => {
+            CombatState::SelectionSkill | CombatState::BrowseEnemySheet => {
                 let (selected, name) = selected_unit_query.single();
 
                 commands.entity(selected).remove::<Selected>();
@@ -586,5 +589,72 @@ pub fn mini_character_sheet_interact(
     }
 }
 
-// TODO: Browse among sheets (arrows), especially for Enemy Sheets
+/// TODO: Browse among sheets (arrows), especially for Enemy Sheets
+pub fn browse_character_sheet(
+    keys: Res<Input<KeyCode>>,
+    combat_resources: Res<CombatResources>,
+    // DEBUG: Print the Phase if no selected
+    combat_phase: Res<CombatState>,
+
+    selected_unit_query: Query<&InCombat, With<Selected>>,
+    unselected_ally_units_query: Query<(Entity, &InCombat), (With<Recruted>, Without<Selected>)>,
+    unselected_enemy_units_query: Query<
+        (Entity, &InCombat),
+        (Without<Recruted>, Without<Selected>),
+    >,
+
+    mut select_event: EventWriter<UpdateUnitSelectedEvent>,
+) {
+    // XXX: Tempo the phase transi after cancel_input in SelectionSkill/BrowseEnemySheet
+    if let Err(_) = selected_unit_query.get_single() {
+        warn!("No Selected in {:?}", combat_phase);
+    }
+
+    // TODO: CouldHave - UI Inputs - Hold press handle: `.pressed()`
+    // IDEA: UI Inputs - The Pack Of Scrolls could keep the last enemy selected
+    if keys.any_just_pressed([KeyCode::Left, KeyCode::Right]) {
+        let selected_id = selected_unit_query.single();
+        let next_id = if keys.just_pressed(KeyCode::Right) {
+            if selected_id.0 == combat_resources.number_of_fighters.ally.total - 1 {
+                FIRST_ALLY_ID
+            } else if selected_id.0
+                == combat_resources.number_of_fighters.enemy.total + MAX_PARTY - 1
+            {
+                FIRST_ENEMY_ID
+            } else {
+                selected_id.0 + 1
+            }
+        } else {
+            if selected_id.0 == FIRST_ALLY_ID {
+                combat_resources.number_of_fighters.ally.total - 1
+            } else if selected_id.0 == FIRST_ENEMY_ID {
+                combat_resources.number_of_fighters.enemy.total + MAX_PARTY - 1
+            } else {
+                selected_id.0 - 1
+            }
+        };
+
+        if next_id == selected_id.0 {
+            return;
+        }
+
+        // OPTIMIZE: the id search (a hash table ? (separated from CharacterSheetElements which represent the unique big CS))
+        if next_id < MAX_PARTY {
+            for (fighter, id) in unselected_ally_units_query.iter() {
+                if id.0 == next_id {
+                    select_event.send(UpdateUnitSelectedEvent(fighter));
+                    break;
+                }
+            }
+        } else {
+            for (fighter, id) in unselected_enemy_units_query.iter() {
+                if id.0 == next_id {
+                    select_event.send(UpdateUnitSelectedEvent(fighter));
+                    break;
+                }
+            }
+        }
+    }
+}
+
 // TODO: PostDemo - equip stuffs

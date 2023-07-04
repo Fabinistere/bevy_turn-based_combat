@@ -82,6 +82,7 @@ impl Plugin for UiPlugin {
                 (
                     combat_system::caster_selection,
                     combat_system::update_selected_unit.after(UiLabel::Player),
+
                     player_interaction::end_of_turn_button,
                     // prevent clicking a MiniCharSheet while already in "Character Sheet Focused", which cover the MiniCS.   
                     player_interaction::mini_character_sheet_interact.in_set(UiLabel::Player),
@@ -91,15 +92,18 @@ impl Plugin for UiPlugin {
             // in SkillPhase: There is one selected
             .add_systems(
                 (
-                    combat_system::caster_selection,
-                    combat_system::update_selected_unit.after(UiLabel::Player),
                     player_interaction::select_skill,
+                    player_interaction::browse_character_sheet,
                     // FIXME: In SelectionSkill, the end_of_turn trigger twice, CombatStates -> derive States could fix that but having so much States might not be so cool
                     // cancel the current action if imcomplete -----vvv
                     player_interaction::end_of_turn_button,
+
+                    combat_system::caster_selection,
+                    combat_system::update_selected_unit.after(UiLabel::Player),
+
                     character_sheet::update_headers,
-                    character_sheet::update_caster_stats_panel.after(UiLabel::Player),
                     character_sheet::update_weapon_displayer,
+                    character_sheet::update_caster_stats_panel.after(UiLabel::Player),
                 )
                     .in_set(CombatState::SelectionSkill)
             )
@@ -107,12 +111,14 @@ impl Plugin for UiPlugin {
                 (
                     combat_system::target_selection,
                     combat_system::update_targeted_unit.after(UiLabel::Player),
+
                     // switch to a new action ----vvv
                     player_interaction::select_skill,
                     player_interaction::end_of_turn_button,
+
                     // character_sheet::update_headers,
-                    character_sheet::update_caster_stats_panel.after(UiLabel::Player),
                     // character_sheet::update_weapon_displayer,
+                    character_sheet::update_caster_stats_panel.after(UiLabel::Player),
                 )
                     .in_set(CombatState::SelectionTarget)
             )
@@ -122,6 +128,21 @@ impl Plugin for UiPlugin {
             .add_system(
                 // always run
                 combat_system::update_alterations_status.after(CombatState::ExecuteSkills)
+            )
+
+            .add_systems(
+                (
+                    player_interaction::browse_character_sheet,
+                    player_interaction::end_of_turn_button,
+
+                    combat_system::caster_selection,
+                    combat_system::update_selected_unit.after(UiLabel::Player),
+
+                    character_sheet::update_headers,
+                    character_sheet::update_caster_stats_panel.after(UiLabel::Player),
+                    character_sheet::update_weapon_displayer,
+                )
+                    .in_set(CombatState::BrowseEnemySheet)
             )
             // .add_systems(
             //     ().run_if(in_evasive_phase)

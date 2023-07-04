@@ -361,13 +361,13 @@ pub fn skill_visibility(
                     let mastery_tier: Option<&MasteryTier> =
                         jobs_masteries_resource.get(&(*job, *weapon_type));
 
-                    info!(
-                        "Job {:?} is {:?} with {:?}",
-                        *job, mastery_tier, *weapon_type
-                    );
+                    // info!(
+                    //     "Job {:?} is {:?} with {:?}",
+                    //     *job, mastery_tier, *weapon_type
+                    // );
 
                     if None == mastery_tier {
-                        info!("Job {:?} is not associated with {:?}", *job, *weapon_type);
+                        warn!("Job {:?} is not associated with {:?}", *job, *weapon_type);
                     }
 
                     if Some(MasteryTier::Two) == mastery_tier.copied() {

@@ -170,6 +170,7 @@ pub fn phase_transition(
             /*                              Cancel Transition                             */
             /* -------------------------------------------------------------------------- */
             (CombatState::SelectionSkill, CombatState::SelectionCaster) => {}
+            (CombatState::BrowseEnemySheet, CombatState::SelectionCaster) => {}
             (CombatState::SelectionCaster, CombatState::SelectionTarget) => {
                 /* - If the action.targets == None: bypass to SelectionSkill
                  * - ElseIf the action was a selfcast: bypass to SelectionSkill
