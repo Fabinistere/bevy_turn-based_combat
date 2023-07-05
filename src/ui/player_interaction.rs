@@ -28,10 +28,6 @@ use super::{combat_panel::MiniCharacterSheet, combat_system::UpdateUnitSelectedE
 /*                          ----- UI Components -----                         */
 /* -------------------------------------------------------------------------- */
 
-/// BUG: Must Adapt to resolution (see bug in `ui::player_interaction::select_unit_by_mouse()`)
-/// REFACTOR: Put this const into `constants.rs`
-pub const SPRITE_SIZE: (f32, f32) = (25.0, 40.0);
-
 #[derive(Component)]
 pub struct Hoverable;
 // {
@@ -162,19 +158,20 @@ pub fn select_unit_by_mouse(
     >,
     // mut update_unit_selected_event: EventWriter<UpdateUnitSelectedEvent>,
 ) {
-    let Ok(primary) = primary_query.get_single() else {
-        return;
-    };
-    let (camera, camera_transform) = camera_q.single();
+    if buttons.just_pressed(MouseButton::Left) {
+        let Ok(primary) = primary_query.get_single() else {
+            return;
+        };
+        let (camera, camera_transform) = camera_q.single();
 
-    // check if the cursor is inside the window and get its position
-    // then, ask bevy to convert into world coordinates, and truncate to discard Z
-    if let Some(world_position) = primary
-        .cursor_position()
-        .and_then(|cursor| camera.viewport_to_world_2d(camera_transform, cursor))
-    {
-        // eprintln!("World coords: {}/{}", world_position.x, world_position.y);
-        if buttons.just_pressed(MouseButton::Left) {
+        // check if the cursor is inside the window and get its position
+        // then, ask bevy to convert into world coordinates, and truncate to discard Z
+        if let Some(world_position) = primary
+            .cursor_position()
+            .and_then(|cursor| camera.viewport_to_world_2d(camera_transform, cursor))
+        {
+            // eprintln!("World coords: {}/{}", world_position.x, world_position.y);
+
             for (unit, transform, sprite_size, _name) in selectable_unit_query.iter() {
                 let half_width = (sprite_size.width * transform.scale.x) / 2.0;
                 let half_height = (sprite_size.height * transform.scale.y) / 2.0;
@@ -188,11 +185,14 @@ pub fn select_unit_by_mouse(
                     commands.entity(unit).insert(Clicked);
                     // v-- instead of --^
                     // update_unit_selected_event.send(UpdateUnitSelectedEvent(unit));
+
+                    // prevent when clicking on overlapping entities
+                    break;
                 }
             }
+        } else {
+            // cursor is not inside the window
         }
-    } else {
-        // cursor is not inside the window
     }
 }
 
@@ -218,6 +218,8 @@ pub fn select_skill(
     unit_selected_query: Query<(Entity, &Name, &ActionCount), With<Selected>>,
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
+    // TOTEST: Why does this Query triggered in a phase transi ?
+    // Maybe because since the spawn the change didn't get treated ?
     for (interaction, skill, mut color, children) in &mut interaction_query {
         let mut text = text_query.get_mut(children[0]).unwrap();
 
@@ -343,7 +345,7 @@ pub fn end_of_turn_button(
                 // Pressed
                 info!("End of Turn - Requested");
 
-                transition_phase_event.send(TransitionPhaseEvent(CombatState::RollInitiative));
+                transition_phase_event.send(TransitionPhaseEvent(CombatState::AIStrategy));
 
                 text.sections[0].value = "Next".to_string();
             }
@@ -361,9 +363,9 @@ pub fn end_of_turn_button(
 /// depending of the phase we're in,
 /// will undo the previous input (predicted, not real undo)
 ///
-/// Many operation are processed in `combat::phases::phase_transition()`
-///
 /// # Note
+///
+/// Many operation are processed in `combat::phases::phase_transition()`.
 ///
 /// Can be an [Exclusive System](https://github.com/bevyengine/bevy/blob/1c5c94715cb17cda5ae209eef12a938501de90b5/examples/ecs/ecs_guide.rs#L198)
 pub fn cancel_last_input(
@@ -473,7 +475,8 @@ pub fn cancel_last_input(
     }
 }
 
-/// Button interaction system for ActionDisplayer
+/// Button interaction system for ActionDisplayer,
+/// In the Initiative Vertical Bar.
 ///
 /// # Behavior
 ///
@@ -608,6 +611,7 @@ pub fn browse_character_sheet(
     // XXX: Tempo the phase transi after cancel_input in SelectionSkill/BrowseEnemySheet
     if let Err(_) = selected_unit_query.get_single() {
         warn!("No Selected in {:?}", combat_phase);
+        return;
     }
 
     // TODO: CouldHave - UI Inputs - Hold press handle: `.pressed()`

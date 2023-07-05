@@ -181,7 +181,7 @@ pub fn phase_transition(
             /* -------------------------------------------------------------------------- */
             /*                                 End of Turn                                */
             /* -------------------------------------------------------------------------- */
-            (_, CombatState::RollInitiative) => {
+            (_, CombatState::AIStrategy) => {
                 // TODO: Warning if there is still action left
                 // XXX: this is a safeguard preventing from double click the `end_of_turn` (wasn't a pb back there)
                 if combat_resources.history.len() == 0 {
@@ -198,7 +198,8 @@ pub fn phase_transition(
                     commands.entity(targeted).remove::<Targeted>();
                 }
                 info!("End of Turn - Accepted");
-
+            }
+            (_, CombatState::RollInitiative) => {
                 combat_resources.number_of_turn += 1;
             }
             (CombatState::RollInitiative, CombatState::ExecuteSkills) => {
@@ -492,5 +493,6 @@ pub fn execution_phase(
         }
     }
 
+    // Start of New turn
     transition_phase_event.send(TransitionPhaseEvent(CombatState::AlterationsExecution));
 }

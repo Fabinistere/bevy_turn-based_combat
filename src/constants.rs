@@ -27,6 +27,10 @@ pub mod character {
 
     pub const CHAR_SCALE: f32 = 0.6 * TILE_SIZE;
 
+    /// BUG: Must Adapt to resolution (see bug in `ui::player_interaction::select_unit_by_mouse()`).
+    /// The size is offset when in a different resolution/Window Size than (1920,1080)
+    pub const SPRITE_SIZE: (f32, f32) = (25.0, 40.0);
+
     pub const KARMA_MIN: i32 = -100;
     pub const KARMA_MAX: i32 = 100;
 
