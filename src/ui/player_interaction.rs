@@ -345,7 +345,7 @@ pub fn end_of_turn_button(
                 // Pressed
                 info!("End of Turn - Requested");
 
-                transition_phase_event.send(TransitionPhaseEvent(CombatState::RollInitiative));
+                transition_phase_event.send(TransitionPhaseEvent(CombatState::AIStrategy));
 
                 text.sections[0].value = "Next".to_string();
             }

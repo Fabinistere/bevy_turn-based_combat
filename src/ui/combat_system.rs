@@ -340,6 +340,7 @@ pub fn actions_logs_displayer(
 /// # Note
 ///
 /// IDEA: Atm each turn it resets
+/// TODO: Visual - Implicit the caster (and myabe their team with color)
 pub fn current_action_formater(
     combat_resources: Res<CombatResources>,
     mut action_history: ResMut<ActionHistory>,
