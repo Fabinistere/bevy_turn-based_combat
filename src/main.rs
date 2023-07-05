@@ -21,8 +21,6 @@ use ui::UiPlugin;
 
 #[rustfmt::skip]
 fn main() {
-    // let height = 720.0;
-
     let mut app = App::new();
     app.insert_resource(ClearColor(CLEAR))
         .insert_resource(Msaa::Off)
