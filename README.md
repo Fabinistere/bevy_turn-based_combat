@@ -29,6 +29,7 @@ Assets are deported on a different cloud to stop wasting git use which is very c
   - [ ] NPC Behavior
     - [ ] Vision
     - [ ] Strategy
+      - [ ] TODO: MustHave - Random
       - [ ] TODO: MustHave - SoloButMemory with history of their allies' actions
       - [ ] TODO: CouldHave - SoloBolo
       - [ ] TODO: PostDemo - HiveMind

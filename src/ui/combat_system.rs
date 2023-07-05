@@ -118,18 +118,18 @@ pub fn update_selected_unit(
     combat_units_query: Query<&InCombat>,
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
-    for event in event_query.iter() {
+    for UpdateUnitSelectedEvent(clicked) in event_query.iter() {
         if let Ok(selected) = selected_unit_query.get_single() {
-            if selected != event.0 {
+            if selected != *clicked {
                 commands.entity(selected).remove::<Selected>();
                 // info!("{:?} was selected", selected);
             }
         }
-        commands.entity(event.0).insert(Selected);
-        // info!("{:?} is now selected", event.0);
+        commands.entity(*clicked).insert(Selected);
+        // info!("{:?} is now selected", *clicked);
 
         // REFACTOR: ? - test ID or test if Recruted or not
-        let id = combat_units_query.get(event.0).unwrap();
+        let id = combat_units_query.get(*clicked).unwrap();
         if id.0 < MAX_PARTY {
             transition_phase_event.send(TransitionPhaseEvent(CombatState::SelectionSkill));
         } else {
@@ -143,7 +143,7 @@ pub fn update_selected_unit(
 ///
 /// # Note
 ///
-/// REFACTOR: maybe merge Targeted with Selected
+/// REFACTOR: ? - maybe merge Targeted with Selected
 /// Differentiation only when selecting a skill
 pub fn update_targeted_unit(
     mut commands: Commands,
@@ -156,8 +156,8 @@ pub fn update_targeted_unit(
 
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
-    for event in event_query.iter() {
-        match combat_units_query.get(event.0) {
+    for UpdateUnitTargetedEvent(clicked) in event_query.iter() {
+        match combat_units_query.get(*clicked) {
             Err(e) => warn!("The entity targeted is invalid: {:?}", e),
             Ok((character, target_name, target_team)) => {
                 // BUG: ?
@@ -340,6 +340,7 @@ pub fn actions_logs_displayer(
 /// # Note
 ///
 /// IDEA: Atm each turn it resets
+/// TODO: Visual - Implicit the caster (and myabe their team with color)
 pub fn current_action_formater(
     combat_resources: Res<CombatResources>,
     mut action_history: ResMut<ActionHistory>,

@@ -241,16 +241,16 @@ pub fn execute_skill(
 
                 let skill_executed = &skill;
 
-                // TODO: turn delay?
+                // TODO: PostDemo - turn delay?
 
                 // ---- COST ----
 
                 // If the caster is already deadge, stop the execution
 
-                // TODO: must have - cancel the skill if the mana/shield requirement is not fully satisfied
+                // TODO: MustHave - cancel the skill if the mana/shield requirement is not fully satisfied
                 // ^^^^^--- in case of a other skill, just before, lower their mana/shield count
 
-                // TODO: feature - reduce cost by stuff and level
+                // TODO: PostDemo - feature - reduce cost by stuff and level
                 caster_hp.current -= skill_executed.hp_cost;
                 caster_mp.current -= skill_executed.mana_cost;
                 caster_shield.0 -= skill_executed.shield_dealt;
@@ -322,7 +322,7 @@ pub fn execute_skill(
                         defense_multiplier += target_defense.base as f32;
 
                         // x * (caster_attack + caster_alt_att)% / (target_defense + target_alt_def)% * (caster_alt_dmg_inflicted - target_alt_dmg_suffered)%
-                        // round to the bottom
+                        // round to the bottom (i32)
                         let hp_dealt = (skill_executed.hp_dealt as f32
                             * (attack_multiplier / 100.)
                             * (damage_multiplier / 100.)
