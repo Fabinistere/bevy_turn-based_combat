@@ -492,7 +492,9 @@ pub fn update_number_of_fighters(
     ally_units_query: Query<&Hp, (With<Recruted>, Without<Player>, With<InCombat>)>,
     enemy_units_query: Query<&Hp, (Without<Recruted>, Without<Player>, With<InCombat>)>,
 ) {
-    if !updated_units_query.is_empty() || created_units_query.is_empty() {
+    if !updated_units_query.is_empty() || !created_units_query.is_empty() {
+        // info!("Update Combat Global Stats");
+        
         let player_hp = player_query.single();
 
         combat_panel.number_of_fighters.ally = FightersCount::default();

@@ -10,11 +10,11 @@ use crate::{
         Skills, TacticalPlace, TacticalPosition, Team,
     },
     constants::{
-        character::{npc::*, CHAR_SCALE},
+        character::{npc::*, CHAR_SCALE, SPRITE_SIZE},
         combat::{team::*, FIRST_ALLY_ID, FIRST_ENEMY_ID},
     },
     spritesheet::FabienSheet,
-    ui::player_interaction::{Clickable, Hoverable, SpriteSize, SPRITE_SIZE},
+    ui::player_interaction::{Clickable, Hoverable, SpriteSize},
 };
 
 #[derive(Default, Component, Reflect)]
