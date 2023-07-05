@@ -79,6 +79,12 @@ pub enum CombatState {
     /// There is at least one action in the history
     /// The one selected is the exact same one from SelectionSkill
     SelectionTarget,
+    /// `Strategic AI Assessment`,
+    /// `Intelligent Combat Decision`,
+    /// `Algorithmic Battle Planning`,
+    /// `NPC Tactical Evaluation`,
+    /// `Automated Decision-Making`.
+    AIStrategy,
     RollInitiative,
     ExecuteSkills,
     
@@ -129,6 +135,11 @@ impl Plugin for CombatPlugin {
             .configure_set(
                 CombatState::SelectionTarget
                     .run_if(in_target_phase)
+                    .in_set(OnUpdate(GameState::CombatWall))
+            )
+            .configure_set(
+                CombatState::AIStrategy
+                    .run_if(in_ai_strategy_phase)
                     .in_set(OnUpdate(GameState::CombatWall))
             )
             .configure_set(
@@ -547,6 +558,10 @@ pub fn in_skill_phase(combat_state: Res<CombatState>) -> bool {
 
 pub fn in_target_phase(combat_state: Res<CombatState>) -> bool {
     *combat_state == CombatState::SelectionTarget
+}
+
+pub fn in_ai_strategy_phase(combat_state: Res<CombatState>) -> bool {
+    *combat_state == CombatState::AIStrategy
 }
 
 pub fn in_initiative_phase(combat_state: Res<CombatState>) -> bool {

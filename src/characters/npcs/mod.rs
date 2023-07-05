@@ -6,8 +6,8 @@ use crate::{
     combat::{
         skills::Skill,
         stuff::{Equipements, Job, WeaponBundle},
-        ActionCount, AllAlterationStatuses, CombatBundle, InCombat, Karma, Player, Recruted,
-        Skills, TacticalPlace, TacticalPosition, Team,
+        ActionCount, AllAlterationStatuses, CombatBundle, CombatState, InCombat, Karma, Player,
+        Recruted, Skills, TacticalPlace, TacticalPosition, Team,
     },
     constants::{
         character::{npc::*, CHAR_SCALE, SPRITE_SIZE},
@@ -17,6 +17,8 @@ use crate::{
     ui::player_interaction::{Clickable, Hoverable, SpriteSize},
 };
 
+pub mod ai;
+
 #[derive(Default, Component, Reflect)]
 pub struct NPC;
 
@@ -24,8 +26,11 @@ pub struct NPC;
 pub struct NPCPlugin;
 
 impl Plugin for NPCPlugin {
+    #[rustfmt::skip]
     fn build(&self, app: &mut App) {
-        app.add_startup_system(spawn_characters);
+        app
+            .add_startup_system(spawn_characters)
+            .add_system(ai::ai_decision_making.in_set(CombatState::AIStrategy));
     }
 }
 
