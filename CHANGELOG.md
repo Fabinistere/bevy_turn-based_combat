@@ -23,7 +23,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - browse between allies (arrows)
   - browse between enemies (arrows)
 
-
 ### Changed
 
 ### Fixed
