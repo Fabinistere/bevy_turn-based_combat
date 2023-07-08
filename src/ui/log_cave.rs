@@ -130,11 +130,35 @@ pub fn setup(
                 HUDLog,
             ))
             .with_children(|parent| {
+                // TODO: Scroll the logWall and ladder - (The ladder breaks the log scrolling)
+                parent.spawn((
+                    ImageBundle {
+                        image: UiImage {
+                            texture: combat_log_resources.ladder.clone(),
+                            flip_y: true,
+                            ..default()
+                        },
+                        style: Style {
+                            // it could be this linethat break the scrolling
+                            flex_shrink: 0.,
+                            // NOT QUITE RIGHT
+                            size: Size::width(Val::Percent(27.5)),
+                            position: UiRect::left(Val::Percent(7.3)), // -0.5
+                            ..default()
+                        },
+                        ..default()
+                    },
+                    Name::new("Upwards Ladder"),
+                    Interaction::default(),
+                    // AccessibilityNode(NodeBuilder::new(Role::ListItem)),
+                    Ladder,
+                ));
+
                 parent
                     .spawn((
                         NodeBundle {
                             style: Style {
-                                flex_shrink: 0.,
+                                // flex_shrink: 0.,
                                 size: Size::new(Val::Percent(82.), Val::Percent(100.)),
                                 flex_direction: FlexDirection::Column,
                                 align_self: AlignSelf::Center,
@@ -162,27 +186,6 @@ pub fn setup(
                                 // TODO: UI - Title that's stick to the top while scrolling their section
                                 // FIXME: Line Width in Log needs to be dynamic
                                 // List items
-                                parent.spawn((
-                                    ImageBundle {
-                                        image: UiImage {
-                                            texture: combat_log_resources.ladder.clone(),
-                                            flip_y: true,
-                                            ..default()
-                                        },
-                                        style: Style {
-                                            flex_shrink: 0.,
-                                            // NOT QUITE RIGHT
-                                            size: Size::width(Val::Percent(27.5)),
-                                            position: UiRect::left(Val::Percent(-0.5)),
-                                            ..default()
-                                        },
-                                        ..default()
-                                    },
-                                    Name::new("Upwards Ladder"),
-                                    Interaction::default(),
-                                    AccessibilityNode(NodeBuilder::new(Role::ListItem)),
-                                    Ladder,
-                                ));
 
                                 parent.spawn((
                                     TextBundle::from_section(
@@ -191,7 +194,6 @@ pub fn setup(
                                     )
                                     .with_style(Style {
                                         flex_wrap: FlexWrap::Wrap,
-                                        // flex_shrink: 0.,
                                         size: Size::AUTO,
                                         // margin: UiRect {
                                         //     left: Val::Auto,
@@ -214,7 +216,6 @@ pub fn setup(
                                     )
                                     .with_style(Style {
                                         flex_wrap: FlexWrap::Wrap,
-                                        // flex_shrink: 0.,
                                         size: Size::AUTO,
                                         // margin: UiRect {
                                         //     left: Val::Auto,
@@ -237,7 +238,6 @@ pub fn setup(
                                     )
                                     .with_style(Style {
                                         flex_wrap: FlexWrap::Wrap,
-                                        // flex_shrink: 0.,
                                         size: Size::AUTO,
                                         // margin: UiRect {
                                         //     left: Val::Auto,

@@ -227,7 +227,7 @@ pub fn phase_transition(
                 last_action_history.0 = action_history
                     .clone()
                     .0
-                    .replace("Actions:", "Last Turn Actions:");
+                    .replace("Current Turn Actions:", "Last Turn Actions:");
                 // --------------------- DEBUG --------------------------
 
                 // Reset the action history

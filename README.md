@@ -7,7 +7,7 @@ This project has purpose to help rust game dev to implement a full turn-based co
 
 ## [Release Demo](https://fabinistere.github.io/bevy_turn-based_combat/)
 
-v0.4
+[![v0.5](https://img.shields.io/badge/v0.5-gray?style=flat&logo=github&logoColor=181717&link=https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.5)](https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.5)
 
 ## Assets
 
