@@ -12,6 +12,10 @@ use crate::{
     ui::{combat_panel::CombatStateDisplayer, player_interaction::Clicked},
 };
 
+use super::log_cave::{
+    ActionHistoryDisplayer, ActionsLogsDisplayer, HUDLog, LastActionHistoryDisplayer,
+};
+
 /* -------------------------------------------------------------------------- */
 /*                                UI Components                               */
 /* -------------------------------------------------------------------------- */
@@ -35,25 +39,13 @@ pub struct MpMeter;
 #[derive(Resource, Debug, Reflect, Deref, DerefMut, Clone)]
 pub struct ActionHistory(pub String);
 
-/// Points to the UI Text which display Current Action History
-#[derive(Component)]
-pub struct ActionHistoryDisplayer;
-
 /// Last turn Action History
 #[derive(Resource, Debug, Reflect, Deref, DerefMut, Clone)]
 pub struct LastTurnActionHistory(pub String);
 
-/// Points to the UI Text which display Last Turn Action History
-#[derive(Component)]
-pub struct LastActionHistoryDisplayer;
-
 /// Logs Action History
 #[derive(Resource, Debug, Reflect, Deref, DerefMut, Clone)]
 pub struct ActionsLogs(pub String);
-
-/// Points to the UI Text which display Last Turn Actions Precise Logs
-#[derive(Component)]
-pub struct ActionsLogsDisplayer;
 
 /// DOC
 pub struct UpdateUnitSelectedEvent(pub Entity);
@@ -301,7 +293,6 @@ pub fn update_combat_phase_displayer(
     combat_state: Res<CombatState>,
     mut combat_state_displayer_query: Query<&mut Text, With<CombatStateDisplayer>>,
 ) {
-    // FIXME: don't update afterwards if wasn't on the Logs Panel
     if combat_state.is_changed() {
         if let Ok(mut text) = combat_state_displayer_query.get_single_mut() {
             text.sections[0].value = format!("Combat Phase: {:?}", combat_state);
@@ -317,6 +308,8 @@ pub fn update_combat_phase_displayer(
 /// IDEA: CouldHave - Character's Event (Died, killed thingy, etc)
 pub fn actions_logs_displayer(
     actions_logs: Res<ActionsLogs>,
+    log_cave_just_created_query: Query<Entity, Added<HUDLog>>,
+
     mut actions_logs_query: Query<
         &mut Text,
         (
@@ -326,9 +319,7 @@ pub fn actions_logs_displayer(
         ),
     >,
 ) {
-    // FIXME: don't update afterwards if wasn't on the Logs Panel
-    // fixed by: || in_enter(UILocation::LogsPanel)
-    if actions_logs.is_changed() {
+    if actions_logs.is_changed() || !log_cave_just_created_query.is_empty() {
         if let Ok(mut actions_logs_text) = actions_logs_query.get_single_mut() {
             actions_logs_text.sections[0].value = actions_logs.clone().0;
         }
@@ -348,7 +339,7 @@ pub fn current_action_formater(
     combat_units_query: Query<(Entity, &Name), With<InCombat>>,
 ) {
     if combat_resources.is_changed() {
-        action_history.0 = String::from("---------------\nActions:");
+        action_history.0 = String::from("---------------\nCurrent Turn Actions:");
 
         for (number, action) in combat_resources.history.iter().enumerate() {
             if let Ok((_, caster_name)) = combat_units_query.get(action.caster) {
@@ -400,11 +391,11 @@ pub fn current_action_formater(
 /// DEBUG: current_action_displayer()
 pub fn current_action_displayer(
     action_history: Res<ActionHistory>,
+    log_cave_just_created_query: Query<Entity, Added<HUDLog>>,
+
     mut action_displayer_query: Query<&mut Text, With<ActionHistoryDisplayer>>,
 ) {
-    // FIXME: don't update afterwards if wasn't on the Logs Panel
-    // fixed by: || in_enter(UILocation::LogsPanel)
-    if action_history.is_changed() {
+    if action_history.is_changed() || !log_cave_just_created_query.is_empty() {
         if let Ok(mut action_displayer_text) = action_displayer_query.get_single_mut() {
             action_displayer_text.sections[0].value = action_history.clone().0;
         }
@@ -418,11 +409,10 @@ pub fn current_action_displayer(
 /// DEBUG: last_action_displayer()
 pub fn last_action_displayer(
     last_action_history: Res<LastTurnActionHistory>,
+    log_cave_just_created_query: Query<Entity, Added<HUDLog>>,
     mut last_action_displayer_query: Query<&mut Text, With<LastActionHistoryDisplayer>>,
 ) {
-    // FIXME: don't update afterwards if wasn't on the Logs Panel
-    // fixed by: || in_enter(UILocation::LogsPanel)
-    if last_action_history.is_changed() {
+    if last_action_history.is_changed() || !log_cave_just_created_query.is_empty() {
         if let Ok(mut last_action_displayer_text) = last_action_displayer_query.get_single_mut() {
             last_action_displayer_text.sections[0].value = last_action_history.clone().0;
         }

@@ -10,7 +10,7 @@ use crate::{
     combat::{
         phases::TransitionPhaseEvent,
         skills::{Skill, TargetOption},
-        Action, ActionCount, CombatResources, CombatState, InCombat, Recruted,
+        Action, ActionCount, CombatResources, CombatState, GameState, InCombat, Recruted,
     },
     constants::{
         combat::{FIRST_ALLY_ID, FIRST_ENEMY_ID, MAX_PARTY},
@@ -146,6 +146,9 @@ pub fn mouse_scroll(
 pub fn select_unit_by_mouse(
     mut commands: Commands,
 
+    game_state: Res<State<GameState>>,
+    mut next_state: ResMut<NextState<GameState>>,
+
     primary_query: Query<&Window, With<PrimaryWindow>>,
     // query to get camera transform
     // With<MainCamera>
@@ -181,6 +184,15 @@ pub fn select_unit_by_mouse(
                     && transform.translation.y - half_height < world_position.y
                     && transform.translation.y + half_height > world_position.y
                 {
+                    match game_state.0.clone() {
+                        GameState::LogCave => {
+                            info!("Transi LogCave -> CombatWall");
+                            next_state.set(GameState::CombatWall);
+                            // return;
+                        }
+                        _ => {}
+                    }
+
                     // info!("{} clicked", _name);
                     commands.entity(unit).insert(Clicked);
                     // v-- instead of --^
@@ -363,6 +375,8 @@ pub fn end_of_turn_button(
 /// depending of the phase we're in,
 /// will undo the previous input (predicted, not real undo)
 ///
+/// If in LogCave, just transi to CombatWall.
+///
 /// # Note
 ///
 /// Many operation are processed in `combat::phases::phase_transition()`.
@@ -371,6 +385,10 @@ pub fn end_of_turn_button(
 pub fn cancel_last_input(
     mut commands: Commands,
     keyboard_input: Res<Input<KeyCode>>,
+
+    game_state: Res<State<GameState>>,
+    mut next_state: ResMut<NextState<GameState>>,
+
     mut combat_resources: ResMut<CombatResources>,
     combat_state: Res<CombatState>,
 
@@ -380,6 +398,15 @@ pub fn cancel_last_input(
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
     if keyboard_input.just_pressed(KeyCode::Escape) {
+        match game_state.0.clone() {
+            GameState::LogCave => {
+                info!("Transi LogCave -> CombatWall");
+                next_state.set(GameState::CombatWall);
+                return;
+            }
+            _ => {}
+        }
+
         let current_phase = combat_state.clone();
         info!("Esc in {:?}", current_phase);
 
