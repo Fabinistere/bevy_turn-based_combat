@@ -160,6 +160,7 @@ pub fn setup(
                             ))
                             .with_children(|parent| {
                                 // TODO: UI - Title that's stick to the top while scrolling their section
+                                // FIXME: Line Width in Log needs to be dynamic
                                 // List items
                                 parent.spawn((
                                     ImageBundle {
