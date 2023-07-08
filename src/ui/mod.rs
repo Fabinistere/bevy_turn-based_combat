@@ -8,12 +8,13 @@ use crate::{
     },
 };
 
-use self::{combat_system::{ActionHistory, ActionsLogs, LastTurnActionHistory}, combat_panel::{CharacterSheetElements, CombatWallResources, CharacterSheetAssetsResources}};
+use self::{combat_system::{ActionHistory, ActionsLogs, LastTurnActionHistory}, combat_panel::{CharacterSheetElements, CombatWallResources, CharacterSheetAssetsResources}, log_cave::CombatLogResources};
 
 pub mod character_sheet;
 pub mod combat_panel;
 pub mod combat_system;
 pub mod initiative_bar;
+pub mod log_cave;
 pub mod player_interaction;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SystemSet)]
@@ -47,11 +48,11 @@ impl Plugin for UiPlugin {
             .insert_resource(CharacterSheetElements::default())
             .init_resource::<FabiensInfos>()
             .init_resource::<CombatWallResources>()
+            .init_resource::<CombatLogResources>()
             .init_resource::<CharacterSheetAssetsResources>()
 
             .add_event::<combat_system::UpdateUnitSelectedEvent>()
             .add_event::<combat_system::UpdateUnitTargetedEvent>()
-
             
             /* -------------------------------------------------------------------------- */
             /*                         --- Player Input Global ---                        */
@@ -59,8 +60,9 @@ impl Plugin for UiPlugin {
             .add_systems(
                 (
                     player_interaction::mouse_scroll,
-                    player_interaction::select_unit_by_mouse,
                     player_interaction::cancel_last_input,
+                    // TODO: another system handle esc input in LogCave (transi to CombatWall + select the unit)
+                    player_interaction::select_unit_by_mouse, // .in_set(OnUpdate(GameState::CombatWall))
                 ).in_set(UiLabel::Player)
             )
             .add_system(player_interaction::action_button.after(initiative_bar::action_visibility))
@@ -70,6 +72,18 @@ impl Plugin for UiPlugin {
             /* -------------------------------------------------------------------------- */
 
             .add_system(combat_panel::setup.in_schedule(OnEnter(GameState::CombatWall)))
+            .add_system(combat_panel::cleanup.in_schedule(OnExit(GameState::CombatWall)))
+            
+            // .add_system(log_cave::cave_ladder.in_set(UiLabel::Player))
+            
+            .add_systems(
+                (
+                    log_cave::setup,
+                    combat_system::current_action_displayer.after(log_cave::setup),
+                )
+                    .in_schedule(OnEnter(GameState::LogCave))
+            )
+            .add_system(log_cave::cleanup.in_schedule(OnExit(GameState::LogCave)))
 
             /* -------------------------------------------------------------------------- */
             /*                            --- Limited Phase ---                           */
@@ -83,29 +97,31 @@ impl Plugin for UiPlugin {
                     combat_system::caster_selection,
                     combat_system::update_selected_unit.after(UiLabel::Player),
 
-                    player_interaction::end_of_turn_button,
+                    player_interaction::end_of_turn_button.in_set(UiLabel::Player),
                     // prevent clicking a MiniCharSheet while already in "Character Sheet Focused", which cover the MiniCS.   
                     player_interaction::mini_character_sheet_interact.in_set(UiLabel::Player),
+                    log_cave::cave_ladder.in_set(UiLabel::Player),
                 )
                     .in_set(CombatState::SelectionCaster)
             )
             // in SkillPhase: There is one selected
             .add_systems(
                 (
-                    player_interaction::select_skill,
-                    player_interaction::browse_character_sheet,
-                    // FIXME: In SelectionSkill, the end_of_turn trigger twice, CombatStates -> derive States could fix that but having so much States might not be so cool
-                    // cancel the current action if imcomplete -----vvv
-                    player_interaction::end_of_turn_button,
-
                     combat_system::caster_selection,
                     combat_system::update_selected_unit.after(UiLabel::Player),
+
+                    // cancel the current action if imcomplete -----vvv
+                    player_interaction::end_of_turn_button.in_set(UiLabel::Player),
+                    player_interaction::select_skill.in_set(UiLabel::Player),
+                    player_interaction::browse_character_sheet.in_set(UiLabel::Player),
+                    // FIXME: In SelectionSkill, the end_of_turn trigger twice, CombatStates -> derive States could fix that but having so much States might not be so cool
 
                     character_sheet::update_headers,
                     character_sheet::update_weapon_displayer,
                     character_sheet::update_caster_stats_panel.after(UiLabel::Player),
                 )
                     .in_set(CombatState::SelectionSkill)
+                    // .in_set(OnUpdate(GameState::CombatWall)) // TOTEST: Keep this schedule may crash the system (event handler etc)
             )
             .add_systems(
                 (

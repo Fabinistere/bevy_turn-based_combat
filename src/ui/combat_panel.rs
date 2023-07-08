@@ -14,7 +14,7 @@ use crate::{
         CombatResources,
     },
     constants::{
-        combat::MAX_PARTY,
+        combat::FIRST_ENEMY_ID,
         ui::{dialogs::*, style::*},
     },
     ui::{
@@ -23,8 +23,10 @@ use crate::{
     },
 };
 
+use super::log_cave::CombatLogResources;
+
 /* -------------------------------------------------------------------------- */
-/*                                UI Components                               */
+/*                                UI Resources                                */
 /* -------------------------------------------------------------------------- */
 
 /// DOC : new name ? CombatWallAssetsResources
@@ -83,6 +85,19 @@ impl FromWorld for CharacterSheetAssetsResources {
         }
     }
 }
+
+/* -------------------------------------------------------------------------- */
+/*                                UI Components                               */
+/* -------------------------------------------------------------------------- */
+
+#[derive(Component)]
+pub struct UIScene;
+
+#[derive(Component)]
+pub struct Ladder;
+
+#[derive(Component)]
+pub struct HUDWall;
 
 /// XXX: Useless component used to differentiate Hp/MpMeters of a target or a caster
 #[derive(Component)]
@@ -167,6 +182,22 @@ pub struct CharacterSheetElements {
 }
 
 /* -------------------------------------------------------------------------- */
+/*                                 UI CleanUp                                 */
+/* -------------------------------------------------------------------------- */
+
+pub fn cleanup(
+    mut commands: Commands,
+    character_sheet_query: Query<Entity, With<CharacterSheet>>,
+    ui_scene_query: Query<Entity, With<UIScene>>,
+) {
+    let character_sheet = character_sheet_query.single();
+    let ui_scene = ui_scene_query.single();
+
+    commands.entity(character_sheet).despawn_recursive();
+    commands.entity(ui_scene).despawn_recursive();
+}
+
+/* -------------------------------------------------------------------------- */
 /*                                  UI Setup                                  */
 /* -------------------------------------------------------------------------- */
 
@@ -179,6 +210,8 @@ pub fn setup(
 
     character_sheet_resources: Res<CharacterSheetAssetsResources>,
     combat_wall_resources: Res<CombatWallResources>,
+    combat_log_resources: Res<CombatLogResources>,
+
     mut character_sheet_elements: ResMut<CharacterSheetElements>,
 ) {
     // TODO: add UILocation::CharacterSheet(Ally | Enemy) | Logs | CombatHUB | etc
@@ -802,6 +835,7 @@ pub fn setup(
                 ..default()
             },
             Name::new("UI Scene"),
+            UIScene,
         ))
         .with_children(|parent| {
             /* -------------------------------------------------------------------------- */
@@ -1014,6 +1048,7 @@ pub fn setup(
                         ..default()
                     },
                     Name::new("HUD Wall"),
+                    HUDWall,
                 ))
                 .with_children(|parent| {
                     /* First Side of the HUD Wall
@@ -1034,19 +1069,21 @@ pub fn setup(
                                 // background_color: Color::DARK_GRAY.into(),
                                 style: Style {
                                     flex_shrink: 0.,
-                                    flex_direction: FlexDirection::Row,
+                                    flex_direction: FlexDirection::Column,
                                     size: Size::height(Val::Percent(100.)),
 
                                     ..default()
                                 },
                                 ..default()
                             },
-                            Name::new("Interactive scrolls"),
+                            Name::new("Interactive items"),
                         ))
                         .with_children(|parent| {
+                            // REFACTOR: put the custom size directly on the sprite (gap yes but no pos on the "root")
                             parent
                                 .spawn((
                                     NodeBundle {
+                                        background_color: Color::GRAY.into(),
                                         style: Style {
                                             flex_shrink: 0.,
                                             flex_direction: FlexDirection::Column,
@@ -1153,10 +1190,10 @@ pub fn setup(
                                     image: combat_wall_resources.pack_of_scroll.clone().into(),
                                     style: Style {
                                         flex_shrink: 0.,
-                                        size: Size::height(Val::Percent(7.)),
+                                        size: Size::width(Val::Percent(17.)),
                                         position: UiRect {
-                                            top: Val::Percent(77.),
-                                            left: Val::Percent(-45.), // 54.5
+                                            left: Val::Percent(54.),
+                                            top: Val::Percent(31.8),
                                             ..default()
                                         },
                                         ..default()
@@ -1167,165 +1204,76 @@ pub fn setup(
                                 Name::new("Scrolls Pack"),
                                 Interaction::default(),
                                 // points to the first enemy
-                                MiniCharacterSheet(MAX_PARTY),
+                                MiniCharacterSheet(FIRST_ENEMY_ID),
                             ));
-                        });
 
-                    /*
-                    parent
-                        .spawn((
-                            NodeBundle {
-                                style: Style {
-                                    size: Size::height(Val::Percent(20.)),
-                                    flex_direction: FlexDirection::Column,
-                                    align_self: AlignSelf::Center,
-                                    overflow: Overflow::Hidden,
-                                    ..default()
-                                },
-                                background_color: Color::GRAY.into(),
-                                visibility: Visibility::Hidden,
-                                ..default()
-                            },
-                            Name::new("Logs"),
-                        ))
-                        .with_children(|parent| {
-                            // Moving panel
-                            parent
-                                .spawn((
-                                    NodeBundle {
-                                        style: MOVING_PANEL_STYLE,
+                            // TODO: Hide it behind the altar
+                            parent.spawn((
+                                ImageBundle {
+                                    image: combat_log_resources.ladder.clone().into(),
+                                    style: Style {
+                                        flex_shrink: 0.,
+                                        size: Size::width(Val::Percent(32.)),
+                                        position: UiRect {
+                                            left: Val::Percent(9.7),
+                                            top: Val::Percent(25.7),
+                                            ..default()
+                                        },
                                         ..default()
                                     },
-                                    ScrollingList::default(),
-                                    AccessibilityNode(NodeBuilder::new(Role::List)),
-                                    Name::new("Moving Panel"),
-                                ))
-                                .with_children(|parent| {
-                                    // TODO: UI - Title that's stick to the top while scrolling their section
-                                    // List items
+                                    ..default()
+                                },
+                                Name::new("Downwards Ladder"),
+                                Interaction::default(),
+                                Ladder,
+                            ));
 
-                                    parent.spawn((
-                                        TextBundle::from_section(
-                                            format!("Combat Phase: ???"),
-                                            get_text_style(&asset_server, 20.),
-                                        )
-                                        .with_style(
-                                            Style {
-                                                flex_shrink: 0.,
-                                                size: Size::new(Val::Undefined, Val::Px(20.)),
-                                                margin: UiRect {
-                                                    left: Val::Auto,
-                                                    right: Val::Auto,
-                                                    ..default()
-                                                },
-                                                ..default()
-                                            },
-                                        ),
-                                        CombatStateDisplayer,
-                                        Name::new("Combat Phase"),
-                                        // -- UI --
-                                        // Because this is a distinct label widget and
-                                        // not button/list item text, this is necessary
-                                        // for accessibility to treat the text accordingly.
-                                        Label,
-                                        AccessibilityNode(NodeBuilder::new(Role::ListItem)),
-                                    ));
+                            // parent
+                            //     .spawn((
+                            //         NodeBundle {
+                            //             background_color: Color::DARK_GRAY.into(),
+                            //             style: Style {
+                            //                 flex_shrink: 0.,
+                            //                 flex_direction: FlexDirection::Row,
+                            //                 // size: Size::height(Val::Percent(55.2)),
+                            //                 ..default()
+                            //             },
+                            //             ..default()
+                            //         },
+                            //         Name::new("Lower Screen"),
+                            //     ))
+                            //     .with_children(|parent| {
 
-                                    parent.spawn((
-                                        TextBundle::from_section(
-                                            format!("---------------\nActions:"),
-                                            get_text_style(&asset_server, 20.),
-                                        )
-                                        .with_style(
-                                            Style {
-                                                flex_wrap: FlexWrap::Wrap,
-                                                // flex_shrink: 0.,
-                                                size: Size::new(Val::Auto, Val::Auto),
-                                                // margin: UiRect {
-                                                //     left: Val::Auto,
-                                                //     right: Val::Auto,
-                                                //     ..default()
-                                                // },
-                                                ..default()
-                                            },
-                                        ),
-                                        ActionHistoryDisplayer,
-                                        Name::new("Actions History"),
-                                        // -- UI --
-                                        Label,
-                                        AccessibilityNode(NodeBuilder::new(Role::ListItem)),
-                                    ));
-
-                                    parent.spawn((
-                                        TextBundle::from_section(
-                                            format!("---------------\nLast Actions:"),
-                                            get_text_style(&asset_server, 20.),
-                                        )
-                                        .with_style(
-                                            Style {
-                                                flex_wrap: FlexWrap::Wrap,
-                                                // flex_shrink: 0.,
-                                                size: Size::new(Val::Auto, Val::Auto),
-                                                // margin: UiRect {
-                                                //     left: Val::Auto,
-                                                //     right: Val::Auto,
-                                                //     ..default()
-                                                // },
-                                                ..default()
-                                            },
-                                        ),
-                                        LastActionHistoryDisplayer,
-                                        Name::new("Last Actions History"),
-                                        // -- UI --
-                                        Label,
-                                        AccessibilityNode(NodeBuilder::new(Role::ListItem)),
-                                    ));
-
-                                    parent.spawn((
-                                        TextBundle::from_section(
-                                            format!("---------------\nActions Logs:"),
-                                            get_text_style(&asset_server, 20.),
-                                        )
-                                        .with_style(
-                                            Style {
-                                                flex_wrap: FlexWrap::Wrap,
-                                                // flex_shrink: 0.,
-                                                size: Size::new(Val::Auto, Val::Auto),
-                                                // margin: UiRect {
-                                                //     left: Val::Auto,
-                                                //     right: Val::Auto,
-                                                //     ..default()
-                                                // },
-                                                ..default()
-                                            },
-                                        ),
-                                        ActionsLogsDisplayer,
-                                        Name::new("Actions Logs"),
-                                        // -- UI --
-                                        Label,
-                                        AccessibilityNode(NodeBuilder::new(Role::ListItem)),
-                                    ));
-
-                                    parent.spawn((
-                                        TextBundle::from_section(
-                                            format!("---------------"),
-                                            get_text_style(&asset_server, 20.),
-                                        )
-                                        .with_style(
-                                            Style {
-                                                flex_wrap: FlexWrap::Wrap,
-                                                size: Size::new(Val::Auto, Val::Auto),
-                                                ..default()
-                                            },
-                                        ),
-                                        Name::new("----"),
-                                        // -- UI --
-                                        Label,
-                                        AccessibilityNode(NodeBuilder::new(Role::ListItem)),
-                                    ));
-                                });
+                            //         // parent
+                            //         //     .spawn((
+                            //         //         NodeBundle {
+                            //         //             style: Style {
+                            //         //                 size: Size::width(Val::Percent(50.)),
+                            //         //                 ..default()
+                            //         //             },
+                            //         //             ..default()
+                            //         //         },
+                            //         //         Name::new("Lower Left Screen"),
+                            //         //     ))
+                            //         //     .with_children(|parent| {
+                            //         //     });
+                            //         // parent
+                            //         //     .spawn((
+                            //         //         NodeBundle {
+                            //         //             style: Style {
+                            //         //                 size: Size::width(Val::Percent(50.)),
+                            //         //                 ..default()
+                            //         //             },
+                            //         //             ..default()
+                            //         //         },
+                            //         //         Name::new("Lower Right Screen"),
+                            //         //     ))
+                            //         //     .with_children(|parent| {
+                            //         //     });
+                            //     });
                         });
-                        */
+
+                    // TODO: Spawn the ladder at the left box of the pack of scroll
                 })
                 .push_children(&[character_sheet]);
         });

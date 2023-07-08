@@ -12,6 +12,10 @@ use crate::{
     ui::{combat_panel::CombatStateDisplayer, player_interaction::Clicked},
 };
 
+use super::log_cave::{
+    ActionHistoryDisplayer, ActionsLogsDisplayer, HUDLog, LastActionHistoryDisplayer,
+};
+
 /* -------------------------------------------------------------------------- */
 /*                                UI Components                               */
 /* -------------------------------------------------------------------------- */
@@ -35,25 +39,13 @@ pub struct MpMeter;
 #[derive(Resource, Debug, Reflect, Deref, DerefMut, Clone)]
 pub struct ActionHistory(pub String);
 
-/// Points to the UI Text which display Current Action History
-#[derive(Component)]
-pub struct ActionHistoryDisplayer;
-
 /// Last turn Action History
 #[derive(Resource, Debug, Reflect, Deref, DerefMut, Clone)]
 pub struct LastTurnActionHistory(pub String);
 
-/// Points to the UI Text which display Last Turn Action History
-#[derive(Component)]
-pub struct LastActionHistoryDisplayer;
-
 /// Logs Action History
 #[derive(Resource, Debug, Reflect, Deref, DerefMut, Clone)]
 pub struct ActionsLogs(pub String);
-
-/// Points to the UI Text which display Last Turn Actions Precise Logs
-#[derive(Component)]
-pub struct ActionsLogsDisplayer;
 
 /// DOC
 pub struct UpdateUnitSelectedEvent(pub Entity);
@@ -400,11 +392,13 @@ pub fn current_action_formater(
 /// DEBUG: current_action_displayer()
 pub fn current_action_displayer(
     action_history: Res<ActionHistory>,
+    log_cave_creation_query: Query<Entity, Added<HUDLog>>,
+
     mut action_displayer_query: Query<&mut Text, With<ActionHistoryDisplayer>>,
 ) {
     // FIXME: don't update afterwards if wasn't on the Logs Panel
     // fixed by: || in_enter(UILocation::LogsPanel)
-    if action_history.is_changed() {
+    if action_history.is_changed() || !log_cave_creation_query.is_empty() {
         if let Ok(mut action_displayer_text) = action_displayer_query.get_single_mut() {
             action_displayer_text.sections[0].value = action_history.clone().0;
         }

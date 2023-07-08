@@ -35,11 +35,12 @@ Assets are deported on a different cloud to stop wasting git use which is very c
       - [ ] TODO: PostDemo - HiveMind
 - [ ] UI
   - [x] Nice, Smoother and intuitive ui inputs
+  - [ ] TODO: CouldHave - [Outline](https://github.com/YoshieraHuang/bevy_outline "or simple outline sprite") while Hover
   - [ ] Fighting Hall
     - [x] Place Fighters corresponding of their tactical position (diamond shape)
     - [x] Update fighters' transform % window's size
     - [ ] TODO: MustHave - Display all basic stats on the Fighting Hall (Hp/Mp under all entities)
-    - [x] CouldHave - Display alteration's icon
+    - [x] Display alteration's icon
   - [x] Initiative Vertical Bar
     - [x] Display all action in the Initiative Vertical Bar
   - [x] Character Sheet

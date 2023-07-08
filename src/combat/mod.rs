@@ -53,11 +53,12 @@ pub mod tactical_position;
 pub mod weapons_list;
 
 /// REFACTOR: Find a way to use States in our system
-#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Hash, Reflect, States)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, Reflect, States)]
 pub enum GameState {
     /// is also the Team's Inventory
     #[default]
     CombatWall,
+    LogCave,
     // --- FTO related ---
     TitleScreen,
     DialogWall,
@@ -115,52 +116,42 @@ impl Plugin for CombatPlugin {
             .configure_set(
                 CombatState::Initialisation
                     .run_if(in_initialisation_phase)
-                    .in_set(OnUpdate(GameState::CombatWall))
             )
             .configure_set(
                 CombatState::AlterationsExecution
                     .run_if(in_alteration_phase)
-                    .in_set(OnUpdate(GameState::CombatWall))
             )
             .configure_set(
                 CombatState::SelectionCaster
                     .run_if(in_caster_phase)
-                    .in_set(OnUpdate(GameState::CombatWall))
             )
             .configure_set(
                 CombatState::SelectionSkill
                     .run_if(in_skill_phase)
-                    .in_set(OnUpdate(GameState::CombatWall))
             )
             .configure_set(
                 CombatState::SelectionTarget
                     .run_if(in_target_phase)
-                    .in_set(OnUpdate(GameState::CombatWall))
             )
             .configure_set(
                 CombatState::AIStrategy
                     .run_if(in_ai_strategy_phase)
-                    .in_set(OnUpdate(GameState::CombatWall))
             )
             .configure_set(
                 CombatState::RollInitiative
                     .run_if(in_initiative_phase)
-                    .in_set(OnUpdate(GameState::CombatWall))
             )
             .configure_set(
                 CombatState::ExecuteSkills
                     .run_if(in_executive_phase)
-                    .in_set(OnUpdate(GameState::CombatWall))
             )
             .configure_set(
                 CombatState::BrowseEnemySheet
                     .run_if(in_browsing_enemy_sheet_phase)
-                    .in_set(OnUpdate(GameState::CombatWall))
             )
             .configure_set(
                 CombatState::Evasion
                     .run_if(in_evasive_phase)
-                    .in_set(OnUpdate(GameState::CombatWall))
             )
 
             .add_startup_system(stuff::spawn_stuff)
@@ -171,7 +162,6 @@ impl Plugin for CombatPlugin {
                     phases::phase_transition,
                     update_number_of_fighters,
                 )
-                    .in_set(OnUpdate(GameState::CombatWall))
             )
             .add_system(
                 phases::execute_alteration
@@ -258,8 +248,8 @@ impl Default for ActionCount {
 /// 
 /// REFACTOR: Just an enum...
 /// Listing all possible teams (cause its fixed)
-/// IDEA: Or An reputation meter for each ?
-#[derive(Copy, Clone, PartialEq, Eq, Component, Deref, DerefMut)]
+/// IDEA: Or An reputation meter for each ? struct annex
+#[derive(Component, Copy, Clone, PartialEq, Eq, Deref, DerefMut)]
 pub struct Team(pub Option<i32>);
 
 /// Ongoing alterations, Debuff or Buff
