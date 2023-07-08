@@ -155,7 +155,7 @@ impl Plugin for CombatPlugin {
             )
 
             .add_startup_system(stuff::spawn_stuff)
-            .add_system(update_number_of_fighters.before(ui::combat_panel::setup).in_schedule(OnEnter(GameState::CombatWall)))
+            .add_system(update_number_of_fighters.before(ui::combat_panel::hud_wall_setup).in_schedule(OnEnter(GameState::CombatWall)))
 
             .add_systems(
                 (

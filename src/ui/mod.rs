@@ -43,7 +43,7 @@ impl Plugin for UiPlugin {
 
             // will be initialized in ui::combat_panel::setup()
             .insert_resource(ActionsLogs(String::from("---------------\nActions Logs:")))
-            .insert_resource(ActionHistory(String::from("---------------\nActions:")))
+            .insert_resource(ActionHistory(String::from("---------------\nCurrent Turn Actions:")))
             .insert_resource(LastTurnActionHistory(String::from("---------------\nLast Turn Actions:")))
             .insert_resource(CharacterSheetElements::default())
             .init_resource::<FabiensInfos>()
@@ -71,10 +71,10 @@ impl Plugin for UiPlugin {
             /*                                   States                                   */
             /* -------------------------------------------------------------------------- */
 
-            .add_system(combat_panel::setup.in_schedule(OnEnter(GameState::CombatWall)))
+            .add_startup_system(combat_panel::global_ui_setup)
+
+            .add_system(combat_panel::hud_wall_setup.in_schedule(OnEnter(GameState::CombatWall)))
             .add_system(combat_panel::cleanup.in_schedule(OnExit(GameState::CombatWall)))
-            
-            // .add_system(log_cave::cave_ladder.in_set(UiLabel::Player))
             
             .add_systems(
                 (
