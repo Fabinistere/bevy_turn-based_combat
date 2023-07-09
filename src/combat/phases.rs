@@ -14,7 +14,7 @@ use crate::{
     },
 };
 
-use super::Team;
+use super::{GameState, Team};
 
 /* -------------------------------------------------------------------------- */
 /*                    ----- Transitions Between Phase -----                   */
@@ -36,6 +36,7 @@ pub fn phase_transition(
     mut transition_phase_event: EventReader<TransitionPhaseEvent>,
 
     mut commands: Commands,
+    game_state: Res<State<GameState>>,
     mut combat_resources: ResMut<CombatResources>,
     mut combat_state: ResMut<CombatState>,
 
@@ -226,7 +227,7 @@ pub fn phase_transition(
                 last_action_history.0 = action_history
                     .clone()
                     .0
-                    .replace("Actions:", "Last Turn Actions:");
+                    .replace("Current Turn Actions:", "Last Turn Actions:");
                 // --------------------- DEBUG --------------------------
 
                 // Reset the action history
@@ -240,17 +241,22 @@ pub fn phase_transition(
             _ => {}
         }
 
-        // TODO: CouldHave - Dynamic Input: AutoSwitch Selection to avoid repetitive inpleasant task ("go to next caster")
-        let mut character_sheet_visibility = character_sheet_query
-            .get_mut(character_sheet_elements.character_sheet.unwrap())
-            .unwrap();
-        *character_sheet_visibility = if next_phase == &CombatState::SelectionCaster {
-            Visibility::Hidden
-        } else if combat_state.clone() == CombatState::SelectionCaster {
-            Visibility::Inherited
-        } else {
-            *character_sheet_visibility
-        };
+        match game_state.0.clone() {
+            GameState::CombatWall => {
+                // TODO: CouldHave - Dynamic Input: AutoSwitch Selection to avoid repetitive inpleasant task ("go to next caster")
+                let mut character_sheet_visibility = character_sheet_query
+                    .get_mut(character_sheet_elements.character_sheet.unwrap())
+                    .unwrap();
+                *character_sheet_visibility = if next_phase == &CombatState::SelectionCaster {
+                    Visibility::Hidden
+                } else if combat_state.clone() == CombatState::SelectionCaster {
+                    Visibility::Inherited
+                } else {
+                    *character_sheet_visibility
+                };
+            }
+            _ => {}
+        }
 
         // info!(
         //     "Phase: {:?} to {:?} (was requested: {:?})",
