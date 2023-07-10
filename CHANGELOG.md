@@ -10,12 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [![v0.5](https://img.shields.io/badge/v0.5-gray?style=flat&logo=github&logoColor=181717&link=https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.5)](https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.5)
 [**Full Commits History**](https://github.com/Fabinistere/bevy_turn-based_combat/commits/v0.5)
 
+<!-- TODO: Changelog -->
+<!-- TODO: proper Release Description -->
+
 ### Preview
 
 <!-- with a gif -->
 
+[Playable Demo](https://fabinistere.github.io/bevy_turn-based_combat/) (enemies skills are disable to the second phase of dev: AI)
+
 ### Added
 
+- [![MIT/Apache 2.0](https://img.shields.io/badge/license-MIT%2FApache-blue.svg)](https://github.com/fabinistere/bevy_turn-based_combat#license)
 - Alterations
 - Character Sheet layout
 - Interactive Mini CharSheets in the wall (and pack of scrolls)
