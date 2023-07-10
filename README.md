@@ -1,7 +1,7 @@
 # Bevy Turn-Based Combat
 
-[![v0.5](https://img.shields.io/badge/v0.5-gray?style=flat&logo=github&logoColor=181717&link=https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.5)](https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.5)
 <!-- TODO: Bevy 0.11 -->
+[![v0.5](https://img.shields.io/badge/v0.5-gray?style=flat&logo=github&logoColor=181717&link=https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.5)](https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.5)
 [![Bevy tracking](https://img.shields.io/badge/Bevy%20tracking-released%20version-lightblue)](https://github.com/bevyengine/bevy/blob/main/docs/plugins_guidelines.md#main-branch-tracking)
 [![MIT/Apache 2.0](https://img.shields.io/badge/license-MIT%2FApache-blue.svg)](https://github.com/fabinistere/bevy_turn-based_combat#license)
 
@@ -9,12 +9,7 @@ This project has purpose to help rust game dev to implement a full turn-based co
 
 ## [Release Demo](https://fabinistere.github.io/bevy_turn-based_combat/)
 
-[![v0.5](https://img.shields.io/badge/v0.5-gray?style=flat&logo=github&logoColor=181717&link=https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.5)](https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.5)
-
-## Assets
-
-Assets are deported on a different cloud to stop wasting git use which is very costfull.
-[Download Assets](https://drive.google.com/drive/folders/1VyAxd2Jsbv0EQ3Z_Ye4U7_Cybimk_Wk0?usp=share_link)
+<!-- TODO: Preview with a GIF or vid here -->
 
 ## Features
 
@@ -67,6 +62,25 @@ Assets are deported on a different cloud to stop wasting git use which is very c
 Dans ce projet, il existe une erreur que je connais:
 
 $\exists e E(e) \wedge SelfAck(e)$
+
+## Contribute
+
+Release's format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+This project also follows to [A successful Git branching model](https://nvie.com/posts/a-successful-git-branching-model/).
+
+### Assets deported - Ecological Issue
+
+From now on, all my repertories using music and images that change frequently will have a special folder in our organisation's cloud.
+To avoid using the git storage for such maters.
+In fact, storing an image in git means that if a single pixel changes, git will completely save the previous image and the next image.
+Which turns out to be a complete waste of energy in my case.
+
+SO, to have the assets of the last commit, please download this folder:
+[Download Assets](https://drive.google.com/drive/folders/1VyAxd2Jsbv0EQ3Z_Ye4U7_Cybimk_Wk0?usp=share_link)
+
+To find previous assets, they will be indicated in the given database.
 
 ## License
 
