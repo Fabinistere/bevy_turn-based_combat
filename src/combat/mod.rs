@@ -114,64 +114,78 @@ impl Plugin for CombatPlugin {
             .add_event::<tactical_position::UpdateCharacterPositionEvent>()
             
             .configure_set(
+                Update,
                 CombatState::Initialisation
                     .run_if(in_initialisation_phase)
             )
             .configure_set(
+                Update,
                 CombatState::AlterationsExecution
                     .run_if(in_alteration_phase)
             )
             .configure_set(
+                Update,
                 CombatState::SelectionCaster
                     .run_if(in_caster_phase)
             )
             .configure_set(
+                Update,
                 CombatState::SelectionSkill
                     .run_if(in_skill_phase)
             )
             .configure_set(
+                Update,
                 CombatState::SelectionTarget
                     .run_if(in_target_phase)
             )
             .configure_set(
+                Update,
                 CombatState::AIStrategy
                     .run_if(in_ai_strategy_phase)
             )
             .configure_set(
+                Update,
                 CombatState::RollInitiative
                     .run_if(in_initiative_phase)
             )
             .configure_set(
+                Update,
                 CombatState::ExecuteSkills
                     .run_if(in_executive_phase)
             )
             .configure_set(
+                Update,
                 CombatState::BrowseEnemySheet
                     .run_if(in_browsing_enemy_sheet_phase)
             )
             .configure_set(
+                Update,
                 CombatState::Evasion
                     .run_if(in_evasive_phase)
             )
 
-            .add_startup_system(stuff::spawn_stuff)
-            .add_system(update_number_of_fighters.before(ui::combat_panel::hud_wall_setup).in_schedule(OnEnter(GameState::CombatWall)))
+            .add_systems(Startup, stuff::spawn_stuff)
+            .add_systems(Update, update_number_of_fighters.before(ui::combat_panel::hud_wall_setup).in_schedule(OnEnter(GameState::CombatWall)))
 
             .add_systems(
+                Update,
                 (
                     phases::phase_transition,
                     update_number_of_fighters,
                 )
             )
-            .add_system(
+            .add_systems(
+                Update, 
                 phases::execute_alteration
                     .in_set(CombatState::AlterationsExecution)
             )
-            .add_system(
+            .add_systems(
+                Update, 
                 phases::roll_initiative
                     .in_set(CombatState::RollInitiative)
             )
             .add_systems(
+                Update,
                 (
                     phases::execution_phase,
                     skills::execute_skill

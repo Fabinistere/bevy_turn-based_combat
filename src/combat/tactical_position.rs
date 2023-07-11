@@ -19,6 +19,7 @@ use crate::{
 /// Read in:
 /// - tactical_position::update_character_position()
 ///   - Adapt OnScreenPosition for each InCombat character
+#[derive(Event)]
 pub struct UpdateCharacterPositionEvent;
 
 /// Automatic detection to change tactical position render.

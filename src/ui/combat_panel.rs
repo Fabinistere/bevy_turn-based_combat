@@ -355,7 +355,8 @@ pub fn hud_wall_setup(
         .spawn((
             ImageBundle {
                 style: Style {
-                    size: Size::all(Val::Px(50.)),
+                    width: Val::Px(50.),
+                    height: Val::Px(50.),
                     align_self: AlignSelf::Center,
                     ..default()
                 },
@@ -371,7 +372,7 @@ pub fn hud_wall_setup(
         .spawn((
             NodeBundle {
                 style: Style {
-                    // size: Size::height(Val::Percent(42.)),
+                    // height: Val::Percent(42.),
                     flex_direction: FlexDirection::Row,
                     ..default()
                 },
@@ -412,7 +413,7 @@ pub fn hud_wall_setup(
         .spawn((
             NodeBundle {
                 style: Style {
-                    // size: Size::height(Val::Percent(42.)),
+                    // height: Val::Percent(42.),
                     flex_direction: FlexDirection::Row,
                     ..default()
                 },
@@ -428,14 +429,14 @@ pub fn hud_wall_setup(
                     .spawn((
                         ButtonBundle {
                             style: Style {
-                                size: Size::new(Val::Px(150.0), Val::Px(65.0)),
+                                width: Val::Px(150.0),
+                                height: Val::Px(65.0),
                                 // center button
                                 margin: UiRect::all(Val::Auto),
                                 // horizontally center child text
                                 justify_content: JustifyContent::Center,
                                 // vertically center child text
                                 align_items: AlignItems::Center,
-                                position: UiRect::default(),
                                 ..default()
                             },
                             background_color: NORMAL_BUTTON.into(),
@@ -463,7 +464,7 @@ pub fn hud_wall_setup(
         .spawn((
             NodeBundle {
                 style: Style {
-                    // size: Size::height(Val::Percent(42.)),
+                    // height: Val::Percent(42.),
                     flex_direction: FlexDirection::Row,
                     ..default()
                 },
@@ -479,14 +480,14 @@ pub fn hud_wall_setup(
                     .spawn((
                         ButtonBundle {
                             style: Style {
-                                size: Size::new(Val::Px(150.0), Val::Px(65.0)),
+                                width: Val::Px(150.0),
+                                height: Val::Px(65.0),
                                 // center button
                                 margin: UiRect::all(Val::Auto),
                                 // horizontally center child text
                                 justify_content: JustifyContent::Center,
                                 // vertically center child text
                                 align_items: AlignItems::Center,
-                                position: UiRect::default(),
                                 ..default()
                             },
                             background_color: NORMAL_BUTTON.into(),
@@ -514,7 +515,7 @@ pub fn hud_wall_setup(
         .spawn((
             NodeBundle {
                 style: Style {
-                    // size: Size::height(Val::Percent(42.)),
+                    // height: Val::Percent(42.),
                     flex_direction: FlexDirection::Row,
                     ..default()
                 },
@@ -530,14 +531,14 @@ pub fn hud_wall_setup(
                     .spawn((
                         ButtonBundle {
                             style: Style {
-                                size: Size::new(Val::Px(150.0), Val::Px(65.0)),
+                                width: Val::Px(150.0),
+                                height: Val::Px(65.0),
                                 // center button
                                 margin: UiRect::all(Val::Auto),
                                 // horizontally center child text
                                 justify_content: JustifyContent::Center,
                                 // vertically center child text
                                 align_items: AlignItems::Center,
-                                position: UiRect::default(),
                                 ..default()
                             },
                             background_color: NORMAL_BUTTON.into(),
@@ -570,10 +571,10 @@ pub fn hud_wall_setup(
             NodeBundle {
                 // image: character_sheet_resources.base_full_scroll.clone().into(),
                 style: Style {
-                    size: Size::height(Val::Percent(100.)),
+                    height: Val::Percent(100.),
                     flex_direction: FlexDirection::Column,
                     flex_shrink: 0.,
-                    position: UiRect::bottom(Val::Percent(100.)),
+                    bottom: Val::Percent(100.),
                     ..default()
                 },
                 visibility: Visibility::Hidden,
@@ -589,7 +590,7 @@ pub fn hud_wall_setup(
                 .spawn((
                     NodeBundle {
                         style: Style {
-                            size: Size::height(Val::Percent(20.)),
+                            height: Val::Percent(20.),
                             flex_direction: FlexDirection::Row,
                             ..default()
                         },
@@ -603,7 +604,7 @@ pub fn hud_wall_setup(
                         .spawn((
                             NodeBundle {
                                 style: Style {
-                                    size: Size::width(Val::Percent(30.)),
+                                    width: Val::Percent(30.),
                                     justify_content: JustifyContent::Center,
                                     ..default()
                                 },
@@ -618,7 +619,7 @@ pub fn hud_wall_setup(
                         .spawn((
                             NodeBundle {
                                 style: Style {
-                                    size: Size::width(Val::Percent(70.)),
+                                    width: Val::Percent(70.),
                                     flex_direction: FlexDirection::Column,
                                     ..default()
                                 },
@@ -633,7 +634,7 @@ pub fn hud_wall_setup(
                                 .spawn((
                                     NodeBundle {
                                         style: Style {
-                                            size: Size::height(Val::Percent(50.)),
+                                            height: Val::Percent(50.),
                                             flex_direction: FlexDirection::Row,
                                             ..default()
                                         },
@@ -647,7 +648,7 @@ pub fn hud_wall_setup(
                                 .spawn((
                                     NodeBundle {
                                         style: Style {
-                                            size: Size::height(Val::Percent(50.)),
+                                            height: Val::Percent(50.),
                                             flex_direction: FlexDirection::Row,
                                             ..default()
                                         },
@@ -664,7 +665,7 @@ pub fn hud_wall_setup(
                 .spawn((
                     NodeBundle {
                         style: Style {
-                            size: Size::height(Val::Percent(40.)),
+                            height: Val::Percent(40.),
                             flex_direction: FlexDirection::Row,
                             ..default()
                         },
@@ -679,7 +680,7 @@ pub fn hud_wall_setup(
                         .spawn((
                             NodeBundle {
                                 style: Style {
-                                    size: Size::width(Val::Percent(60.)),
+                                    width: Val::Percent(60.),
                                     flex_direction: FlexDirection::Column,
                                     justify_content: JustifyContent::Center,
                                     ..default()
@@ -704,7 +705,7 @@ pub fn hud_wall_setup(
                         .spawn((
                             NodeBundle {
                                 style: Style {
-                                    size: Size::width(Val::Percent(40.)),
+                                    width: Val::Percent(40.),
                                     justify_content: JustifyContent::Center,
                                     ..default()
                                 },
@@ -723,7 +724,8 @@ pub fn hud_wall_setup(
                                             .clone()
                                             .into(),
                                         style: Style {
-                                            size: Size::all(Val::Px(100.)),
+                                            width: Val::Px(100.),
+                                            height: Val::Px(100.),
                                             align_self: AlignSelf::Center,
                                             justify_content: JustifyContent::Center,
                                             ..default()
@@ -741,7 +743,7 @@ pub fn hud_wall_setup(
                 .spawn((
                     NodeBundle {
                         style: Style {
-                            size: Size::height(Val::Percent(40.)),
+                            height: Val::Percent(40.),
                             flex_direction: FlexDirection::Column,
                             // align_content: AlignContent::SpaceAround,
                             justify_content: JustifyContent::Center,
@@ -761,10 +763,8 @@ pub fn hud_wall_setup(
             //             style: Style {
             //                 flex_direction: FlexDirection::Column,
             //                 // flex_wrap: FlexWrap::NoWrap,
-            //                 size: Size {
-            //                     height: Val::Percent(100.),
-            //                     width: Val::Percent(100.),
-            //                 },
+            //                 height: Val::Percent(100.),
+            //                 width: Val::Percent(100.),
             //                 ..default()
             //             },
             //             ..default()
@@ -787,10 +787,8 @@ pub fn hud_wall_setup(
             //                     .clone()
             //                     .into(),
             //                 style: Style {
-            //                     size: Size {
-            //                         width: Val::Px(500.),
-            //                         height: Val::Percent(100.),
-            //                     },
+            //                     width: Val::Px(500.),
+            //                     height: Val::Percent(100.),
             //                     ..default()
             //                 },
             //                 ..default()
@@ -833,7 +831,7 @@ pub fn hud_wall_setup(
                 ImageBundle {
                     image: combat_wall_resources.base_combat_wall.clone().into(),
                     style: Style {
-                        size: Size::width(Val::Percent(36.)),
+                        width: Val::Percent(36.),
                         flex_direction: FlexDirection::Column,
                         ..default()
                     },
@@ -862,7 +860,7 @@ pub fn hud_wall_setup(
                             style: Style {
                                 flex_shrink: 0.,
                                 flex_direction: FlexDirection::Column,
-                                size: Size::height(Val::Percent(100.)),
+                                height: Val::Percent(100.),
 
                                 ..default()
                             },
@@ -879,14 +877,12 @@ pub fn hud_wall_setup(
                                     style: Style {
                                         flex_shrink: 0.,
                                         flex_direction: FlexDirection::Column,
-                                        size: Size::new(Val::Percent(100.), Val::Percent(44.8)),
+                                        width: Val::Percent(100.),
+                                        height: Val::Percent(44.8),
                                         // gap between the two rows
-                                        gap: Size::height(Val::Percent(14.5)),
-                                        position: UiRect {
-                                            left: Val::Percent(16.8),
-                                            top: Val::Percent(4.2),
-                                            ..default()
-                                        },
+                                        column_gap: Val::Percent(14.5),
+                                        left: Val::Percent(16.8),
+                                        top: Val::Percent(4.2),
                                         ..default()
                                     },
                                     ..default()
@@ -900,9 +896,9 @@ pub fn hud_wall_setup(
                                             style: Style {
                                                 flex_shrink: 0.,
                                                 flex_direction: FlexDirection::Row,
-                                                size: Size::height(Val::Percent(50.)),
+                                                height: Val::Percent(50.),
                                                 // gap between the three scrolls
-                                                gap: Size::width(Val::Percent(2.7)),
+                                                row_gap: Val::Percent(2.7),
                                                 ..default()
                                             },
                                             ..default()
@@ -940,9 +936,9 @@ pub fn hud_wall_setup(
                                             style: Style {
                                                 flex_shrink: 0.,
                                                 flex_direction: FlexDirection::Row,
-                                                size: Size::height(Val::Percent(50.)),
+                                                height: Val::Percent(50.),
                                                 // gap between the three scrolls
-                                                gap: Size::width(Val::Percent(2.7)),
+                                                row_gap: Val::Percent(2.7),
                                                 ..default()
                                             },
                                             ..default()
@@ -980,12 +976,9 @@ pub fn hud_wall_setup(
                                 image: combat_wall_resources.pack_of_scroll.clone().into(),
                                 style: Style {
                                     flex_shrink: 0.,
-                                    size: Size::width(Val::Percent(17.)),
-                                    position: UiRect {
-                                        left: Val::Percent(54.),
-                                        top: Val::Percent(31.8),
-                                        ..default()
-                                    },
+                                    width: Val::Percent(17.),
+                                    left: Val::Percent(54.),
+                                    top: Val::Percent(31.8),
                                     ..default()
                                 },
                                 ..default()
@@ -1003,12 +996,9 @@ pub fn hud_wall_setup(
                                 image: combat_log_resources.ladder.clone().into(),
                                 style: Style {
                                     flex_shrink: 0.,
-                                    size: Size::width(Val::Percent(32.)),
-                                    position: UiRect {
-                                        left: Val::Percent(9.7),
-                                        top: Val::Percent(25.7),
-                                        ..default()
-                                    },
+                                    width: Val::Percent(32.),
+                                    left: Val::Percent(9.7),
+                                    top: Val::Percent(25.7),
                                     ..default()
                                 },
                                 ..default()
@@ -1025,7 +1015,7 @@ pub fn hud_wall_setup(
                         //             style: Style {
                         //                 flex_shrink: 0.,
                         //                 flex_direction: FlexDirection::Row,
-                        //                 // size: Size::height(Val::Percent(55.2)),
+                        //                 //  height: Val::Percent(55.2),
                         //                 ..default()
                         //             },
                         //             ..default()
@@ -1038,7 +1028,7 @@ pub fn hud_wall_setup(
                         //         //     .spawn((
                         //         //         NodeBundle {
                         //         //             style: Style {
-                        //         //                 size: Size::width(Val::Percent(50.)),
+                        //         //                 width: Val::Percent(50.),
                         //         //                 ..default()
                         //         //             },
                         //         //             ..default()
@@ -1051,7 +1041,7 @@ pub fn hud_wall_setup(
                         //         //     .spawn((
                         //         //         NodeBundle {
                         //         //             style: Style {
-                        //         //                 size: Size::width(Val::Percent(50.)),
+                        //         //                  width: Val::Percent(50.),
                         //         //                 ..default()
                         //         //             },
                         //         //             ..default()
@@ -1078,7 +1068,7 @@ pub fn global_ui_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         .spawn((
             NodeBundle {
                 style: Style {
-                    size: Size::width(Val::Percent(100.0)),
+                    width: Val::Percent(100.0),
                     justify_content: JustifyContent::SpaceBetween,
                     flex_direction: FlexDirection::Row,
                     ..default()
@@ -1097,7 +1087,7 @@ pub fn global_ui_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 .spawn((
                     NodeBundle {
                         style: Style {
-                            size: Size::width(Val::Percent(56.)),
+                            width: Val::Percent(56.),
                             flex_direction: FlexDirection::Column,
                             ..default()
                         },
@@ -1112,12 +1102,10 @@ pub fn global_ui_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                         .spawn((
                             ButtonBundle {
                                 style: Style {
-                                    size: Size::new(Val::Px(200.0), Val::Px(65.0)),
+                                    width: Val::Px(200.0),
+                                    height: Val::Px(65.0),
                                     margin: UiRect::all(Val::Auto),
-                                    position: UiRect {
-                                        top: Val::Percent(5.),
-                                        ..default()
-                                    },
+                                    top: Val::Percent(5.),
                                     justify_content: JustifyContent::Center,
                                     align_items: AlignItems::Center,
                                     ..default()
@@ -1140,13 +1128,9 @@ pub fn global_ui_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                         .spawn((
                             NodeBundle {
                                 style: Style {
-                                    position: UiRect {
-                                        top: Val::Percent(5.),
-                                        ..default()
-                                    },
+                                    top: Val::Percent(5.),
                                     flex_direction: FlexDirection::Column,
                                     flex_grow: 1.0,
-                                    max_size: Size::UNDEFINED,
                                     ..default()
                                 },
                                 ..default()
@@ -1188,7 +1172,8 @@ pub fn global_ui_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                 )
                                 .with_style(Style {
                                     flex_shrink: 0.,
-                                    size: Size::new(Val::Undefined, Val::Px(20.)),
+                                    width: Val::Px(0.),
+                                    height: Val::Px(20.),
                                     margin: UiRect {
                                         left: Val::Auto,
                                         right: Val::Auto,
@@ -1214,7 +1199,7 @@ pub fn global_ui_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 .spawn((
                     NodeBundle {
                         style: Style {
-                            size: Size::width(Val::Percent(8.)),
+                            width: Val::Percent(8.),
                             ..default()
                         },
                         background_color: Color::OLIVE.into(),

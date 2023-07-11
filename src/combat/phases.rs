@@ -28,6 +28,7 @@ use super::{GameState, Team};
 ///   - Determine which action to be taken,
 ///   accordingly with (/w.r.t.) to the phase we're currently in,
 ///   and the phase we want to transit.
+#[derive(Event)]
 pub struct TransitionPhaseEvent(pub CombatState);
 
 /// Action manager, about phase transition.

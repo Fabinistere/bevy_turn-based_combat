@@ -33,9 +33,12 @@ impl Plugin for DebugPlugin {
     #[rustfmt::skip]
     fn build(&self, app: &mut App) {
         if cfg!(debug_assertions) {
-            app.add_plugin(WorldInspectorPlugin::new())
-                // .add_plugin(FilterQueryInspectorPlugin::<With<TextureAtlasSprite>>::default())
-                // .add_plugin(ResourceInspectorPlugin::<Time>::default())
+            app
+                .add_plugins((
+                    WorldInspectorPlugin::new(),
+                    // ResourceInspectorPlugin::<Time>::default(),
+                    // FilterQueryInspectorPlugin::<With<TextureAtlasSprite>>::default(),
+                ))
 
                 .register_type::<NPC>()
                 
@@ -95,9 +98,11 @@ impl Plugin for DebugPlugin {
                 .register_type::<LastTurnActionHistory>()
                 .register_type::<ActionsLogs>()
 
-                .add_plugin(ResourceInspectorPlugin::<ActionHistory>::default())
-                .add_plugin(ResourceInspectorPlugin::<LastTurnActionHistory>::default())
-                .add_plugin(ResourceInspectorPlugin::<ActionsLogs>::default())
+                .add_plugins((
+                    ResourceInspectorPlugin::<ActionHistory>::default(),
+                    ResourceInspectorPlugin::<LastTurnActionHistory>::default(),
+                    ResourceInspectorPlugin::<ActionsLogs>::default(),
+                ))
                 ;
         }
     }

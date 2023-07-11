@@ -70,7 +70,7 @@ pub fn cave_ladder(
 ) {
     if let Ok(interaction) = ladder_query.get_single() {
         match interaction {
-            Interaction::Clicked => match game_state.0.clone() {
+            Interaction::Pressed => match game_state.0.clone() {
                 GameState::CombatWall => {
                     next_state.set(GameState::LogCave);
                 }
@@ -120,7 +120,7 @@ pub fn setup(
                 ImageBundle {
                     image: combat_log_resources.base_log_cave.clone().into(),
                     style: Style {
-                        size: Size::width(Val::Percent(36.)),
+                        width: Val::Percent(36.),
                         flex_direction: FlexDirection::Column,
                         ..default()
                     },
@@ -142,8 +142,8 @@ pub fn setup(
                             // it could be this linethat break the scrolling
                             flex_shrink: 0.,
                             // NOT QUITE RIGHT
-                            size: Size::width(Val::Percent(27.5)),
-                            position: UiRect::left(Val::Percent(7.3)), // -0.5
+                            width: Val::Percent(27.5),
+                            left: Val::Percent(7.3), // -0.5
                             ..default()
                         },
                         ..default()
@@ -159,7 +159,8 @@ pub fn setup(
                         NodeBundle {
                             style: Style {
                                 // flex_shrink: 0.,
-                                size: Size::new(Val::Percent(82.), Val::Percent(100.)),
+                                width: Val::Percent(82.),
+                                height: Val::Percent(100.),
                                 flex_direction: FlexDirection::Column,
                                 align_self: AlignSelf::Center,
                                 overflow: Overflow::Hidden,
@@ -194,7 +195,8 @@ pub fn setup(
                                     )
                                     .with_style(Style {
                                         flex_wrap: FlexWrap::Wrap,
-                                        size: Size::AUTO,
+                                        width: Val::Auto,
+                                        height: Val::Auto,
                                         // margin: UiRect {
                                         //     left: Val::Auto,
                                         //     right: Val::Auto,
@@ -216,7 +218,8 @@ pub fn setup(
                                     )
                                     .with_style(Style {
                                         flex_wrap: FlexWrap::Wrap,
-                                        size: Size::AUTO,
+                                        width: Val::Auto,
+                                        height: Val::Auto,
                                         // margin: UiRect {
                                         //     left: Val::Auto,
                                         //     right: Val::Auto,
@@ -238,7 +241,8 @@ pub fn setup(
                                     )
                                     .with_style(Style {
                                         flex_wrap: FlexWrap::Wrap,
-                                        size: Size::AUTO,
+                                        width: Val::Auto,
+                                        height: Val::Auto,
                                         // margin: UiRect {
                                         //     left: Val::Auto,
                                         //     right: Val::Auto,
@@ -260,7 +264,8 @@ pub fn setup(
                                     )
                                     .with_style(Style {
                                         flex_wrap: FlexWrap::Wrap,
-                                        size: Size::AUTO,
+                                        width: Val::Auto,
+                                        height: Val::Auto,
                                         ..default()
                                     }),
                                     Name::new("----"),

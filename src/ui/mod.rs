@@ -31,10 +31,10 @@ pub struct UiPlugin;
 impl Plugin for UiPlugin {
     /// # Note
     /// 
-    /// `.in_set(OnUpdate(GameState::CombatWall))` is implied by any
+    /// `.run_if(in_state(GameState::CombatWall))` is implied by any
     /// `.in_set(CombatState::...)`
     /// 
-    /// REFACTOR: Add everywhere it's not implied `.in_set(OnUpdate(GameState::CombatWall))` 
+    /// REFACTOR: Add everywhere it's not implied `.run_if(in_state(GameState::CombatWall))` 
     #[rustfmt::skip]
     fn build(&self, app: &mut App) {
         app
@@ -58,41 +58,44 @@ impl Plugin for UiPlugin {
             /*                         --- Player Input Global ---                        */
             /* -------------------------------------------------------------------------- */
             .add_systems(
+                Update,
                 (
                     player_interaction::mouse_scroll,
                     player_interaction::cancel_last_input,
                     // TODO: another system handle esc input in LogCave (transi to CombatWall + select the unit)
-                    player_interaction::select_unit_by_mouse, // .in_set(OnUpdate(GameState::CombatWall))
+                    player_interaction::select_unit_by_mouse, // .run_if(in_state(GameState::CombatWall))
                 ).in_set(UiLabel::Player)
             )
-            .add_system(player_interaction::action_button.after(initiative_bar::action_visibility))
+            .add_systems(Update, player_interaction::action_button.after(initiative_bar::action_visibility))
             
             /* -------------------------------------------------------------------------- */
             /*                                   States                                   */
             /* -------------------------------------------------------------------------- */
 
-            .add_startup_system(combat_panel::global_ui_setup)
+            .add_systems(Startup, combat_panel::global_ui_setup)
 
-            .add_system(combat_panel::hud_wall_setup.in_schedule(OnEnter(GameState::CombatWall)))
-            .add_system(combat_panel::cleanup.in_schedule(OnExit(GameState::CombatWall)))
+            .add_systems(OnEnter(GameState::CombatWall), combat_panel::hud_wall_setup)
+            .add_systems(OnExit(GameState::CombatWall), combat_panel::cleanup)
             
             .add_systems(
+                OnEnter(GameState::LogCave),
                 (
                     log_cave::setup,
                     combat_system::current_action_displayer.after(log_cave::setup),
                 )
-                    .in_schedule(OnEnter(GameState::LogCave))
             )
-            .add_system(log_cave::cleanup.in_schedule(OnExit(GameState::LogCave)))
+            .add_systems(OnExit(GameState::LogCave), log_cave::cleanup)
 
             /* -------------------------------------------------------------------------- */
             /*                            --- Limited Phase ---                           */
             /* -------------------------------------------------------------------------- */
             
-            .add_system(
+            .add_systems(
+                Update,
                 combat_system::update_alterations_status.after(CombatState::AlterationsExecution)
             )
             .add_systems(
+                Update,
                 (
                     combat_system::caster_selection,
                     combat_system::update_selected_unit.after(UiLabel::Player),
@@ -106,6 +109,7 @@ impl Plugin for UiPlugin {
             )
             // in SkillPhase: There is one selected
             .add_systems(
+                Update,
                 (
                     combat_system::caster_selection,
                     combat_system::update_selected_unit.after(UiLabel::Player),
@@ -121,9 +125,10 @@ impl Plugin for UiPlugin {
                     character_sheet::update_caster_stats_panel.after(UiLabel::Player),
                 )
                     .in_set(CombatState::SelectionSkill)
-                    // .in_set(OnUpdate(GameState::CombatWall)) // TOTEST: Keep this schedule may crash the system (event handler etc)
+                    // .run_if(in_state(GameState::CombatWall)) // TOTEST: Keep this schedule may crash the system (event handler etc)
             )
             .add_systems(
+                Update,
                 (
                     combat_system::target_selection,
                     combat_system::update_targeted_unit.after(UiLabel::Player),
@@ -141,12 +146,14 @@ impl Plugin for UiPlugin {
             // .add_systems(
             //     ().run_if(in_initiative_phase)
             // )
-            .add_system(
+            .add_systems(
+                Update,
                 // always run
                 combat_system::update_alterations_status.after(CombatState::ExecuteSkills)
             )
 
             .add_systems(
+                Update,
                 (
                     player_interaction::browse_character_sheet,
                     player_interaction::end_of_turn_button,
@@ -168,6 +175,7 @@ impl Plugin for UiPlugin {
             /*                            -- DEBUG DISPLAYER --                           */
             /* -------------------------------------------------------------------------- */
             .add_systems(
+                Update,
                 (
                     combat_system::update_combat_phase_displayer,
                     combat_system::current_action_formater
@@ -183,20 +191,24 @@ impl Plugin for UiPlugin {
                 )
                     .in_set(UiLabel::Display)
             )
-            .add_systems((
-                combat_system::current_action_displayer
-                    .after(combat_system::current_action_formater),
-                combat_system::last_action_displayer
-                    .after(CombatState::ExecuteSkills),
-                combat_system::actions_logs_displayer
-                    .after(CombatState::RollInitiative)
-                    .after(CombatState::ExecuteSkills),
-            ))
+            .add_systems(
+                Update,
+                (
+                    combat_system::current_action_displayer
+                        .after(combat_system::current_action_formater),
+                    combat_system::last_action_displayer
+                        .after(CombatState::ExecuteSkills),
+                    combat_system::actions_logs_displayer
+                        .after(CombatState::RollInitiative)
+                        .after(CombatState::ExecuteSkills),
+                )
+            )
 
             /* -------------------------------------------------------------------------- */
             /*                                --- COLOR ---                               */
             /* -------------------------------------------------------------------------- */
             .add_systems(
+                Update,
                 (
                     character_sheet::skill_color,
                     player_interaction::button_system,
@@ -207,11 +219,14 @@ impl Plugin for UiPlugin {
             /* -------------------------------------------------------------------------- */
             /*                                   Window                                   */
             /* -------------------------------------------------------------------------- */
-            .add_systems((
-                tactical_position::detect_window_tactical_pos_change,
-                tactical_position::update_character_position
-                    .after(tactical_position::detect_window_tactical_pos_change)
-            ))
+            .add_systems(
+                Update,
+                (
+                    tactical_position::detect_window_tactical_pos_change,
+                    tactical_position::update_character_position
+                        .after(tactical_position::detect_window_tactical_pos_change),
+                )
+            )
             ;
     }
 }

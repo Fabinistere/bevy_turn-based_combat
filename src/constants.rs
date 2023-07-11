@@ -137,7 +137,8 @@ pub mod ui {
 
         pub const TEXT_STYLE: Style = Style {
             flex_shrink: 0.,
-            size: Size::new(Val::Undefined, Val::Px(20.)),
+            width: Val::Px(0.),
+            height: Val::Px(20.),
             margin: UiRect {
                 left: Val::Auto,
                 right: Val::Auto,
@@ -156,33 +157,29 @@ pub mod ui {
         pub const MOVING_PANEL_STYLE: Style = Style {
             flex_direction: FlexDirection::Column,
             flex_wrap: FlexWrap::NoWrap,
-            max_size: Size::UNDEFINED,
             align_items: AlignItems::FlexStart,
             ..Style::DEFAULT
         };
 
         pub const SKILL_BUTTON_STYLE: Style = Style {
-            size: Size::new(Val::Px(150.0), Val::Px(65.0)),
+            width: Val::Px(150.0),
+            height: Val::Px(65.0),
             // center button
             margin: UiRect::all(Val::Auto),
             // horizontally center child text
             justify_content: JustifyContent::Center,
             // vertically center child text
             align_items: AlignItems::Center,
-            position: UiRect::DEFAULT,
             ..Style::DEFAULT
         };
 
         pub const ACTION_BUTTON_STYLE: Style = Style {
-            size: Size::new(
-                Val::Px(154.), // Val::Percent(100.),
-                Val::Px(103.),
-            ),
+            width: Val::Px(154.), // Val::Percent(100.),
+            height: Val::Px(103.),
             justify_content: JustifyContent::Center,
             flex_direction: FlexDirection::ColumnReverse,
             flex_wrap: FlexWrap::NoWrap,
             align_items: AlignItems::Center,
-            position: UiRect::DEFAULT,
             ..Style::DEFAULT
         };
     }

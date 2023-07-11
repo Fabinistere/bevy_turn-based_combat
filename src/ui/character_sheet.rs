@@ -467,7 +467,7 @@ pub fn skill_color(
     if let Ok((_, _, action_count)) = changed_selected_query.get_single() {
         for (interaction, mut color) in &mut interaction_query {
             match *interaction {
-                Interaction::Clicked => {
+                Interaction::Pressed => {
                     *color = if action_count.current == 0 {
                         INACTIVE_BUTTON.into()
                     } else {

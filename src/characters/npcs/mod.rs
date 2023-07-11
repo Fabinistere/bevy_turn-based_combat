@@ -29,8 +29,8 @@ impl Plugin for NPCPlugin {
     #[rustfmt::skip]
     fn build(&self, app: &mut App) {
         app
-            .add_startup_system(spawn_characters)
-            .add_system(ai::ai_decision_making.in_set(CombatState::AIStrategy));
+            .add_systems(Startup, spawn_characters)
+            .add_systems(Update, ai::ai_decision_making.in_set(CombatState::AIStrategy));
     }
 }
 
