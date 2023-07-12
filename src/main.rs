@@ -11,18 +11,20 @@ pub mod characters;
 pub mod combat;
 pub mod constants;
 mod debug;
+pub mod fx;
 pub mod spritesheet;
 pub mod ui;
 
 use characters::npcs::NPCPlugin;
 use debug::DebugPlugin;
+use fx::FXPlugin;
 use spritesheet::FabienPlugin;
 use ui::UiPlugin;
 
 #[rustfmt::skip]
 fn main() {
     let mut app = App::new();
-    app.insert_resource(ClearColor(CLEAR))
+    app .insert_resource(ClearColor(CLEAR))
         .insert_resource(Msaa::Off)
         .add_plugins((
             DefaultPlugins
@@ -33,19 +35,19 @@ fn main() {
                             HEIGHT
                         ),
                         title: "Turn-Based Combat".to_string(),
-                        // TODO: feature - resizable
                         resizable: true,
                         ..default()
                     }),
                     ..default()
                 })
                 .set(ImagePlugin::default_nearest()),
+            DebugPlugin,
             TweeningPlugin,
+            FabienPlugin,
             CombatPlugin,
             NPCPlugin,
             UiPlugin,
-            DebugPlugin,
-            FabienPlugin,
+            FXPlugin
         ))
         // .edit_schedule(CoreSchedule::Main, |schedule| {
         //     schedule.set_build_settings(ScheduleBuildSettings {

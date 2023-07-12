@@ -67,7 +67,7 @@ pub fn update_headers(
             portrait.texture = asset_server.load("textures/character/idle/idle_Fabien_Loyal.png");
         };
         job_text.sections[0].value = format!("{:?}", job);
-        fabien_name_text.sections[0].value = name.replace("NPC ", "").replace("Player ", "");
+        fabien_name_text.sections[0].value = name.to_string();
     }
 }
 
@@ -95,7 +95,7 @@ pub fn update_caster_stats_panel(
             // &Equipements,
         ),
         (
-            Or<(Changed<Hp>, Changed<Mana>)>,
+            Or<(Added<Selected>, Changed<Hp>, Changed<Mana>)>,
             With<Selected>,
             With<InCombat>,
         ),

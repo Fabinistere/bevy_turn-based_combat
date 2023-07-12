@@ -78,7 +78,6 @@ impl Skill {
         Skill {
             skill_type: SkillType::AttackSpe,
             target_option: TargetOption::Enemy(3),
-            aoe: false,
             initiative: 25,
             hp_dealt: 50,
             description: String::from("Deal 25 dmg to 3 enemies"),

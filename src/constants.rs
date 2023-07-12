@@ -64,7 +64,23 @@ pub mod combat {
     }
 
     pub mod skill {
+        use crate::spritesheet::SpriteSheetIndex;
+
         pub const BAM: i32 = 150;
+
+        pub const HOLY_SPELL_01_START_INDEX: usize = 16;
+        pub const HOLY_SPELL_01_END_INDEX: usize = 22;
+        pub const HOLY_SPELL_02_START_INDEX: usize = 0;
+        pub const HOLY_SPELL_02_END_INDEX: usize = 15;
+
+        pub const HOLY_SPELL_01: SpriteSheetIndex = SpriteSheetIndex {
+            start_index: HOLY_SPELL_01_START_INDEX,
+            end_index: HOLY_SPELL_01_END_INDEX,
+        };
+        pub const HOLY_SPELL_02: SpriteSheetIndex = SpriteSheetIndex {
+            start_index: HOLY_SPELL_02_START_INDEX,
+            end_index: HOLY_SPELL_02_END_INDEX,
+        };
     }
 
     pub mod alteration {
@@ -135,6 +151,7 @@ pub mod ui {
             }
         }
 
+        // TOTEST: Many have reported that `..Style::DEFAULT` no longer works in bevy `0.11`
         pub const TEXT_STYLE: Style = Style {
             flex_shrink: 0.,
             width: Val::Px(0.),

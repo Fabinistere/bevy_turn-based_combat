@@ -873,7 +873,7 @@ pub fn hud_wall_setup(
                         parent
                             .spawn((
                                 NodeBundle {
-                                    background_color: Color::GRAY.into(),
+                                    // background_color: Color::GRAY.into(),
                                     style: Style {
                                         flex_shrink: 0.,
                                         flex_direction: FlexDirection::Column,
