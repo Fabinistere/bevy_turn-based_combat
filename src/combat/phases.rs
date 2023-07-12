@@ -4,7 +4,7 @@ use rand::Rng;
 use crate::{
     combat::{
         alterations::{Alteration, AlterationAction},
-        skills::{ExecuteSkillEvent, TargetOption},
+        skills::{SkillExecutionQueue, TargetOption},
         stats::{Hp, Initiative, Mana, Shield},
         Action, ActionCount, CombatResources, CombatState, CurrentAlterations, InCombat,
     },
@@ -14,7 +14,7 @@ use crate::{
     },
 };
 
-use super::{GameState, Team};
+use super::{skills::SkillToExecute, GameState, Team};
 
 /* -------------------------------------------------------------------------- */
 /*                    ----- Transitions Between Phase -----                   */
@@ -272,42 +272,24 @@ pub fn phase_transition(
 /*                                Phase Actions                               */
 /* -------------------------------------------------------------------------- */
 
-// TODO: ShouldHave - Display mutable change (dmg, heal) (on the field)
+// TODO: ShouldHave - Visual - Display mutable change (dmg, heal) (on the field)
 
 /// # Note
 ///
 /// DOC
 pub fn execute_alteration(
     mut character_query: Query<(
-        Entity,
         &mut Hp,
         &mut Mana,
         &mut Shield,
-        // &Attack,
-        // &AttackSpe,
-        // &Defense,
-        // &DefenseSpe,
         &mut CurrentAlterations,
         &Name,
     )>,
 
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
-    for (
-        _character,
-        mut hp,
-        mut mp,
-        mut shield,
-        // TODO: remove these queries
-        // _attack,
-        // _attack_spe,
-        // _defense_spe,
-        // _defense,
-        mut alterations,
-        name,
-    ) in character_query.iter_mut()
-    {
-        let mut new_alterations_vector: Vec<Alteration> = vec![];
+    for (mut hp, mut mp, mut shield, mut alterations, name) in character_query.iter_mut() {
+        let mut new_alterations_vector: Vec<Alteration> = Vec::new();
         for alteration in alterations.iter_mut() {
             info!("DEBUG: Execute Alteration: {} on {}", alteration.name, name);
             // info!(
@@ -444,30 +426,35 @@ pub fn roll_initiative(
     }
 
     initiatives.sort();
+    // Action with the higher initiative first
     initiatives.reverse();
 
-    info!("DEBUG: Initiative: {:?}", initiatives);
+    info!("DEBUG: Initiative: {:#?}", initiatives);
 
     // Update the actions history
     combat_resources.history = initiatives;
 
     // info!("DEBUG: history: {:?}", combat_resources.history);
 
-    transition_phase_event.send(TransitionPhaseEvent(CombatState::ExecuteSkills));
+    transition_phase_event.send(TransitionPhaseEvent(CombatState::PreExecuteSkills));
 }
 
 pub fn execution_phase(
     combat_resources: Res<CombatResources>,
 
-    mut execute_skill_event: EventWriter<ExecuteSkillEvent>,
+    mut skill_execution_queue: ResMut<SkillExecutionQueue>,
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
+    // The result will be pushed into a vector and processed last to first
+    let mut action_history = combat_resources.history.clone();
+    action_history.reverse();
+
     for Action {
         caster,
         skill,
         targets,
         initiative: _,
-    } in combat_resources.history.iter()
+    } in action_history.iter()
     {
         match targets {
             None => warn!(
@@ -479,7 +466,7 @@ pub fn execution_phase(
                     // we will do a verification anyway (skill's hp_cost)
                     // in the event handler
                     // to control that the caster is alive at the time of the execution
-                    execute_skill_event.send(ExecuteSkillEvent {
+                    skill_execution_queue.push(SkillToExecute {
                         skill: skill.clone(),
                         caster: *caster,
                         target: *target,
@@ -487,7 +474,7 @@ pub fn execution_phase(
 
                     // should be in order
                     for combo_skill in skill.skills_queue.iter() {
-                        execute_skill_event.send(ExecuteSkillEvent {
+                        skill_execution_queue.push(SkillToExecute {
                             skill: combo_skill.clone(),
                             caster: *caster,
                             // All skills in the queue will be directed to the same target
@@ -499,6 +486,5 @@ pub fn execution_phase(
         }
     }
 
-    // Start of New turn
-    transition_phase_event.send(TransitionPhaseEvent(CombatState::AlterationsExecution));
+    transition_phase_event.send(TransitionPhaseEvent(CombatState::ExecuteSkills));
 }

@@ -19,7 +19,7 @@ use crate::{
 
 pub mod ai;
 
-#[derive(Default, Component, Reflect)]
+#[derive(Component)]
 pub struct NPC;
 
 #[derive(Default)]
@@ -37,7 +37,7 @@ impl Plugin for NPCPlugin {
 // Check in location/temple/mod.rs
 // the npc_z_position
 
-/// TODO: Move the spwan player up ?
+/// REFACTOR: Move the spawn player up ?
 fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
     /* -------------------------------------------------------------------------- */
     /*                            ---- Equipements ----                           */
@@ -72,7 +72,7 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
                 width: SPRITE_SIZE.0,
                 height: SPRITE_SIZE.1,
             },
-            Name::new("Player Morgan"),
+            Name::new("Morgan"),
             Player,
             // -- Combat Components --
             InCombat(FIRST_ALLY_ID),
@@ -124,7 +124,7 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
                 width: SPRITE_SIZE.0,
                 height: SPRITE_SIZE.1,
             },
-            Name::new("NPC Admiral"),
+            Name::new("Admiral"),
             NPC,
             // -- Combat Components --
             InCombat(FIRST_ALLY_ID + 1),
@@ -177,7 +177,7 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
                 width: SPRITE_SIZE.0,
                 height: SPRITE_SIZE.1,
             },
-            Name::new("NPC Hugo"),
+            Name::new("Hugo"),
             NPC,
             // -- Combat Components --
             InCombat(FIRST_ALLY_ID + 2),
@@ -223,7 +223,7 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
                 width: SPRITE_SIZE.0,
                 height: SPRITE_SIZE.1,
             },
-            Name::new("NPC Olf"),
+            Name::new("Olf"),
             NPC,
             // -- Combat Components --
             InCombat(FIRST_ENEMY_ID),
@@ -254,7 +254,7 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
 
     // Two FABICURION
     for i in 0..2 {
-        let name = format!("NPC Fabicurion {}", i);
+        let name = format!("Fabicurion {}", i);
 
         commands
             .spawn((

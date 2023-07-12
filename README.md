@@ -19,9 +19,6 @@ This project has purpose to help rust game dev to implement a full turn-based co
 - [x] Mecanics
   - [x] Force Respect of the selected skill's TargetOption
   - [x] Decay turn left on Alteration / Effects on alteration
-  - [ ] TODO: PostDemo - TierExtra Skills (unlocked bvy job's tree)
-  - [ ] TODO: PostDemo - Select only 4 to 6 skills from your catalogue, for the next fight.
-  - [ ] TODO: PostDemo - Skill Range (depending of the caster's position)
 - [ ] TODO: MustHave - AI
   - [ ] NPC Behavior
     - [ ] Vision
@@ -33,6 +30,7 @@ This project has purpose to help rust game dev to implement a full turn-based co
 - [ ] UI
   - [x] Nice, Smoother and intuitive ui inputs
   - [ ] TODO: CouldHave - [Outline](https://github.com/YoshieraHuang/bevy_outline "or simple outline sprite") while Hover
+  - [ ] TODO: MustHave - Visual - Character's Sheet (impl UI Sprites, Base Scroll)
   - [ ] Fighting Hall
     - [x] Place Fighters corresponding of their tactical position (diamond shape)
     - [x] Update fighters' transform % window's size
@@ -46,8 +44,6 @@ This project has purpose to help rust game dev to implement a full turn-based co
     - [x] Display Job, Title, Stats
     - [x] Display current stuff
     - [x] Browse among sheets (arrows)
-    - [ ] TODO: PostDemo - Stuff Tab, Equip from Team's Inventory, Desequip
-    - [ ] TODO: PostDemo - Display somewhere else the skill catalogue
 
 ## Example
 
@@ -55,7 +51,25 @@ This project has purpose to help rust game dev to implement a full turn-based co
 
 ## Notes
 
+- FIXME: Select `Bam` or `Swing` instantly into select `Solo` will create two actions `Solo`
+- REFACTOR: Team
 - May replace all `if let Ok()/Some()/...` by the secure `match`
+- PostDemo: <!-- TODO: PostDemo: -->
+  - [ ] Mecanics
+    - [ ] add in `TargetOption`: ClosestPosition
+      - [ ] Skill Range (depending of the caster's position).
+      Skill reachability (the closest enemy's line = First Line, even in `MiddleLine`/`BackLine`)
+    - [ ] `TierExtra` Skills (unlocked bvy job's tree)
+    - [ ] Select only 4 to 6 skills from your catalogue, for the next fight.
+    - [ ] `Turn Delay` before a skill to be executed (being queued for )
+    - [ ] Reduce skill cost by stuff and level
+  - [ ] UI
+    - [ ] Character Sheet
+      - [ ] Stuff Tab, Equip from Team's Inventory, Desequip
+      - [ ] Display somewhere else the skill catalogue
+- Won't Have:
+  - [x] Multiple Character Sheet Visible on the wall
+    - ~~zoomed out CS with all real component~~ (a real mess...)
 
 ## Fun Facts
 
