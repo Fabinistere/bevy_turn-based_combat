@@ -31,20 +31,20 @@ pub struct UiPlugin;
 impl Plugin for UiPlugin {
     /// # Note
     /// 
-    /// `.in_set(OnUpdate(GameState::CombatWall))` is implied by any
+    /// `.in_set(OnUpdate(GameState::CombatWall))` is NOT implied by any
     /// `.in_set(CombatState::...)`
     /// 
-    /// REFACTOR: Add everywhere it's not implied `.in_set(OnUpdate(GameState::CombatWall))` 
+    /// REFACTOR: Restrict to CombatWall/LogCave - Add everywhere it's not implied `.in_set(OnUpdate(GameState::CombatWall))` 
     #[rustfmt::skip]
     fn build(&self, app: &mut App) {
         app
             // OPTIMIZE: Only run the app when there is user input. This will significantly reduce CPU/GPU use.
             .insert_resource(WinitSettings::game())
 
-            // will be initialized in ui::combat_panel::setup()
             .insert_resource(ActionsLogs(String::from("---------------\nActions Logs:")))
             .insert_resource(ActionHistory(String::from("---------------\nCurrent Turn Actions:")))
             .insert_resource(LastTurnActionHistory(String::from("---------------\nLast Turn Actions:")))
+            // `CharacterSheetElements` will be initialized in `ui::combat_panel::setup()`
             .insert_resource(CharacterSheetElements::default())
             .init_resource::<FabiensInfos>()
             .init_resource::<CombatWallResources>()
@@ -61,8 +61,7 @@ impl Plugin for UiPlugin {
                 (
                     player_interaction::mouse_scroll,
                     player_interaction::cancel_last_input,
-                    // TODO: another system handle esc input in LogCave (transi to CombatWall + select the unit)
-                    player_interaction::select_unit_by_mouse, // .in_set(OnUpdate(GameState::CombatWall))
+                    player_interaction::select_unit_by_mouse,
                 ).in_set(UiLabel::Player)
             )
             .add_system(player_interaction::action_button.after(initiative_bar::action_visibility))

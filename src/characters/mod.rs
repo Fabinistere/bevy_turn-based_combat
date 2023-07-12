@@ -25,28 +25,28 @@ impl FromWorld for FabiensInfos {
         let mut fabiens_infos = FabiensInfos(HashMap::new());
 
         fabiens_infos.insert(
-            String::from("NPC Fabien"),
+            String::from("Fabien"),
             PersonalInfos {
                 title: String::from("Fabien Loyal"),
                 sprite_path: String::from("textures/character/idle/idle_Fabien_Loyal.png"),
             },
         );
         fabiens_infos.insert(
-            String::from("NPC Fabien Disloyal"),
+            String::from("Fabien Disloyal"),
             PersonalInfos {
                 title: String::from("Fabien Disloyal"),
                 sprite_path: String::from("textures/character/idle/idle_Fabien_disloyal.png"),
             },
         );
         fabiens_infos.insert(
-            String::from("Player Morgan"),
+            String::from("Morgan"),
             PersonalInfos {
                 title: String::from("Fabien l'informaticien"),
                 sprite_path: String::from("textures/character/idle/idle_Morgan.png"),
             },
         );
         fabiens_infos.insert(
-            String::from("NPC Admiral"),
+            String::from("Admiral"),
             PersonalInfos {
                 // Tigrours de guerre fabinique
                 title: String::from("Fabien l'Amiral"),
@@ -54,63 +54,63 @@ impl FromWorld for FabiensInfos {
             },
         );
         fabiens_infos.insert(
-            String::from("NPC Enzo"),
+            String::from("Enzo"),
             PersonalInfos {
                 title: String::from("Fabien de Ferdinand"),
                 sprite_path: String::from("textures/character/idle/idle_Enzo.png"),
             },
         );
         fabiens_infos.insert(
-            String::from("NPC Fabicurion 0"),
+            String::from("Fabicurion 0"),
             PersonalInfos {
                 title: String::from("Fabicurion"),
                 sprite_path: String::from("textures/character/idle/idle_Fabicurion.png"),
             },
         );
         fabiens_infos.insert(
-            String::from("NPC Fabicurion 1"),
+            String::from("Fabicurion 1"),
             PersonalInfos {
                 title: String::from("Fabicurion"),
                 sprite_path: String::from("textures/character/idle/idle_Fabicurion.png"),
             },
         );
         fabiens_infos.insert(
-            String::from("NPC Mae"),
+            String::from("Mae"),
             PersonalInfos {
                 title: String::from("Fabien de Ferdinand"),
                 sprite_path: String::from("textures/character/idle/idle_General.png"),
             },
         );
         fabiens_infos.insert(
-            String::from("NPC Ieud"),
+            String::from("Ieud"),
             PersonalInfos {
                 title: String::from("Fabien le Dieu Suprème"),
                 sprite_path: String::from("textures/character/idle/idle_Ieud.png"),
             },
         );
         fabiens_infos.insert(
-            String::from("NPC Hugo"),
+            String::from("Hugo"),
             PersonalInfos {
                 title: String::from("Fabien le Ministre de la Culture"),
                 sprite_path: String::from("textures/character/idle/idle_Nurse.png"),
             },
         );
         fabiens_infos.insert(
-            String::from("NPC Olf"),
+            String::from("Olf"),
             PersonalInfos {
                 title: String::from("Fabien du Divin Goulag"),
                 sprite_path: String::from("textures/character/idle/idle_Olf.png"),
             },
         );
         fabiens_infos.insert(
-            String::from("NPC Olf Ghost"),
+            String::from("Olf Ghost"),
             PersonalInfos {
                 title: String::from("Fabien le Souvenir Oublié"),
                 sprite_path: String::from("textures/character/idle/idle_Olf_Ghost.png"),
             },
         );
         fabiens_infos.insert(
-            String::from("NPC Vampire"),
+            String::from("Vampire"),
             PersonalInfos {
                 title: String::from("Fabien le Fabancelier"),
                 sprite_path: String::from("textures/character/idle/idle_Vampire.png"),
