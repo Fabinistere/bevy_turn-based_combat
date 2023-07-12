@@ -45,9 +45,7 @@ This project has purpose to help rust game dev to implement a full turn-based co
     - [x] Display current stuff
     - [x] Browse among sheets (arrows)
 
-## Example
-
-// DOC
+<!-- DOC: Write Devlog -->
 
 ## Notes
 

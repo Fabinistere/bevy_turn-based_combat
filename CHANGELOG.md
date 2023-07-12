@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Skill VFX - [0.6](https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.6) - 2023-07-12
+## Skill VFX and AI Random Strategy - [0.6](https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.6) - 2023-07-12
 
 [![v0.6](https://img.shields.io/badge/v0.6-gray?style=flat&logo=github&logoColor=181717&link=https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.6)](https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.6)
 [![**Full Commits History**](https://img.shields.io/badge/GitHubLog-gray?style=flat&logo=github&logoColor=181717&link=https://github.com/Fabinistere/bevy_turn-based_combat/commits/v0.6)](https://github.com/Fabinistere/bevy_turn-based_combat/commits/v0.6)
