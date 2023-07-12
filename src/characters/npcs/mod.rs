@@ -37,7 +37,7 @@ impl Plugin for NPCPlugin {
 // Check in location/temple/mod.rs
 // the npc_z_position
 
-/// TODO: Move the spwan player up ?
+/// REFACTOR: Move the spawn player up ?
 fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
     /* -------------------------------------------------------------------------- */
     /*                            ---- Equipements ----                           */
