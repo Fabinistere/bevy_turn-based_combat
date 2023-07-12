@@ -24,7 +24,7 @@ use crate::{
         stuff::{Equipements, WeaponType, MasteryTier, Job},
         TacticalPlace,
     },
-    characters::npcs::NPC, ui::combat_system::{ActionHistory, LastTurnActionHistory, ActionsLogs},
+    ui::combat_system::{ActionHistory, LastTurnActionHistory, ActionsLogs},
 };
 
 pub struct DebugPlugin;
@@ -36,9 +36,7 @@ impl Plugin for DebugPlugin {
             app.add_plugin(WorldInspectorPlugin::new())
                 // .add_plugin(FilterQueryInspectorPlugin::<With<TextureAtlasSprite>>::default())
                 // .add_plugin(ResourceInspectorPlugin::<Time>::default())
-
-                .register_type::<NPC>()
-                
+               
                 /* -------------------------------------------------------------------------- */
                 /*                          --- Global Structure ---                          */
                 /* -------------------------------------------------------------------------- */

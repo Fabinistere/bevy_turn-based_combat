@@ -9,6 +9,8 @@ use crate::{
         alterations::*,
         stats::{Attack, AttackSpe, Defense, DefenseSpe, Hp, Mana, Shield},
     },
+    constants::combat::skill::*,
+    spritesheet::SpriteSheetIndex,
     ui::combat_system::ActionsLogs,
 };
 
@@ -114,6 +116,7 @@ pub struct Skill {
     /// Used for complex skill
     pub skills_queue: Vec<Skill>,
     pub path_icon: String,
+    pub vfx_index: SpriteSheetIndex,
     pub description: String,
     pub name: String,
 }
@@ -135,6 +138,7 @@ impl Default for Skill {
             skills_queue: vec![],
             description: String::from("..."),
             path_icon: String::from("textures/icons/skills-alterations/Dark_8.png"),
+            vfx_index: HOLY_SPELL_02,
             name: String::from("Skill"),
         }
     }
@@ -142,12 +146,24 @@ impl Default for Skill {
 
 /// Happens in
 ///   - combat::phases::execution_phase
-///     - There is a skill to execute
+///     - The skill animation ended, the last one in the queue
+///     (descending order of action's initiative) has to be executed
+///
 /// Read in
 ///   - combat::skills::execute_shill
 ///     - Execute the skill with the caster's Stats
 ///     to the target
-pub struct ExecuteSkillEvent {
+pub struct ExecuteSkillEvent;
+
+/// Descending order queue of all Action.
+/// Handle by the fx animation first into by the `combat::skills::execute_skill()`
+#[derive(Resource, Default, Debug, Deref, DerefMut, Clone)]
+pub struct SkillExecutionQueue {
+    pub queue: Vec<SkillToExecute>,
+}
+
+#[derive(Debug, Clone)]
+pub struct SkillToExecute {
     pub skill: Skill,
     pub caster: Entity,
     pub target: Entity,
@@ -167,32 +183,29 @@ pub struct ExecuteSkillEvent {
 /// Carefull with default Skill value
 pub fn execute_skill(
     mut execute_skill_event: EventReader<ExecuteSkillEvent>,
-    // unit_query: Query<
-    //     (Entity, &UnitTargeted, &UnitSelected)
-    // >,
-    mut combat_unit: Query<
-        (
-            &mut Hp,
-            &mut Mana,
-            &mut Shield,
-            &Attack,
-            &AttackSpe,
-            &Defense,
-            &DefenseSpe,
-            &mut CurrentAlterations,
-            &Name,
-        ),
-        // Or<(With<Selected>, With<Targeted>)>
-    >,
+    mut skill_execution_queue: ResMut<SkillExecutionQueue>,
+
+    mut combat_unit: Query<(
+        &mut Hp,
+        &mut Mana,
+        &mut Shield,
+        &Attack,
+        &AttackSpe,
+        &Defense,
+        &DefenseSpe,
+        &mut CurrentAlterations,
+        &Name,
+    )>,
     mut actions_logs: ResMut<ActionsLogs>,
 ) {
-    for ExecuteSkillEvent {
-        skill,
-        caster,
-        target,
-    } in execute_skill_event.iter()
-    {
-        match combat_unit.get_many_mut([*caster, *target]) {
+    for ExecuteSkillEvent in execute_skill_event.iter() {
+        let SkillToExecute {
+            skill,
+            caster,
+            target,
+        } = skill_execution_queue.pop().unwrap();
+
+        match combat_unit.get_many_mut([caster, target]) {
             // REFACTOR: Handle SelfCast
             Err(e) => {
                 match e {
@@ -227,14 +240,14 @@ pub fn execute_skill(
                 )],
             ) => {
                 info!(
-                    "DEBUG: Execute skill: {}, from {} to {}",
+                    "- DEBUG: {}, from {} to {}",
                     skill.name, caster_name, target_name
                 );
 
                 // -----------------------------------------------
                 // REFACTOR: Move these ui lines somewhere else ?
                 actions_logs.0.push_str(&format!(
-                    "\n- Execute skill: {}, from {} to {}",
+                    "\n- {}, from {} to {}",
                     skill.name, caster_name, target_name
                 ));
                 // -----------------------------------------------
@@ -246,7 +259,6 @@ pub fn execute_skill(
                 // ---- COST ----
 
                 // If the caster is already deadge, stop the execution
-
                 // TODO: MustHave - cancel the skill if the mana/shield requirement is not fully satisfied
                 // ^^^^^--- in case of a other skill, just before, lower their mana/shield count
 

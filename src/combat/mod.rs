@@ -37,7 +37,7 @@ use bevy::prelude::*;
 use crate::{constants::combat::BASE_ACTION_COUNT, ui};
 
 use self::{
-    alterations::Alteration, skills::{Skill, TargetOption}, stats::{StatBundle, Hp},
+    alterations::Alteration, skills::{Skill, TargetOption, SkillExecutionQueue}, stats::{StatBundle, Hp},
     stuff::{Equipements, JobsMasteries, Job},
 };
 
@@ -68,6 +68,8 @@ pub enum GameState {
 }
 
 /// Just help to create a ordered system in the app builder
+/// 
+/// REFACTOR: Turn CombatState into States
 #[derive(Default, SystemSet, PartialEq, Eq, Hash, Clone, Debug, Reflect, Resource)]
 pub enum CombatState {
     /// REFACTOR: Useless atm
@@ -87,6 +89,9 @@ pub enum CombatState {
     /// `Automated Decision-Making`.
     AIStrategy,
     RollInitiative,
+    /// prepare the full vector of Skill to execute
+    PreExecuteSkills,
+    /// FX Phase (SkillsAnimation) too
     ExecuteSkills,
     
     BrowseEnemySheet,
@@ -94,6 +99,12 @@ pub enum CombatState {
 
     // ShowExecution,
     Evasion,
+}
+
+impl CombatState {
+    pub fn new_turn() -> Self {
+        CombatState::AlterationsExecution
+    }
 }
 
 pub struct CombatPlugin;
@@ -106,6 +117,7 @@ impl Plugin for CombatPlugin {
             .add_state::<GameState>()
             .insert_resource(CombatState::default())
             
+            .insert_resource(SkillExecutionQueue::default())
             .init_resource::<CombatResources>()
             .init_resource::<JobsMasteries>()
             
@@ -142,6 +154,10 @@ impl Plugin for CombatPlugin {
                     .run_if(in_initiative_phase)
             )
             .configure_set(
+                CombatState::PreExecuteSkills
+                    .run_if(in_pre_executive_phase)
+            )
+            .configure_set(
                 CombatState::ExecuteSkills
                     .run_if(in_executive_phase)
             )
@@ -174,8 +190,12 @@ impl Plugin for CombatPlugin {
             .add_systems(
                 (
                     phases::execution_phase,
-                    skills::execute_skill
-                        .after(phases::execution_phase)
+                )
+                    .in_set(CombatState::PreExecuteSkills)
+            )
+            .add_systems(
+                (
+                    skills::execute_skill,
                 )
                     .in_set(CombatState::ExecuteSkills)
             )
@@ -556,6 +576,10 @@ pub fn in_ai_strategy_phase(combat_state: Res<CombatState>) -> bool {
 
 pub fn in_initiative_phase(combat_state: Res<CombatState>) -> bool {
     *combat_state == CombatState::RollInitiative
+}
+
+pub fn in_pre_executive_phase(combat_state: Res<CombatState>) -> bool {
+    *combat_state == CombatState::PreExecuteSkills
 }
 
 pub fn in_executive_phase(combat_state: Res<CombatState>) -> bool {
