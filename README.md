@@ -36,6 +36,7 @@ Assets are deported on a different cloud to stop wasting git use which is very c
 - [ ] UI
   - [x] Nice, Smoother and intuitive ui inputs
   - [ ] TODO: CouldHave - [Outline](https://github.com/YoshieraHuang/bevy_outline "or simple outline sprite") while Hover
+  - [ ] TODO: MustHave - Visual - Character's Sheet (impl UI Sprites, Base Scroll)
   - [ ] Fighting Hall
     - [x] Place Fighters corresponding of their tactical position (diamond shape)
     - [x] Update fighters' transform % window's size
@@ -59,6 +60,13 @@ Assets are deported on a different cloud to stop wasting git use which is very c
 ## Notes
 
 - May replace all `if let Ok()/Some()/...` by the secure `match`
+
+Won't Have:
+
+- [x] Multiple Character Sheet Visible on the wall
+  - ~~zoomed out CS with all real component~~ (a real mess...)
+- FIXME: Select Bam/Swing instantly into select solo will create two action "solo"
+- REFACTOR: Team
 
 ## Fun Facts
 
