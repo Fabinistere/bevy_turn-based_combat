@@ -39,12 +39,15 @@ pub enum TargetOption {
     /// Identity
     #[default]
     OneSelf,
+    // Enemy
+    // Enemy(usize, ClosestPosition)
     Enemy(usize),
     /// Include the identity (self)
     Ally(usize),
     /// Exclude the identity (self)
     AllyButSelf(usize),
     AllAlly,
+    /// The skill affects one by one target
     AllEnemy,
     All,
     // IDEA: Any(usize) ?
@@ -66,15 +69,6 @@ pub struct Skill {
     /// - targeted heal: TargetOption::Ally(1)
     /// - small explosion: TargetOption::Enemy(1) (but with aoe: true)
     pub target_option: TargetOption,
-    /// Area of Effect
-    ///
-    /// Should the skill affect all target
-    /// or one by one
-    ///
-    /// # Note
-    ///
-    /// TODO: CouldHave - Impl AOE (each target will propagate the skill to their surronding)
-    pub aoe: bool,
     /// Wait for the turn delay to execute
     ///
     /// # Note
@@ -126,7 +120,6 @@ impl Default for Skill {
         Skill {
             skill_type: Default::default(),
             target_option: TargetOption::OneSelf,
-            aoe: false,
             turn_delay: 0,
             initiative: 0,
             hp_dealt: 0,
