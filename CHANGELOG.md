@@ -41,6 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### TODO
 
 - Once [`bevy-inspector-egui`](https://github.com/jakobhellermann/bevy-inspector-egui) release `0.11` support, update `Cargo.toml`
+- REFACTOR: `CombatState` as States
+  - we will need to find a Default State, to be in while we're not in `GameState::CombatWall` or `GameState::LogCave`
 
 ## Skill VFX and AI Random Strategy - [0.6.0](https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.6) - 2023-07-12
 
