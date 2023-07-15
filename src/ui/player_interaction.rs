@@ -123,7 +123,7 @@ pub fn mouse_scroll(
 
             scrolling_list.position += dy;
             scrolling_list.position = scrolling_list.position.clamp(-max_scroll, 0.);
-            style.position.top = Val::Px(scrolling_list.position);
+            style.top = Val::Px(scrolling_list.position);
         }
     }
 }
@@ -184,7 +184,7 @@ pub fn select_unit_by_mouse(
                     && transform.translation.y - half_height < world_position.y
                     && transform.translation.y + half_height > world_position.y
                 {
-                    match game_state.0.clone() {
+                    match game_state.get() {
                         GameState::LogCave => {
                             info!("Transi LogCave -> CombatWall");
                             next_state.set(GameState::CombatWall);
@@ -398,7 +398,7 @@ pub fn cancel_last_input(
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
     if keyboard_input.just_pressed(KeyCode::Escape) {
-        match game_state.0.clone() {
+        match game_state.get() {
             GameState::LogCave => {
                 info!("Transi LogCave -> CombatWall");
                 next_state.set(GameState::CombatWall);

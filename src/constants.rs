@@ -91,8 +91,12 @@ pub mod combat {
 pub mod ui {
 
     pub const DRAGGED_ENTITY_Z: f32 = 100.0;
+    pub const FIGHTING_HALL_WIDTH: f32 = 56.;
+    pub const INITIATIVE_BAR_WIDTH: f32 = 8.;
+    pub const HUD_WALL_WIDTH: f32 = 100. - (FIGHTING_HALL_WIDTH + INITIATIVE_BAR_WIDTH);
 
     pub mod fighting_hall_position {
+
         /* -------------------------------------------------------------------------- */
         /*                               Enemy Position                               */
         /* -------------------------------------------------------------------------- */
@@ -151,53 +155,116 @@ pub mod ui {
             }
         }
 
-        // TOTEST: Many have reported that `..Style::DEFAULT` no longer works in bevy `0.11`
-        pub const TEXT_STYLE: Style = Style {
-            flex_shrink: 0.,
-            width: Val::Px(0.),
-            height: Val::Px(20.),
-            margin: UiRect {
+        // NOTE: Style Constant or Style Method ? (see: https://discord.com/channels/691052431525675048/1119426776033140879)
+        // --- Style Constant ---
+        // pub const TEXT_STYLE: Style = {
+        //     let mut style = Style::DEFAULT;
+        //     style.flex_shrink = 0.;
+        //     style.width = Val::Px(0.);
+        //     style.height = Val::Px(20.);
+        //     style.margin = UiRect {
+        //         left: Val::Auto,
+        //         right: Val::Auto,
+        //         ..UiRect::DEFAULT
+        //     };
+        //     style
+        // };
+        // --- Style Method ---
+        // pub const TEXT_STYLE: Style = text_style();
+        // pub const fn text_style() -> Style {
+        //     Style {
+        //         flex_shrink: 0.,
+        //         width: Val::Px(0.),
+        //         height: Val::Px(20.),
+        //         margin: UiRect {
+        //             left: Val::Auto,
+        //             right: Val::Auto,
+        //             ..UiRect::DEFAULT
+        //         },
+        //         ..Style::DEFAULT
+        //     }
+        // }
+
+        pub const TEXT_STYLE: Style = {
+            let mut style = Style::DEFAULT;
+            style.flex_shrink = 0.;
+            style.height = Val::Px(20.);
+            style.margin = UiRect {
                 left: Val::Auto,
                 right: Val::Auto,
                 ..UiRect::DEFAULT
-            },
-            ..Style::DEFAULT
+            };
+            style
         };
 
-        pub const LIST_HIDDEN_OVERFLOW_STYLE: Style = Style {
-            flex_direction: FlexDirection::Column,
-            align_self: AlignSelf::Stretch,
-            overflow: Overflow::Hidden,
-            ..Style::DEFAULT
+        pub const LIST_HIDDEN_OVERFLOW_STYLE: Style = {
+            let mut style = Style::DEFAULT;
+            style.flex_direction = FlexDirection::Column;
+            style.align_self = AlignSelf::Stretch;
+            style.overflow = Overflow::clip_y();
+            style
         };
 
-        pub const MOVING_PANEL_STYLE: Style = Style {
-            flex_direction: FlexDirection::Column,
-            flex_wrap: FlexWrap::NoWrap,
-            align_items: AlignItems::FlexStart,
-            ..Style::DEFAULT
+        pub const MOVING_PANEL_STYLE: Style = {
+            let mut style = Style::DEFAULT;
+            style.flex_direction = FlexDirection::Column;
+            style.flex_wrap = FlexWrap::NoWrap;
+            style.align_items = AlignItems::FlexStart;
+            style
         };
 
-        pub const SKILL_BUTTON_STYLE: Style = Style {
-            width: Val::Px(150.0),
-            height: Val::Px(65.0),
+        pub const SKILL_BUTTON_STYLE: Style = {
+            let mut style = Style::DEFAULT;
+            style.width = Val::Px(150.0);
+            style.height = Val::Px(65.0);
             // center button
-            margin: UiRect::all(Val::Auto),
+            style.margin = UiRect::all(Val::Auto);
             // horizontally center child text
-            justify_content: JustifyContent::Center,
+            style.justify_content = JustifyContent::Center;
             // vertically center child text
-            align_items: AlignItems::Center,
-            ..Style::DEFAULT
+            style.align_items = AlignItems::Center;
+            style
         };
 
-        pub const ACTION_BUTTON_STYLE: Style = Style {
-            width: Val::Px(154.), // Val::Percent(100.),
-            height: Val::Px(103.),
-            justify_content: JustifyContent::Center,
-            flex_direction: FlexDirection::ColumnReverse,
-            flex_wrap: FlexWrap::NoWrap,
-            align_items: AlignItems::Center,
-            ..Style::DEFAULT
+        pub const ACTION_BUTTON_STYLE: Style = {
+            let mut style = Style::DEFAULT;
+            style.width = Val::Px(154.); // Val::Percent(100.);
+            style.height = Val::Px(103.);
+            style.justify_content = JustifyContent::Center;
+            style.flex_direction = FlexDirection::ColumnReverse;
+            style.flex_wrap = FlexWrap::NoWrap;
+            style.align_items = AlignItems::Center;
+            style
+        };
+
+        pub const ALLIES_SHEET_STYLE: Style = {
+            let mut style = Style::DEFAULT;
+            style.flex_shrink = 0.;
+            style.flex_direction = FlexDirection::Column;
+            style.width = Val::Percent(100.);
+            style.height = Val::Percent(50.);
+            // gap between the two rows
+            style.row_gap = Val::Percent(8.);
+            style
+        };
+
+        pub const ROW_SHEETS_STYLE: Style = {
+            let mut style = Style::DEFAULT;
+            style.flex_shrink = 0.;
+            style.flex_direction = FlexDirection::Row;
+            style.height = Val::Percent(50.);
+            // gap between the three scrolls
+            style.column_gap = Val::Percent(2.3);
+            style
+        };
+
+        pub const MINI_CHARACTER_SHEET_STYLE: Style = {
+            let mut style = Style::DEFAULT;
+            style.width = Val::Percent(23.);
+            style.height = Val::Percent(96.);
+            style.left = Val::Percent(16.8);
+            style.top = Val::Percent(16.);
+            style
         };
     }
 }

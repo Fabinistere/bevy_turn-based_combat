@@ -5,9 +5,10 @@ pub struct FabienPlugin;
 impl Plugin for FabienPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
-            Startup,
-            load_character_spritesheet.in_base_set(StartupSet::PreStartup),
+            PreStartup,
+            (load_character_spritesheet, load_vfx_spritesheet),
         );
+    }
 }
 
 #[derive(Clone, Resource)]
