@@ -242,7 +242,7 @@ pub fn phase_transition(
             _ => {}
         }
 
-        match game_state.0.clone() {
+        match game_state.get() {
             GameState::CombatWall => {
                 // TODO: CouldHave - Dynamic Input: AutoSwitch Selection to avoid repetitive inpleasant task ("go to next caster")
                 let mut character_sheet_visibility = character_sheet_query

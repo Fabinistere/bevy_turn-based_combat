@@ -182,7 +182,7 @@ impl Plugin for CombatPlugin {
             )
 
             .add_systems(Startup, stuff::spawn_stuff)
-            .add_systems(Update, update_number_of_fighters.before(ui::combat_panel::hud_wall_setup).in_schedule(OnEnter(GameState::CombatWall)))
+            .add_systems(OnEnter(GameState::CombatWall), update_number_of_fighters.before(ui::combat_panel::hud_wall_setup))
 
             .add_systems(
                 Update,
@@ -234,7 +234,6 @@ pub struct CombatBundle {
     pub action_count: ActionCount,
     pub tactical_position: TacticalPosition,
 
-    #[bundle]
     pub stats: StatBundle,
 }
 

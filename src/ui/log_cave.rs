@@ -10,7 +10,7 @@ use bevy::{
 
 use crate::{
     combat::GameState,
-    constants::ui::style::*,
+    constants::ui::{style::*, HUD_WALL_WIDTH},
     ui::{
         combat_panel::{Ladder, UIScene},
         player_interaction::ScrollingList,
@@ -70,7 +70,8 @@ pub fn cave_ladder(
 ) {
     if let Ok(interaction) = ladder_query.get_single() {
         match interaction {
-            Interaction::Pressed => match game_state.0.clone() {
+            // TOTEST: `.clone()` needed ?
+            Interaction::Pressed => match game_state.get() {
                 GameState::CombatWall => {
                     next_state.set(GameState::LogCave);
                 }
@@ -120,7 +121,7 @@ pub fn setup(
                 ImageBundle {
                     image: combat_log_resources.base_log_cave.clone().into(),
                     style: Style {
-                        width: Val::Percent(36.),
+                        width: Val::Percent(HUD_WALL_WIDTH),
                         flex_direction: FlexDirection::Column,
                         ..default()
                     },
@@ -163,7 +164,7 @@ pub fn setup(
                                 height: Val::Percent(100.),
                                 flex_direction: FlexDirection::Column,
                                 align_self: AlignSelf::Center,
-                                overflow: Overflow::Hidden,
+                                overflow: Overflow::clip_y(),
                                 ..default()
                             },
                             // background_color: Color::GRAY.into(),

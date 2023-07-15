@@ -15,7 +15,7 @@ use crate::{
     },
     constants::{
         combat::FIRST_ENEMY_ID,
-        ui::{dialogs::*, style::*},
+        ui::{dialogs::*, style::*, *},
     },
     ui::{
         combat_system::{HpMeter, MpMeter},
@@ -831,7 +831,7 @@ pub fn hud_wall_setup(
                 ImageBundle {
                     image: combat_wall_resources.base_combat_wall.clone().into(),
                     style: Style {
-                        width: Val::Percent(36.),
+                        width: Val::Percent(HUD_WALL_WIDTH),
                         flex_direction: FlexDirection::Column,
                         ..default()
                     },
@@ -874,17 +874,7 @@ pub fn hud_wall_setup(
                             .spawn((
                                 NodeBundle {
                                     // background_color: Color::GRAY.into(),
-                                    style: Style {
-                                        flex_shrink: 0.,
-                                        flex_direction: FlexDirection::Column,
-                                        width: Val::Percent(100.),
-                                        height: Val::Percent(44.8),
-                                        // gap between the two rows
-                                        column_gap: Val::Percent(14.5),
-                                        left: Val::Percent(16.8),
-                                        top: Val::Percent(4.2),
-                                        ..default()
-                                    },
+                                    style: ALLIES_SHEET_STYLE,
                                     ..default()
                                 },
                                 Name::new("Allies' Scroll"),
@@ -893,14 +883,7 @@ pub fn hud_wall_setup(
                                 parent
                                     .spawn((
                                         NodeBundle {
-                                            style: Style {
-                                                flex_shrink: 0.,
-                                                flex_direction: FlexDirection::Row,
-                                                height: Val::Percent(50.),
-                                                // gap between the three scrolls
-                                                row_gap: Val::Percent(2.7),
-                                                ..default()
-                                            },
+                                            style: ROW_SHEETS_STYLE,
                                             ..default()
                                         },
                                         Name::new("First Row of Scrolls"),
@@ -921,6 +904,7 @@ pub fn hud_wall_setup(
                                                     } else {
                                                         Visibility::Hidden
                                                     },
+                                                    style: MINI_CHARACTER_SHEET_STYLE,
                                                     ..default()
                                                 },
                                                 Name::new(format!("Ally's Scroll {}", i)),
@@ -933,14 +917,7 @@ pub fn hud_wall_setup(
                                 parent
                                     .spawn((
                                         NodeBundle {
-                                            style: Style {
-                                                flex_shrink: 0.,
-                                                flex_direction: FlexDirection::Row,
-                                                height: Val::Percent(50.),
-                                                // gap between the three scrolls
-                                                row_gap: Val::Percent(2.7),
-                                                ..default()
-                                            },
+                                            style: ROW_SHEETS_STYLE,
                                             ..default()
                                         },
                                         Name::new("Second Row of Scrolls"),
@@ -961,6 +938,7 @@ pub fn hud_wall_setup(
                                                     } else {
                                                         Visibility::Hidden
                                                     },
+                                                    style: MINI_CHARACTER_SHEET_STYLE,
                                                     ..default()
                                                 },
                                                 Name::new(format!("Ally's Scroll {}", i)),
@@ -978,7 +956,7 @@ pub fn hud_wall_setup(
                                     flex_shrink: 0.,
                                     width: Val::Percent(17.),
                                     left: Val::Percent(54.),
-                                    top: Val::Percent(31.8),
+                                    top: Val::Percent(26.6),
                                     ..default()
                                 },
                                 ..default()
@@ -998,7 +976,7 @@ pub fn hud_wall_setup(
                                     flex_shrink: 0.,
                                     width: Val::Percent(32.),
                                     left: Val::Percent(9.7),
-                                    top: Val::Percent(25.7),
+                                    top: Val::Percent(20.5),
                                     ..default()
                                 },
                                 ..default()
@@ -1087,7 +1065,7 @@ pub fn global_ui_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 .spawn((
                     NodeBundle {
                         style: Style {
-                            width: Val::Percent(56.),
+                            width: Val::Percent(FIGHTING_HALL_WIDTH),
                             flex_direction: FlexDirection::Column,
                             ..default()
                         },
@@ -1199,7 +1177,7 @@ pub fn global_ui_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 .spawn((
                     NodeBundle {
                         style: Style {
-                            width: Val::Percent(8.),
+                            width: Val::Percent(INITIATIVE_BAR_WIDTH),
                             ..default()
                         },
                         background_color: Color::OLIVE.into(),
