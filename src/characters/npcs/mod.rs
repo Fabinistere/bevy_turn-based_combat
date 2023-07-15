@@ -10,7 +10,7 @@ use crate::{
         Recruted, Skills, TacticalPlace, TacticalPosition, Team,
     },
     constants::{
-        character::{npc::*, CHAR_SCALE, SPRITE_SIZE},
+        character::{npc::*, SPRITE_SIZE},
         combat::{team::*, FIRST_ALLY_ID, FIRST_ENEMY_ID},
     },
     spritesheet::FabienSheet,
@@ -29,8 +29,8 @@ impl Plugin for NPCPlugin {
     #[rustfmt::skip]
     fn build(&self, app: &mut App) {
         app
-            .add_startup_system(spawn_characters)
-            .add_system(ai::ai_decision_making.in_set(CombatState::AIStrategy));
+            .add_systems(Startup, spawn_characters)
+            .add_systems(Update, ai::ai_decision_making.in_set(CombatState::AIStrategy));
     }
 }
 
@@ -63,7 +63,7 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
                 },
                 texture_atlas: fabien.0.clone(),
                 transform: Transform {
-                    scale: Vec3::splat(CHAR_SCALE * 1.),
+                    scale: Vec3::splat(NPC_SCALE),
                     ..default()
                 },
                 ..default()
@@ -115,7 +115,7 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
                 },
                 texture_atlas: fabien.0.clone(),
                 transform: Transform {
-                    scale: Vec3::splat(NPC_SCALE * 1.),
+                    scale: Vec3::splat(NPC_SCALE),
                     ..default()
                 },
                 ..default()
@@ -168,7 +168,7 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
                 },
                 texture_atlas: fabien.0.clone(),
                 transform: Transform {
-                    scale: Vec3::splat(NPC_SCALE * 1.),
+                    scale: Vec3::splat(NPC_SCALE),
                     ..default()
                 },
                 ..default()
@@ -214,7 +214,7 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
                 sprite: TextureAtlasSprite::new(OLF_STARTING_ANIM),
                 texture_atlas: fabien.0.clone(),
                 transform: Transform {
-                    scale: Vec3::splat(NPC_SCALE * 1.),
+                    scale: Vec3::splat(NPC_SCALE),
                     ..default()
                 },
                 ..default()
@@ -262,7 +262,7 @@ fn spawn_characters(mut commands: Commands, fabien: Res<FabienSheet>) {
                     sprite: TextureAtlasSprite::new(FABICURION_STARTING_ANIM),
                     texture_atlas: fabien.0.clone(),
                     transform: Transform {
-                        scale: Vec3::splat(NPC_SCALE * 1.),
+                        scale: Vec3::splat(NPC_SCALE),
                         ..default()
                     },
                     ..default()

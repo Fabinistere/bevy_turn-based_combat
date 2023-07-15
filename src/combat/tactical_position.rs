@@ -9,7 +9,7 @@ use bevy::{
 
 use crate::{
     combat::{InCombat, Player, Recruted, TacticalPlace, TacticalPosition},
-    constants::ui::fighting_hall_position::*,
+    constants::ui::{fighting_hall_position::*, FIGHTING_HALL_WIDTH},
 };
 
 /// Happens when:
@@ -19,6 +19,7 @@ use crate::{
 /// Read in:
 /// - tactical_position::update_character_position()
 ///   - Adapt OnScreenPosition for each InCombat character
+#[derive(Event)]
 pub struct UpdateCharacterPositionEvent;
 
 /// Automatic detection to change tactical position render.
@@ -71,7 +72,7 @@ pub fn update_character_position(
         // 56% = width of the Fighting Hall
         // 17 = number of box / line
         // 2 = half of the box (to point to the center)
-        let x = (width * 0.56) / 17.;
+        let x = (width * (FIGHTING_HALL_WIDTH / 100.)) / 17.;
         let y = (height * 1.) / 17.;
 
         // info!("width: {}, x: {}", width, x);
@@ -140,7 +141,8 @@ pub fn update_character_position(
             // );
 
             transform.translation.x = transform_coordinates.x;
-            transform.translation.y = transform_coordinates.y;
+            // y axe is inverted
+            transform.translation.y = -transform_coordinates.y;
 
             // info!("---------------");
         }

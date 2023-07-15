@@ -28,6 +28,7 @@ use super::{skills::SkillToExecute, GameState, Team};
 ///   - Determine which action to be taken,
 ///   accordingly with (/w.r.t.) to the phase we're currently in,
 ///   and the phase we want to transit.
+#[derive(Event)]
 pub struct TransitionPhaseEvent(pub CombatState);
 
 /// Action manager, about phase transition.
@@ -241,7 +242,7 @@ pub fn phase_transition(
             _ => {}
         }
 
-        match game_state.0.clone() {
+        match game_state.get() {
             GameState::CombatWall => {
                 // TODO: CouldHave - Dynamic Input: AutoSwitch Selection to avoid repetitive inpleasant task ("go to next caster")
                 let mut character_sheet_visibility = character_sheet_query

@@ -16,6 +16,7 @@ impl Plugin for FXPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_systems(
+                Update,
                 (
                     add_skill_vfx,
                     animate_skill_vfx,

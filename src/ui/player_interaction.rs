@@ -80,7 +80,7 @@ pub fn button_system(
     for (interaction, mut color, _children) in &mut interaction_query {
         // let mut text = text_query.get_mut(children[0]).unwrap();
         match *interaction {
-            Interaction::Clicked => {
+            Interaction::Pressed => {
                 *color = PRESSED_BUTTON.into();
             }
             Interaction::Hovered => {
@@ -123,7 +123,7 @@ pub fn mouse_scroll(
 
             scrolling_list.position += dy;
             scrolling_list.position = scrolling_list.position.clamp(-max_scroll, 0.);
-            style.position.top = Val::Px(scrolling_list.position);
+            style.top = Val::Px(scrolling_list.position);
         }
     }
 }
@@ -184,7 +184,7 @@ pub fn select_unit_by_mouse(
                     && transform.translation.y - half_height < world_position.y
                     && transform.translation.y + half_height > world_position.y
                 {
-                    match game_state.0.clone() {
+                    match game_state.get() {
                         GameState::LogCave => {
                             info!("Transi LogCave -> CombatWall");
                             next_state.set(GameState::CombatWall);
@@ -247,7 +247,7 @@ pub fn select_skill(
         let (caster, _caster_name, action_count) = unit_selected_query.single();
 
         match *interaction {
-            Interaction::Clicked => {
+            Interaction::Pressed => {
                 // <=
                 if action_count.current == 0 {
                     text.sections[0].value = String::from("0ac Left");
@@ -345,7 +345,7 @@ pub fn end_of_turn_button(
     for (interaction, children) in &mut interaction_query {
         let mut text = text_query.get_mut(children[0]).unwrap();
         match *interaction {
-            Interaction::Clicked => {
+            Interaction::Pressed => {
                 if let Some(last_action) = combat_resources.history.last() {
                     if !last_action.is_correct(combat_resources.number_of_fighters.clone()) {
                         combat_resources.history.pop();
@@ -398,7 +398,7 @@ pub fn cancel_last_input(
     mut transition_phase_event: EventWriter<TransitionPhaseEvent>,
 ) {
     if keyboard_input.just_pressed(KeyCode::Escape) {
-        match game_state.0.clone() {
+        match game_state.get() {
             GameState::LogCave => {
                 info!("Transi LogCave -> CombatWall");
                 next_state.set(GameState::CombatWall);
@@ -529,7 +529,7 @@ pub fn action_button(
 ) {
     for (interaction, action_displayer) in &mut interaction_query {
         match *interaction {
-            Interaction::Clicked => {
+            Interaction::Pressed => {
                 info!("Action {} clicked", action_displayer.0);
 
                 if combat_resources.history.len() <= action_displayer.0 {
@@ -593,7 +593,7 @@ pub fn mini_character_sheet_interact(
 ) {
     for (interaction, sheet_number) in mini_character_sheets_interaction_query.iter() {
         match interaction {
-            Interaction::Clicked => {
+            Interaction::Pressed => {
                 let mut found = false;
                 // OPTIMIZE: the id search (a hash table ? (separated from CharacterSheetElements which represent the unique big CS))
                 for (fighter, id) in combat_units_query.iter() {

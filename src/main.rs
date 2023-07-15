@@ -26,7 +26,7 @@ fn main() {
     let mut app = App::new();
     app .insert_resource(ClearColor(CLEAR))
         .insert_resource(Msaa::Off)
-        .add_plugins(
+        .add_plugins((
             DefaultPlugins
                 .set(WindowPlugin {
                     primary_window: Some(Window {
@@ -41,21 +41,21 @@ fn main() {
                     ..default()
                 })
                 .set(ImagePlugin::default_nearest()),
-        )
-        .add_plugin(TweeningPlugin)
-        .add_plugin(CombatPlugin)
-        .add_plugin(NPCPlugin)
-        .add_plugin(UiPlugin)
-        .add_plugin(FXPlugin)
-        .add_plugin(DebugPlugin)
-        .add_plugin(FabienPlugin)
+            DebugPlugin,
+            TweeningPlugin,
+            FabienPlugin,
+            CombatPlugin,
+            NPCPlugin,
+            UiPlugin,
+            FXPlugin
+        ))
         // .edit_schedule(CoreSchedule::Main, |schedule| {
         //     schedule.set_build_settings(ScheduleBuildSettings {
         //         ambiguity_detection: LogLevel::Warn,
         //         ..default()
         //     });
         // })
-        .add_startup_system(spawn_camera);
+        .add_systems(Startup, spawn_camera);
 
     app.run();
 

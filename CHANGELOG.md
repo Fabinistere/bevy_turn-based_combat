@@ -5,7 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Skill VFX and AI Random Strategy - [0.6](https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.6) - 2023-07-12
+## [Bevy 0.11](https://bevyengine.org/learn/migration-guides/0.10-0.11/) - [0.6.1](https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.6.1) - 2023-07-15
+
+[![v0.6.1](https://img.shields.io/badge/v0.6.1-gray?style=flat&logo=github&logoColor=181717&link=https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.6.1)](https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.6.1)
+[![**Full Commits History**](https://img.shields.io/badge/GitHubLog-gray?style=flat&logo=github&logoColor=181717&link=https://github.com/Fabinistere/bevy_turn-based_combat/commits/v0.6.1)](https://github.com/Fabinistere/bevy_turn-based_combat/commits/v0.6.1)
+
+- [Migration Guide Bevy 0.10 -> 0.11](https://bevyengine.org/learn/migration-guides/0.10-0.11/)
+
+### Changed
+
+- ECS
+  - `in_set(OnUpdate(*))` -> `run_if(in_state(*))`
+  - Add the `#[derive(Event)]` macro for events.
+  - Allow tuples and single plugins in `add_plugins`, deprecate `add_plugin`
+  - [Schedule-First: the new and improved `add_systems`](https://bevyengine.org/learn/migration-guides/0.10-0.11/#schedule-first-the-new-and-improved-add-systems)
+  - State field are now private, use `get()` to get the current state
+- UI
+  - Flatten UI Style properties that use Size + remove Size
+    - The `size`, `min_size`, `max_size`, and `gap` properties have been replaced by the `width`, `height`, `min_width`, `min_height`, `max_width`, `max_height`, `row_gap`, and `column_gap` properties. Use the new properties instead.
+  - [Remove `Val::Undefinded`](https://bevyengine.org/learn/migration-guides/0.10-0.11/#remove-val-undefined)
+    - `Val::Undefined` has been removed. Bevy UI’s behaviour with default values should remain the same.
+    The default values of `UiRect`’s fields have been changed to `Val::Px(0.)`.
+    `Style`’s position field has been removed. Its `left`, `right`, `top` and `bottom` fields have been added to `Style` directly.
+    For the `size`, `margin`, `border`, and `padding` fields of `Style`, `Val::Undefined` should be replaced with `Val::Px(0.)`.
+    For the `min_size`, `max_size`, `left`, `right`, `top` and `bottom` fields of `Style`, `Val::Undefined` should be replaced with `Val::Auto`
+  - replace `Overflow::Hidden` by `Overflow::clip_y()`
+  - `..Style::DEFAULT` cannot longer be used in `const`:
+  I choose Style Constant instead of Style Method for the migration (see the 0.6.1 changelog)
+  - The Y axe's inverted once again !
+  
+### Refactored
+
+- Allies' Sheet Style
+
+### TODO
+
+- Once [`bevy-inspector-egui`](https://github.com/jakobhellermann/bevy-inspector-egui) release `0.11` support, update `Cargo.toml`
+- REFACTOR: `CombatState` as States
+  - we will need to find a Default State, to be in while we're not in `GameState::CombatWall` or `GameState::LogCave`
+
+## Skill VFX and AI Random Strategy - [0.6.0](https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.6) - 2023-07-12
 
 [![v0.6](https://img.shields.io/badge/v0.6-gray?style=flat&logo=github&logoColor=181717&link=https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.6)](https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.6)
 [![**Full Commits History**](https://img.shields.io/badge/GitHubLog-gray?style=flat&logo=github&logoColor=181717&link=https://github.com/Fabinistere/bevy_turn-based_combat/commits/v0.6)](https://github.com/Fabinistere/bevy_turn-based_combat/commits/v0.6)

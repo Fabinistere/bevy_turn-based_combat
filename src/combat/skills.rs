@@ -146,6 +146,7 @@ impl Default for Skill {
 ///   - combat::skills::execute_shill
 ///     - Execute the skill with the caster's Stats
 ///     to the target
+#[derive(Event)]
 pub struct ExecuteSkillEvent;
 
 /// Descending order queue of all Action.

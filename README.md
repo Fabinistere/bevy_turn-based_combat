@@ -1,7 +1,6 @@
 # Bevy Turn-Based Combat
 
-<!-- TODO: Bevy 0.11 -->
-[![v0.6](https://img.shields.io/badge/v0.6-gray?style=flat&logo=github&logoColor=181717&link=https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.6)](https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.6)
+[![v0.6.1](https://img.shields.io/badge/v0.6.1-gray?style=flat&logo=github&logoColor=181717&link=https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.6.1)](https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.6.1)
 [![Bevy tracking](https://img.shields.io/badge/Bevy%20tracking-released%20version-lightblue)](https://github.com/bevyengine/bevy/blob/main/docs/plugins_guidelines.md#main-branch-tracking)
 [![MIT/Apache 2.0](https://img.shields.io/badge/license-MIT%2FApache-blue.svg)](https://github.com/fabinistere/bevy_turn-based_combat#license)
 
@@ -89,10 +88,10 @@ To avoid using the git storage for such maters.
 In fact, storing an image in git means that if a single pixel changes, git will completely save the previous image and the next image.
 Which turns out to be a complete waste of energy in my case.
 
-SO, to have the assets of the last commit, please download this folder:
+To get the assets of the last commit, please download this folder:
 [Download Assets](https://drive.google.com/drive/folders/1VyAxd2Jsbv0EQ3Z_Ye4U7_Cybimk_Wk0?usp=share_link)
 
-To find previous assets, they will be indicated in the given database.
+To find previous assets, they will be indicated for each release.
 
 ## License
 

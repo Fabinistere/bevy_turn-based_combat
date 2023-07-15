@@ -48,9 +48,11 @@ pub struct LastTurnActionHistory(pub String);
 pub struct ActionsLogs(pub String);
 
 /// DOC
+#[derive(Event)]
 pub struct UpdateUnitSelectedEvent(pub Entity);
 
 /// DOC
+#[derive(Event)]
 pub struct UpdateUnitTargetedEvent(pub Entity);
 
 /* -------------------------------------------------------------------------- */
