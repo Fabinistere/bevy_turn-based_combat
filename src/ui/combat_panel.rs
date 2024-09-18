@@ -11,7 +11,7 @@ use crate::{
         skills::Skill,
         stats::{Attack, AttackSpe, Defense, DefenseSpe, Hp, Initiative, Mana, Shield},
         stuff::Job,
-        CombatResources,
+        CombatResources, GameState,
     },
     constants::{
         combat::FIRST_ENEMY_ID,
@@ -190,7 +190,12 @@ pub fn cleanup(
     mut commands: Commands,
     character_sheet_query: Query<Entity, With<CharacterSheet>>,
     hud_wall_query: Query<Entity, With<HUDWall>>,
+
+    // DEBUG: test to see if we know which State the transition takes us to
+    game_state: Res<State<GameState>>,
 ) {
+    info!("Cleanup is executed in the {:?} state.", game_state.get());
+
     let character_sheet = character_sheet_query.single();
     let hud_wall = hud_wall_query.single();
 
