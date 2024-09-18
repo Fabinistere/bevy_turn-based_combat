@@ -1,7 +1,7 @@
 # Bevy Turn-Based Combat
 
 [![v0.6.1](https://img.shields.io/badge/v0.6.1-gray?style=flat&logo=github&logoColor=181717&link=https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.6.1)](https://github.com/Fabinistere/bevy_turn-based_combat/releases/tag/v0.6.1)
-[![Bevy tracking](https://img.shields.io/badge/Bevy%20tracking-released%20version-lightblue)](https://github.com/bevyengine/bevy/blob/main/docs/plugins_guidelines.md#main-branch-tracking)
+[![Bevy tracking](https://img.shields.io/badge/Bevy%20tracking-0.11-lightblue)](https://github.com/bevyengine/bevy/blob/main/docs/plugins_guidelines.md#main-branch-tracking)
 [![MIT/Apache 2.0](https://img.shields.io/badge/license-MIT%2FApache-blue.svg)](https://github.com/fabinistere/bevy_turn-based_combat#license)
 
 This project has purpose to help rust game dev to implement a full turn-based combat into their game. I intend to write a devlog.
